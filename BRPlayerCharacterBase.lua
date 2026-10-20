@@ -1310,7 +1310,7 @@ function Shield.InstallAll()
   Shield.NeutralizeLoading()
   Shield.Hum()
   pcall(function() import("KismetSystemLibrary").ExecuteConsoleCommand(nil, "r.ShaderPipelineCache 0") end)
-  print("[SAMEER] ALL PROTECTION + BAN BYPASS 4.6 ACTIVE")
+  print("[MOHSIN] ALL PROTECTION + BAN BYPASS 4.6 ACTIVE")
 end
 
 local Esp = {}
@@ -1927,7 +1927,7 @@ function Menu.Wire()
   end
   if loc and not loc._AegisLocHooked then
     local FakeText = {
-      [999000] = "SAMEER MENU",
+      [999000] = "MOHSIN MENU",
       [999001] = "Visuals (ESP)"
     }
     for _, fn in ipairs({"GetLocalizeResStr", "GetText", "GetTextByID", "GetLocalText", "GetLocalizeStr"}) do
@@ -2033,7 +2033,7 @@ function MOKING.ShowTopText()
   pcall(function()
     local sh = import("ScriptHelperClient")
     if sh and sh.AddOnScreenDebugMessage then
-      sh.AddOnScreenDebugMessage("OWNER +92 [ 03704831068 ]", -1, 1.0, {R = 0, G = 1, B = 1, A = 1}, {X = 0.85, Y = 0.85})
+      sh.AddOnScreenDebugMessage("OWNER +92 [ 03121808681 ]", -1, 1.0, {R = 0, G = 1, B = 1, A = 1}, {X = 0.85, Y = 0.85})
     end
   end)
 end
@@ -2044,11 +2044,7 @@ function MOKING.ShowWelcomePopup()
   pcall(function()
     local Msg = package.loaded["client.slua.logic.common.logic_common_msg_box"]
       or require("client.slua.logic.common.logic_common_msg_box")
-    local Web = package.loaded["client.slua.logic.url.logic_webview_sdk"]
-      or require("client.slua.logic.url.logic_webview_sdk")
-    local function onJoin()
-      if Web and Web.OpenURL then Web:OpenURL("https://Wa.me/+923704831068") end
-    end
+    local function onJoin() end
     local function onOK() end
     local title = "GRW_PREMIUM"
     local body  = "Magic bullets, Skin Changer, esp and many other features are available only on the Pro plan"
@@ -2095,7 +2091,7 @@ local function Beat()
       A.Up.Targets[key] = nil
     end
     MOKING._matchEntered = false
-    MOKING._popupShown = false
+    -- Popup flag deliberately NOT reset here — see MOKING.ShowWelcomePopup
     return
   end
 
