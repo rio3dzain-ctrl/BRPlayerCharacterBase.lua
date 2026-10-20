@@ -2038,10 +2038,13 @@ function MOKING.ShowTopText()
   end)
 end
 
+-- Welcome popup function removed permanently at user request.
+
 function MOKING.OnMatchEnter()
   if MOKING._matchEntered then return end
   MOKING._matchEntered = true
   MOKING.ShowTopText()
+  -- MOKING.ShowWelcomePopup() removed — no popup will appear
 end
 
 A.Up.Pulse = (A.Up.Pulse or 0) + 1
