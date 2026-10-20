@@ -2038,28 +2038,10 @@ function MOKING.ShowTopText()
   end)
 end
 
-function MOKING.ShowWelcomePopup()
-  if MOKING._popupShown then return end
-  MOKING._popupShown = true
-  pcall(function()
-    local Msg = package.loaded["client.slua.logic.common.logic_common_msg_box"]
-      or require("client.slua.logic.common.logic_common_msg_box")
-    local function onJoin() end
-    local function onOK() end
-    local title = "GRW_PREMIUM"
-    local body  = "Magic bullets, Skin Changer, esp and many other features are available only on the Pro plan"
-    local ok = pcall(function() Msg.Show(4, title, body, onJoin, onOK, "JOIN", "OK") end)
-    if not ok then
-      pcall(function() Msg.Show(4, title, body, onJoin) end)
-    end
-  end)
-end
-
 function MOKING.OnMatchEnter()
   if MOKING._matchEntered then return end
   MOKING._matchEntered = true
   MOKING.ShowTopText()
-  MOKING.ShowWelcomePopup()
 end
 
 A.Up.Pulse = (A.Up.Pulse or 0) + 1
@@ -2091,7 +2073,6 @@ local function Beat()
       A.Up.Targets[key] = nil
     end
     MOKING._matchEntered = false
-    -- Popup flag deliberately NOT reset here — see MOKING.ShowWelcomePopup
     return
   end
 
