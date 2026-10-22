@@ -583,9 +583,9 @@ _G.LexusConfig = _G.LexusConfig or {
     Esp9_Line = false     -- Sợi Line
     Esp9_Skeleton = false -- Skeleton (Khung xương)
     CounterStyle = 1,     -- نمط عدادات Player/Bot من 1 إلى 12
-    EspBomMaster = false, 
-    EspItemBom = false,   
-    EspActiveBom = false, 
+    EspBomMaster = true, 
+    EspItemBom = true,   
+    EspActiveBom = true, 
     EspAimWarning = false,         -- [THÊM MỚI] Công tắc Cảnh báo địch ngắm
     EspAimWarningVisCheck = false, -- [THÊM MỚI] Công tắc Check tường cho cảnh báo ngắm
     EspVehicle = false,   
@@ -682,7 +682,7 @@ _G.LexusConfig = _G.LexusConfig or {
     BugManEnable = true
 
     -- Config Fake CHACHA Visual
-    X3FakeVisual = false
+    X3FakeVisual = true
 }
 
 -- CHỨA STATE HỆ THỐNG ĐÃ ĐƯỢC TỐI ƯU HÓA HOÀN TOÀN RAM TRỐNG
