@@ -305,23 +305,14 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
 --=============================================================================
--- ESP v3 — HARD FIX for "layer behind" ghosting
---
---   * bIsVolatile = true  → bypasses Slate paint cache entirely (no ghosts)
---   * SetRenderTransform(FWidgetTransform) → atomic Layout+Paint invalidation
---   * Pure text (no shadow, no outline) → no doubled edges on mobile GPUs
---   * 30 Hz update → smooth visuals + minimal CPU
---   * All positions rounded to integers → no sub-pixel AA ghosting
+-- ESP v4 — ULTIMATE GHOSTING FIX
+-- Uses SetRenderTranslation instead of Slot:SetPosition to bypass UMG layout 
+-- caching entirely, ensuring zero "double layer" rendering at 60 FPS.
 --=============================================================================
 local ESP_Enabled = true
 
 local FVector2D    = _G.FVector2D    or import("Vector2D")
 local FLinearColor = _G.FLinearColor or import("LinearColor")
-local FWidgetTransform
-pcall(function() FWidgetTransform = import("WidgetTransform") end)
-if not FWidgetTransform then
-  pcall(function() FWidgetTransform = import("/Script/SlateCore.WidgetTransform") end)
-end
 
 local SlateBlueprintLibrary, WidgetLayoutLibrary, SlateColor, GameplayStaticsESP
 local KismetSystemLibraryESP, HitResultClassESP
@@ -350,12 +341,12 @@ local CFG = {
   ScreenMargin     = 500,
   TopTextY         = 6.0,
   SnapOriginY      = 0.0,
-  SnapThickness    = 2.0,     -- integer for crisper lines
+  SnapThickness    = 2.0,
   BoxMinHeight     = 1,
   BoxWidthFactor   = 0.62,
   BoxMinWidth      = 22,
   BoxMaxWidth      = 320,
-  SideBarWidth     = 4.0,     -- integer for crisp health bar
+  SideBarWidth     = 4.0,
   SideBgAlpha      = 0.55,
   SizeHyst         = 2.0,
   NameFontSize     = 15,
@@ -366,7 +357,7 @@ local CFG = {
   InfoW            = 100,
   InfoH            = 70,
   InfoYOffset      = 20,
-  InfoMoveMin      = 1.0,     -- px deadzone
+  InfoMoveMin      = 1.0, 
 }
 
 local C_WHITE  = ESPMKC(1,1,1,1)
@@ -376,7 +367,6 @@ local C_RED    = ESPMKC(1.0,0.15,0.15,1)
 
 local function Lerp(a,b,t) return a + (b - a) * t end
 
--- Precomputed health colours (0..20) — zero per-frame allocation
 local HEALTH_COLORS = {}
 for i = 0, 20 do
   local p = i / 20
@@ -401,7 +391,7 @@ local ESP = {
   ScaleX = 1.0, ScaleY = 1.0, OffsetX = 0.0, OffsetY = 0.0,
   ViewW = 1920, ViewH = 1080,
   CachedCenterX = nil, CachedCenterViewW = 0,
-  LightInterval = 0.033,   -- 30 Hz update (was 0.1 = choppy)
+  LightInterval = 0.016,   -- 60 FPS execution
   ScanInterval = 0.5,
   TransformInterval = 1.0,
   LastScan = -999.0, LastTransform = -999.0, LastWorld = nil,
@@ -788,9 +778,7 @@ function ESP.CanvasCenterX(viewW)
   return result
 end
 
---=====================================================================
--- FIX CORE: volatile widgets + atomic render-transform invalidation
---=====================================================================
+-- Kill volatile caching to ensure draw every frame
 local function SetVolatile(widget)
   if not ESPValid(widget) then return end
   pcall(function()
@@ -799,24 +787,6 @@ local function SetVolatile(widget)
   end)
 end
 
--- SetRenderTransform always invalidates Layout+Paint (no conditional check)
-local function ForcePaint(widget, angle)
-  if not ESPValid(widget) then return end
-  if FWidgetTransform then
-    pcall(function()
-      local t = FWidgetTransform()
-      t.Translation = ESPV2(0, 0)
-      t.Scale = ESPV2(1, 1)
-      t.Shear = ESPV2(0, 0)
-      t.Angle = angle or 0
-      widget:SetRenderTransform(t)
-    end)
-  elseif angle ~= nil then
-    pcall(function() widget:SetRenderAngle(angle) end)
-  end
-end
-
--- FIX: pure text — no shadow, no outline → no doubled edge on any GPU
 function ESP.SetFont(w, size)
   if not ESPValid(w) then return end
   pcall(function()
@@ -859,7 +829,11 @@ function ESP.NewLine(color, z)
   local slot
   pcall(function() slot = canvas:AddChildToCanvas(b) end)
   if not slot then pcall(function() b:RemoveFromParent() end) return nil end
-  pcall(function() slot:SetAutoSize(false); slot:SetZOrder(z or 30) end)
+  pcall(function() 
+    slot:SetAutoSize(false); 
+    slot:SetZOrder(z or 30) 
+    slot:SetPosition(ESPV2(0, 0)) -- LOCK LAYOUT TO 0,0
+  end)
   ESP.Track(b)
   return { Widget = b, Slot = slot }
 end
@@ -879,7 +853,6 @@ end
 function ESP.DrawLine(d, x1, y1, x2, y2, thickness)
   if not d or not ESPValid(d.Widget) or not d.Slot then return false end
   if x1~=x1 or y1~=y1 or x2~=x2 or y2~=y2 then return false end
-  -- Round EVERYTHING to integers → no sub-pixel AA ghosting
   x1, y1, x2, y2 = RND(x1), RND(y1), RND(x2), RND(y2)
   thickness = RND(thickness)
   if thickness < 1 then thickness = 1 end
@@ -897,18 +870,25 @@ function ESP.DrawLine(d, x1, y1, x2, y2, thickness)
   ang = math.floor((ang * 180 / math.pi) * 10 + 0.5) / 10
   len = RND(len)
   local py = RND(y1 - thickness * 0.5)
+  
   local ok = pcall(function()
-    d.Slot:SetPosition(ESPV2(x1, py))
     d.Slot:SetSize(ESPV2(len, thickness))
     d.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
   end)
   if not ok then return false end
-  -- FIX: atomic Layout + Paint invalidation via SetRenderTransform
-  ForcePaint(d.Widget, ang)
+  
+  -- FIX: Use SetRenderTranslation to skip UMG layout caching completely
+  pcall(function()
+    d.Widget:SetRenderTranslation(ESPV2(x1, py))
+    if d.Widget.SetRenderAngle then d.Widget:SetRenderAngle(ang) end
+    if d.Widget.SetRenderTransformAngle then d.Widget:SetRenderTransformAngle(ang) end
+  end)
+  
   d.lx1, d.ly1, d.lx2, d.ly2, d.th = x1, y1, x2, y2, thickness
   d.hidden = false
   return true
 end
+
 function ESP.SetBrush(d, color, key)
   if not d or not ESPValid(d.Widget) then return end
   if key and d.colorKey == key then return end
@@ -994,6 +974,7 @@ function ESP.CreateInfo()
     s1:SetAutoSize(true);  s1:SetAlignment(ESPV2(0.5,0.5)); s1:SetPosition(ESPV2(50, 34))
     s2:SetAutoSize(true);  s2:SetAlignment(ESPV2(0.5,0.5)); s2:SetPosition(ESPV2(50, 52))
     ms:SetAutoSize(false); ms:SetSize(ESPV2(CFG.InfoW, CFG.InfoH)); ms:SetZOrder(35)
+    ms:SetPosition(ESPV2(0, 0)) -- LOCK LAYOUT TO 0,0
   end)
   ESP.Track(box)
   return { Container = box, Name = nName, Dist = nDist, State = nState,
@@ -1034,11 +1015,10 @@ function ESP.UpdateInfo(key, C, isBot, teamID, distM, bVis, headX, headY)
     d.lastBX, d.lastBY = bx, by
     d.hidden = false
     pcall(function()
-      d.Slot:SetPosition(ESPV2(bx, by))
       d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
+      -- FIX: Use SetRenderTranslation to skip UMG layout caching completely
+      d.Container:SetRenderTranslation(ESPV2(bx, by))
     end)
-    -- FIX: force atomic repaint so old position is fully cleared
-    ForcePaint(d.Container, 0)
   end
 end
 
@@ -1063,6 +1043,7 @@ function ESP.CreateCounter()
   pcall(function()
     s0:SetAutoSize(true); s0:SetAlignment(ESPV2(0.5,0.5)); s0:SetPosition(ESPV2(150, 14)); s0:SetZOrder(5)
     ms:SetAutoSize(false); ms:SetAlignment(ESPV2(0.5,0.0)); ms:SetSize(ESPV2(300, 28)); ms:SetZOrder(60)
+    ms:SetPosition(ESPV2(0, 0)) -- LOCK LAYOUT TO 0,0
   end)
   ESP.Track(box)
   return { Container = box, Text = txt, Slot = ms, px = nil, Last = nil }
@@ -1076,20 +1057,19 @@ function ESP.UpdateCounter(nP, nB, viewW)
   end
   if not d then return nil end
   local label = string.format("Players: %d | Bots: %d", nP or 0, nB or 0)
+  local cx = RND(ESP.CanvasCenterX(viewW))
   pcall(function()
     if d.Last ~= label then d.Text:SetText(label); d.Last = label end
-    local cx = RND(ESP.CanvasCenterX(viewW))
     if d.px == nil or math.abs(d.px - cx) >= 1.0 then
       d.px = cx
-      d.Slot:SetPosition(ESPV2(cx, CFG.TopTextY))
-      ForcePaint(d.Container, 0)
+      d.Container:SetRenderTranslation(ESPV2(cx, CFG.TopTextY))
     end
     if d.hidden then
       d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
       d.hidden = false
     end
   end)
-  return RND(ESP.CanvasCenterX(viewW)), CFG.SnapOriginY
+  return cx, CFG.SnapOriginY
 end
 
 function ESP.HideTarget(key)
