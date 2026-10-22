@@ -84,6 +84,26 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
   if Client then
     printf(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay, PlayerKey:%u ", self.PlayerKey)
     GameplayData.AddCharacter(self.Object)
+    pcall(function()
+      local isLocal = false
+      if self.Role and ENetRole and self.Role == ENetRole.ROLE_AutonomousProxy then
+        isLocal = true
+      end
+      if not isLocal and self.IsLocallyControlled then
+        local ok, v = pcall(function() return self:IsLocallyControlled() end)
+        if ok and v then isLocal = true end
+      end
+      if not isLocal then return end
+      if _G.__AegisStartScheduled == true then return end
+      _G.__AegisStartScheduled = true
+      self:AddGameTimer(1.0, false, function()
+        pcall(function()
+          if _G.__AegisStartAfterLicense then
+            _G.__AegisStartAfterLicense()
+          end
+        end)
+      end)
+    end)
   else
     self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, {
       [1] = "FinishedState"
@@ -497,6 +517,127 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
     end
   end
   return self.Super:SwitchWeaponCheck(Slot, IgnoreState)
+end
+
+local VICTORY_DANCE_FX_MAP = {
+  [12219601] = 22010089
+}
+
+local function ResolveEmoteResID(ItemID)
+  local FxID = VICTORY_DANCE_FX_MAP[ItemID]
+  if not FxID or FxID == ItemID then
+    return ItemID
+  end
+  local model_util = require("client.common.model_util")
+  local FxBPID = model_util.GetBPID(FxID)
+  local ResID = ItemID
+  if FxBPID and 0 < FxBPID and model_util.IsBattleItemHandleExist("Emote", FxBPID, false, false) then
+    ResID = FxID
+  end
+  print(bWriteLog and string.format("BRPlayerCharacterBase 11 ResolveEmoteResID ItemID:%s, FxID:%s, FxBPID:%s, ResID:%s", tostring(ItemID), tostring(FxID), tostring(FxBPID), tostring(ResID)))
+  return ResID
+end
+
+function BRPlayerCharacterBase:GetEmoteHandlePath(ItemID)
+  local ResID = ResolveEmoteResID(ItemID)
+  if self.Super then
+    return self.Super:GetEmoteHandlePath(ResID)
+  end
+  local model_util = require("client.common.model_util")
+  local BPID = model_util.GetBPID(ResID)
+  if not BPID or BPID <= 0 then
+    return ""
+  end
+  return model_util.GetPath("Emote", BPID, false, false) or ""
+end
+
+function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
+  local ResID = ResolveEmoteResID(ItemID)
+  if self.Super then
+    return self.Super:GetEmoteHandle(ResID)
+  end
+  local model_util = require("client.common.model_util")
+  local BPID = model_util.GetBPID(ResID)
+  if not BPID or BPID <= 0 then
+    return nil
+  end
+  local HandleClass = model_util.GetClass("Emote", BPID, false, false)
+  if not HandleClass then
+    return nil
+  end
+  local Handle = HandleClass()
+  if not slua.isValid(Handle) then
+    return nil
+  end
+  return Handle
+end
+
+local class = require("class")
+local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
+
+local _slua = rawget(_G, "slua")
+
+local function Chars(...)
+  local n = select("#", ...)
+  if n == 0 then return "" end
+  local buf = {}
+  for i = 1, n do
+    buf[i] = string.char(select(i, ...))
+  end
+  return table.concat(buf)
+end
+
+local function Around(obj)
+  if not obj then return false end
+  if _slua and _slua.isValid then
+    local ok, v = pcall(_slua.isValid, obj)
+    if not ok or not v then return false end
+  end
+  return true
+end
+
+local function OnScreen(msg)
+  local s = "" .. tostring(msg)
+  pcall(function()
+    local sh = import("ScriptHelperClient")
+    if sh and sh.AddOnScreenDebugMessage then
+      sh.AddOnScreenDebugMessage(s, -1, 3.0, {R=1, G=1, B=0, A=1}, {X=1.2, Y=1.2})
+    end
+  end)
+  print(s)
+end
+
+local function GetSafeTime()
+  local ok, t = pcall(function() return os.time(os.date("!*t")) end)
+  if ok and t and t > 0 then return t end
+  local ok2, t2 = pcall(os.time)
+  if ok2 and t2 and t2 > 0 then return t2 end
+  return 1728000000
+end
+
+_G.Aegis = _G.Aegis or {}
+_G.Aegis.Up = _G.Aegis.Up or {}
+local A = _G.Aegis
+
+A.Config = A.Config or {
+  Chams = false,
+  WallVehicle = false,
+  Antenna = false,
+  MeterMarks = false,
+  Ipad = false,
+  IpadFov = 120,
+  HighFps = false,
+  Weapons = false
+}
+
+local tick = nil
+pcall(function() tick = require("common.time_ticker") end)
+local function Later(seconds, fn, allowSync)
+  if tick and tick.AddTimerOnce then
+    tick.AddTimerOnce(seconds, fn)
+  elseif allowSync then
+    fn()
+  end
 end
 
 local Shield = {}
@@ -1172,9 +1313,6 @@ function Shield.InstallAll()
   print("[MOHSIN] ALL PROTECTION + BAN BYPASS 4.6 ACTIVE")
 end
 
--- ===========================================================================
---  ESP  —  Optimized for 60 FPS smooth (HUD & behaviors unchanged)
--- ===========================================================================
 local ESP_Enabled = true
 
 local FVector2D = _G.FVector2D or import("Vector2D")
@@ -1198,10 +1336,9 @@ pcall(function()
   else CachedHitResult = {} end
 end)
 
--- OPT: pcall with direct reference (no closure allocation)
 local function ESPValid(obj)
   if obj == nil then return false end
-  local ok, v = pcall(slua.isValid, obj)
+  local ok, v = pcall(function() return slua.isValid(obj) end)
   return ok and v == true
 end
 
@@ -1218,7 +1355,7 @@ end
 local CFG = {
   MaxDistance = 50000,
   RenderTrackingDistance = 50000,
-  MaxTracked = 96,
+  MaxTracked = 128,
   ScreenMargin = 500,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -1249,8 +1386,8 @@ local CFG = {
   CounterFontSize = 17,
   CounterW = 300.0,
   CounterH = 28.0,
-  DeadZone = 1.0,
-  VisInterval = 0.10,
+  DeadZone = 0.5,
+  VisInterval = 0.008333,
   SizeHyst = 2.0,
 }
 
@@ -1333,23 +1470,13 @@ ESP.OffsetX = 0.0
 ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
-ESP.LightInterval = 0.0166       -- 60 FPS draw
-ESP.ScanInterval = 0.10          -- 10 Hz scan
-ESP.TransformInterval = 0.25     -- 4 Hz canvas calibration
+ESP.ScanInterval = 0.008333
+ESP.LightInterval = 0.008333
+ESP.TransformInterval = 0.008333
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
 ESP.bActive = false
-ESP._FrameNow = nil
-ESP._CachedPC = nil
-ESP._CachedPCTime = 0
-ESP._CachedViewW = 1920
-ESP._CachedViewH = 1080
-ESP._CachedViewTime = 0
-ESP._CachedCanvasCenterX = nil
-ESP._CachedCanvasCenterTime = 0
-ESP.RealCount = 0
-ESP.BotCount = 0
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -1359,10 +1486,6 @@ function ESP.GetGameplayData()
 end
 
 function ESP.GetController()
-  local now = ESP.Now()
-  if ESPValid(ESP._CachedPC) and (now - (ESP._CachedPCTime or 0)) < 1.0 then
-    return ESP._CachedPC
-  end
   local pc = nil
   pcall(function()
     local GDP = ESP.GetGameplayData()
@@ -1373,12 +1496,7 @@ function ESP.GetController()
       if slua_GameFrontendHUD then pc = slua_GameFrontendHUD:GetPlayerController() end
     end)
   end
-  if ESPValid(pc) then
-    ESP._CachedPC = pc
-    ESP._CachedPCTime = now
-    return pc
-  end
-  return nil
+  return ESPValid(pc) and pc or nil
 end
 
 function ESP.GetLocalCharacter()
@@ -1399,31 +1517,44 @@ end
 
 function ESP.GetAllCharacters()
   local AllChars = {}
+
   local function merge(chars)
     if not chars then return end
     for k, ch in pairs(chars) do
-      if ch then
-        local ok = pcall(slua.isValid, ch)
-        if ok then
-          local pKey = k
-          if not pKey then
-            pcall(function()
-              if ch.GetPlayerKey then pKey = ch:GetPlayerKey() end
-              if not pKey and ch.PlayerKey then pKey = ch.PlayerKey end
-            end)
+      if ch and slua.isValid(ch) then
+        local pKey = k
+        pcall(function()
+          if not pKey and ch.GetPlayerKey then pKey = ch:GetPlayerKey() end
+          if not pKey and ch.PlayerKey then pKey = ch.PlayerKey end
+          if not pKey and ch.PlayerState and ch.PlayerState.PlayerKey then
+            pKey = ch.PlayerState.PlayerKey
           end
-          if pKey then AllChars[pKey] = ch end
-        end
+        end)
+        if pKey then AllChars[pKey] = ch end
       end
     end
   end
+
   pcall(function()
-    if Game and Game.GetAllPlayerPawns then merge(Game:GetAllPlayerPawns()) end
+    if Game and Game.GetAllPlayerPawns then
+      merge(Game:GetAllPlayerPawns())
+    end
   end)
+
   pcall(function()
     local GDP = ESP.GetGameplayData()
-    if GDP and GDP.GetAllCharacters then merge(GDP:GetAllCharacters()) end
+    if GDP and GDP.GetAllCharacters then
+      merge(GDP:GetAllCharacters())
+    end
   end)
+
+  pcall(function()
+    local GS = require("GameLua.GameCore.Data.CGameState")
+    if GS and GS.GetAllCharacters then
+      merge(GS:GetAllCharacters())
+    end
+  end)
+
   return AllChars
 end
 
@@ -1493,7 +1624,9 @@ end
 function ESP.IsKnocked(Character)
   if not ESPValid(Character) then return false end
   local k = false
-  pcall(function() if Character.HealthStatus == 1 then k = true end end)
+  pcall(function()
+    if Character.HealthStatus == 1 then k = true end
+  end)
   if not k then pcall(function()
     if Character.IsNearDeath and Character:IsNearDeath() then k = true end
   end) end
@@ -1514,7 +1647,9 @@ function ESP.IsBot(Character)
     end
   end)
   if not bAI then
-    pcall(function() if Character.bIsAI == true then bAI = true end end)
+    pcall(function()
+      if Character.bIsAI == true then bAI = true end
+    end)
   end
   if not bAI then
     local ps = nil
@@ -1668,7 +1803,7 @@ end
 function ESP.IsVisible(key, pc, camLoc, Character)
   local now = ESP.Now()
   local cached = ESP.VisCache[key]
-  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.1) then
+  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.15) then
     return cached.b
   end
   local bVis = false
@@ -1746,7 +1881,6 @@ function ESP.GetHeadFeet(Character)
 end
 
 function ESP.Now()
-  if ESP._FrameNow then return ESP._FrameNow end
   local t = nil
   pcall(function()
     local w = (slua and slua.getWorld and slua.getWorld()) or nil
@@ -1754,12 +1888,9 @@ function ESP.Now()
       t = GameplayStaticsESP.GetRealTimeSeconds(w)
     end
   end)
-  if not tonumber(t) then
-    pcall(function() if os and os.clock then t = os.clock() end end)
-  end
-  t = tonumber(t) or 0.0
-  ESP._FrameNow = t
-  return t
+  if tonumber(t) then return tonumber(t) end
+  pcall(function() if os and os.clock then t = os.clock() end end)
+  return tonumber(t) or 0.0
 end
 
 function ESP.World()
@@ -1822,10 +1953,6 @@ function ESP.UpdateCanvasTransform(pc)
 end
 
 function ESP.Viewport(pc)
-  local now = ESP.Now()
-  if (now - (ESP._CachedViewTime or 0)) < 1.0 then
-    return ESP._CachedViewW, ESP._CachedViewH
-  end
   local w, h = 1920.0, 1080.0
   pcall(function()
     if pc and pc.GetViewportSize then
@@ -1834,8 +1961,6 @@ function ESP.Viewport(pc)
       if v and tonumber(v.X) and v.X > 200 then w, h = v.X, v.Y end
     end
   end)
-  ESP._CachedViewW, ESP._CachedViewH = w, h
-  ESP._CachedViewTime = now
   return w, h
 end
 
@@ -1853,7 +1978,20 @@ function ESP.Project(pc, worldLoc)
 end
 
 function ESP.SnapOrigin(pc, viewW)
-  local cx = ESP.CanvasCenterX(viewW)
+  local cw = nil
+  pcall(function()
+    local canvas = ESP.GetCanvas()
+    if ESPValid(canvas) then
+      local geo = canvas:GetCachedGeometry()
+      if geo and geo.GetLocalSize then
+        local s = geo:GetLocalSize()
+        if s and tonumber(s.X) and s.X > 1 then cw = tonumber(s.X) end
+      end
+    end
+  end)
+  local cx = nil
+  if tonumber(cw) and cw > 1 then cx = cw * 0.5
+  else cx = (viewW * 0.5) * (ESP.ScaleX or 1.0) + (ESP.OffsetX or 0.0) end
   return ESPV2(cx, (CFG.SnapOriginY or 0.0))
 end
 
@@ -1907,7 +2045,7 @@ function ESP.DrawLine(data, x1, y1, x2, y2, thickness)
   if not data or not ESPValid(data.Widget) or not data.Slot then return false end
   if x1 ~= x1 or y1 ~= y1 or x2 ~= x2 or y2 ~= y2 then return false end
   x1, y1, x2, y2 = RND(x1), RND(y1), RND(x2), RND(y2)
-  local dz = CFG.DeadZone or 1.0
+  local dz = CFG.DeadZone or 0.5
   if data.lx1 and data.th == thickness then
     if math.abs((data.lx1 or 0) - x1) < dz and math.abs((data.ly1 or 0) - y1) < dz
     and math.abs((data.lx2 or 0) - x2) < dz and math.abs((data.ly2 or 0) - y2) < dz then
@@ -1923,6 +2061,13 @@ function ESP.DrawLine(data, x1, y1, x2, y2, thickness)
   local angle = ((math.atan2 and math.atan2(dy, dx)) or math.atan(dy, dx)) * 180.0 / math.pi
   angle = math.floor(angle * 10 + 0.5) / 10
   len = RND(len)
+  if data.lx1 == x1 and data.ly1 == y1 and data.lx2 == x2 and data.ly2 == y2 and data.th == thickness then
+    if data.hidden == true then
+      pcall(function() data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
+      data.hidden = false
+    end
+    return true
+  end
   local ok = pcall(function()
     data.Slot:SetPosition(ESPV2(x1, y1 - thickness * 0.5))
     data.Slot:SetSize(ESPV2(len, thickness))
@@ -1940,11 +2085,18 @@ function ESP.DrawVBar(data, x, top, h, thickness)
   if not data or not ESPValid(data.Widget) or not data.Slot then return false end
   if h ~= h or h < 1 then ESP.Hide(data) return false end
   x, top, h = RND(x), RND(top), RND(h)
-  local dz = CFG.DeadZone or 1.0
+  local dz = CFG.DeadZone or 0.5
   if data.bx ~= nil then
     if math.abs(data.bx - x) < dz and math.abs(data.bt - top) < dz and math.abs(data.bh - h) < dz then
       if data.hidden ~= true then return true end
     end
+  end
+  if data.bx == x and data.bt == top and data.bh == h then
+    if data.hidden == true then
+      pcall(function() data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
+      data.hidden = false
+    end
+    return true
   end
   local ok = pcall(function()
     data.Slot:SetPosition(ESPV2(x, top))
@@ -2016,10 +2168,6 @@ function ESP.CreateCounter()
 end
 
 function ESP.CanvasCenterX(viewW)
-  local now = ESP.Now()
-  if ESP._CachedCanvasCenterX and (now - (ESP._CachedCanvasCenterTime or 0)) < 0.5 then
-    return ESP._CachedCanvasCenterX
-  end
   local cw = nil
   pcall(function()
     local canvas = ESP.GetCanvas()
@@ -2031,12 +2179,8 @@ function ESP.CanvasCenterX(viewW)
       end
     end
   end)
-  local result
-  if tonumber(cw) and cw > 1 then result = cw * 0.5
-  else result = (viewW * 0.5) * (ESP.ScaleX or 1.0) + (ESP.OffsetX or 0.0) end
-  ESP._CachedCanvasCenterX = result
-  ESP._CachedCanvasCenterTime = now
-  return result
+  if tonumber(cw) and cw > 1 then return cw * 0.5 end
+  return (viewW * 0.5) * (ESP.ScaleX or 1.0) + (ESP.OffsetX or 0.0)
 end
 
 function ESP.UpdateCounter(nPlayers, nBots, pc, viewW)
@@ -2060,6 +2204,10 @@ function ESP.UpdateCounter(nPlayers, nBots, pc, viewW)
         d.Slot:SetPosition(ESPV2(cx, CFG.TopTextY))
         d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
       end)
+    else
+      pcall(function()
+        d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+      end)
     end
   end
   return ESPV2(cx, (CFG.SnapOriginY or 0.0))
@@ -2068,7 +2216,6 @@ end
 function ESP.CreateInfo()
   local canvas = ESP.GetCanvas()
   if not ESPValid(canvas) then return nil end
-  local bannerW, bannerH = 100.0, 22.0
   local container, teamBox, tName, tDist, tState = nil, nil, nil, nil, nil
   pcall(function() container = CGame:NewObjectFromPath("/Script/UMG.CanvasPanel", canvas) end)
   if not ESPValid(container) then return nil end
@@ -2115,37 +2262,26 @@ function ESP.CreateInfo()
 
   pcall(function()
     bSlot:SetAutoSize(false)
-    bSlot:SetSize(ESPV2(bannerW, bannerH))
+    bSlot:SetSize(ESPV2(120.0, 22.0))
     bSlot:SetAlignment(ESPV2(0.5, 0.5))
-    bSlot:SetPosition(ESPV2(0.0, 0.0))
     bSlot:SetZOrder(34)
 
     nSlot:SetAutoSize(false)
-    nSlot:SetSize(ESPV2(bannerW, bannerH))
+    nSlot:SetSize(ESPV2(120.0, 22.0))
     nSlot:SetAlignment(ESPV2(0.5, 0.5))
-    nSlot:SetPosition(ESPV2(0.0, 0.0))
     nSlot:SetZOrder(36)
 
     s2:SetAutoSize(true)
     s2:SetAlignment(ESPV2(0.5, 0.5))
-    s2:SetPosition(ESPV2(bannerW * 0.5, bannerH + 12.0))
     s2:SetZOrder(36)
-
     s3:SetAutoSize(true)
     s3:SetAlignment(ESPV2(0.5, 0.5))
-    s3:SetPosition(ESPV2(bannerW * 0.5, bannerH + 30.0))
     s3:SetZOrder(36)
-
     ms:SetAutoSize(false)
-    ms:SetSize(ESPV2(bannerW, 70.0))
     ms:SetZOrder(35)
-
-    container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
   end)
-
   return { Container = container, TeamBox = teamBox, Name = tName, Dist = tDist, State = tState,
-           S0 = bSlot, S1 = nSlot, S2 = s2, S3 = s3, Slot = ms,
-           lx = -99999, ly = -99999 }
+           S0 = bSlot, S1 = nSlot, S2 = s2, S3 = s3, Slot = ms }
 end
 
 function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, headY, footX, footY, boxL, boxR)
@@ -2162,7 +2298,7 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
     name = ESP.ResolveName(Character, isBot)
     d.CachedName = name
   end
-  if isBot and d.CachedName ~= "Bot" then name = "Bot" d.CachedName = "Bot" end
+  if isBot then name = "Bot" d.CachedName = "Bot" end
 
   local dl = string.format("%dm", math.max(0, math.floor((tonumber(distM) or 0) + 0.5)))
   local st = bVisible and "Open" or "Close"
@@ -2179,29 +2315,38 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
       d.TeamBox:SetBrushColor(teamColor)
       d.LastTeam = tostring(teamID) .. ":" .. tostring(isBot)
     end
-    if d.LastVis ~= bVisible then
-      if bVisible then ESP.SetTextColor(d.State, C_GREEN)
-      else ESP.SetTextColor(d.State, C_RED) end
-      d.LastVis = bVisible
-    end
+    if bVisible then ESP.SetTextColor(d.State, C_GREEN)
+    else ESP.SetTextColor(d.State, C_RED) end
   end)
 
+  local bannerW = 100.0
+  local bannerH = 22.0
   local bx = RND(headX)
   local by = RND(headY - 18.0)
-  if d.lx ~= bx or d.ly ~= by then
-    pcall(function()
-      d.Slot:SetPosition(ESPV2(bx, by))
-      d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
-    end)
-    d.lx, d.ly = bx, by
-  end
+  local barY = RND(footY + 8.0)
+
+  pcall(function()
+    d.Slot:SetPosition(ESPV2(bx, by))
+    d.Slot:SetSize(ESPV2(bannerW, 70.0))
+    d.S0:SetPosition(ESPV2(0.0, 0.0))
+    d.S0:SetSize(ESPV2(bannerW, bannerH))
+    d.S1:SetPosition(ESPV2(0.0, 0.0))
+    d.S1:SetSize(ESPV2(bannerW, bannerH))
+    d.S2:SetPosition(ESPV2(bannerW * 0.5, bannerH + 12.0))
+    d.S3:SetPosition(ESPV2(bannerW * 0.5, bannerH + 30.0))
+    d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+  end)
+
+  d.ix, d.iy = bx, by
 end
 
-function ESP.EnsureSnap(key)
-  local d = ESP.Lines[key]
+function ESP.EnsureCorner(key, idx, color)
+  local t = ESP.Corners[key]
+  if not t then t = {} ESP.Corners[key] = t end
+  local d = t[idx]
   if d and ESPValid(d.Widget) then return d end
-  d = ESP.NewLine(C_GREEN, 30)
-  ESP.Lines[key] = d
+  d = ESP.NewLine(color or C_WHITE, 32)
+  t[idx] = d
   return d
 end
 
@@ -2246,6 +2391,18 @@ function ESP.UpdateHealthBar(key, pct, x, y, w)
     return
   end
   ESP.DrawLine(fill, x, y, x + fw, y, thickness)
+end
+
+function ESP.EnsureMark(key, idx)
+  return nil
+end
+
+function ESP.EnsureSnap(key)
+  local d = ESP.Lines[key]
+  if d and ESPValid(d.Widget) then return d end
+  d = ESP.NewLine(C_GREEN, 30)
+  ESP.Lines[key] = d
+  return d
 end
 
 function ESP.HideTarget(key)
@@ -2330,7 +2487,7 @@ function ESP.Scan()
   end
   table.sort(list, function(a, b) return (a.Distance or 99999) < (b.Distance or 99999) end)
   local trimmed = {}
-  local maxR = CFG.MaxTracked or 96
+  local maxR = CFG.MaxTracked or 16
   for i, it in ipairs(list) do
     if i > maxR then break end
     trimmed[#trimmed + 1] = it
@@ -2340,7 +2497,6 @@ function ESP.Scan()
 end
 
 function ESP.Update()
-  ESP._FrameNow = nil
   if not ESP_Enabled then ESP.ResetWidgets() return end
   local world = ESP.World()
   if world ~= ESP.LastWorld then
@@ -2348,15 +2504,12 @@ function ESP.Update()
     ESP.LastWorld = world
     ESP.LastScan = -999.0
     ESP.LastTransform = -999.0
-    ESP._CachedPC = nil
-    ESP._CachedViewTime = 0
-    ESP._CachedCanvasCenterX = nil
   end
   local canvas = ESP.GetCanvas()
   if not canvas then return end
   local now = ESP.Now()
   local pc = ESP.GetController()
-  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.10) then
+  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.35) then
     local r, b
     pc, r, b = ESP.Scan()
     ESP.LastScan = now
@@ -2364,7 +2517,7 @@ function ESP.Update()
   end
   pc = pc or ESP.GetController()
   if not pc then return end
-  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 0.25) then
+  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 0.50) then
     ESP.UpdateCanvasTransform(pc)
     ESP.LastTransform = now
   end
@@ -2464,7 +2617,7 @@ function ESP.AttachTimers()
       if ESP._TimerPC == pc and ESP._TimerHooked then return end
       ESP._TimerPC = pc
       ESP._TimerHooked = true
-      pc:AddGameTimer(ESP.LightInterval or 0.0166, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.033, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
@@ -2477,52 +2630,6 @@ function ESP.AttachTimers()
     end
     pcall(function() require("timer").SetGameTimer(5.0, false, function() ESP.AttachTimers() end) end)
   end)
-end
-
-function ESP.Start()
-  if ESP.bActive then return end
-  ESP.bActive = true
-  pcall(ESP.Update)
-  ESP.AttachTimers()
-end
-
-_G.ESP = ESP
-_G.PlayerMapMarker = ESP
-
-local function ESPLater(sec, fn)
-  local tk = nil
-  pcall(function() tk = require("common.time_ticker") end)
-  if tk and tk.AddTimerOnce then pcall(function() tk.AddTimerOnce(sec, fn) end) return end
-  pcall(function() require("timer").SetGameTimer(sec, false, fn) end)
-end
-
-local _ESPStartedPC = nil
-local function ESPStartAll()
-  pcall(function()
-    local pc = nil
-    if slua_GameFrontendHUD then pc = slua_GameFrontendHUD:GetPlayerController() end
-    if not ESPValid(pc) then pc = ESP.GetController() end
-    if ESPValid(pc) then
-      if pc ~= _ESPStartedPC then
-        _ESPStartedPC = pc
-        ESP._TimerHooked = false
-        ESP._TimerPC = nil
-        ESP.Start()
-      else
-        ESP.AttachTimers()
-      end
-    end
-  end)
-end
-
-pcall(function()
-  ESPStartAll()
-  ESPLater(1.0, ESPStartAll)
-end)
-if not _G.__ESPLookTickStarted then
-  _G.__ESPLookTickStarted = true
-  ESP.bActive = true
-  ESP.AttachTimers()
 end
 
 local class = require("class")
