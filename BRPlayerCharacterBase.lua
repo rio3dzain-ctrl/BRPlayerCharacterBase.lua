@@ -577,7 +577,7 @@ local CFG = {
   CounterW = 300.0,
   CounterH = 28.0,
   DeadZone = 0.5,
-  VisInterval = 0.25,
+  VisInterval = 0.08,
   SizeHyst = 2.0,
 }
 
@@ -661,9 +661,9 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 -- Timers slowed down dramatically (was 0.008333 each — 120 Hz)
-ESP.ScanInterval      = 0.15
+ESP.ScanInterval      = 0.08
 ESP.LightInterval     = 0.05
-ESP.TransformInterval = 0.5
+ESP.TransformInterval = 0.08
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
@@ -996,7 +996,7 @@ end
 function ESP.IsVisible(key, pc, camLoc, Character, distM)
   local now = ESP.Now()
   local cached = ESP.VisCache[key]
-  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.25) then
+  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.08) then
     return cached.b
   end
   local bVis
@@ -1717,7 +1717,7 @@ function ESP.Update()
   if not canvas then return end
   local now = ESP.Now()
   local pc = ESP.GetController()
-  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.35) then
+  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.08) then
     local r, b
     pc, r, b = ESP.Scan()
     ESP.LastScan = now
@@ -1725,7 +1725,7 @@ function ESP.Update()
   end
   pc = pc or ESP.GetController()
   if not pc then return end
-  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 0.50) then
+  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 0.0.08) then
     ESP.UpdateCanvasTransform(pc)
     ESP.LastTransform = now
   end
@@ -1825,7 +1825,7 @@ function ESP.AttachTimers()
       if ESP._TimerPC == pc and ESP._TimerHooked then return end
       ESP._TimerPC = pc
       ESP._TimerHooked = true
-      pc:AddGameTimer(ESP.LightInterval or 0.05, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.008, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
