@@ -4,21 +4,12 @@ local BRPlayerCharacterBase = {
   MulticastRPC = {},
   LuaEventContainer = {}
 }
-BRPlayerCharacterBase.ServerRPC.ServerRPC_NearDeathGiveupRescue = {
-  Reliable = true, Params = {}
-}
-BRPlayerCharacterBase.ServerRPC.ServerRPC_CarryDeadBox = {
-  Reliable = true, Params = { UEnums.EPropertyClass.Object }
-}
-BRPlayerCharacterBase.ServerRPC.RPC_Server_GmPlayAction = {
-  Reliable = true, Params = { UEnums.EPropertyClass.Int }
-}
-BRPlayerCharacterBase.MulticastRPC.MulticastRPC_GmPlayAction = {
-  Reliable = true, Params = { UEnums.EPropertyClass.Int }
-}
-BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = {
-  Reliable = true, Params = { UEnums.EPropertyClass.Bool }
-}
+BRPlayerCharacterBase.ServerRPC.ServerRPC_NearDeathGiveupRescue = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ServerRPC.ServerRPC_CarryDeadBox = { Reliable = true, Params = { UEnums.EPropertyClass.Object } }
+BRPlayerCharacterBase.ServerRPC.RPC_Server_GmPlayAction = { Reliable = true, Params = { UEnums.EPropertyClass.Int } }
+BRPlayerCharacterBase.MulticastRPC.MulticastRPC_GmPlayAction = { Reliable = true, Params = { UEnums.EPropertyClass.Int } }
+BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = { Reliable = true, Params = { UEnums.EPropertyClass.Bool } }
+
 local ENetRole = import("ENetRole")
 local EPawnState = import("EPawnState")
 local ESpecialMovementType = import("ESpecialMovementType")
@@ -37,85 +28,58 @@ local GamePlayTools = require("GameLua.Mod.BaseMod.Common.GamePlayTools")
 local MatchModeIds = require("GameLua.Mod.BaseMod.GamePlay.Config.MatchModeIdsConfig")
 
 function BRPlayerCharacterBase:ctor() end
-
 function BRPlayerCharacterBase:_PostConstruct()
   BRPlayerCharacterBase.__super._PostConstruct(self)
   self:InitAddSpecialMoveInfo()
   self.bCanNearDeathGiveup = true
-  print(bWriteLog and "BRPlayerCharacterBase:_PostConstruct bCanNearDeathGiveup true")
 end
-
 function BRPlayerCharacterBase:ReceiveBeginPlay()
   BRPlayerCharacterBase.__super.ReceiveBeginPlay(self)
   self:AddControlEvent(self, "MovementModeChangedDelegate", self.HandleOnMovementModeChangedNew, self)
   if self:HasAuthority() and self:CheckAddCheckFallingDistanceComponent() then
     local CheckFallingDistanceComponent_C = import("CheckFallingDistanceComponent")
     if slua.isValid(CheckFallingDistanceComponent_C) and not slua.isValid(self:GetComponentByClass(CheckFallingDistanceComponent_C)) then
-      print(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay Add CheckFallingDistanceComponent")
       Game:AddComponent(CheckFallingDistanceComponent_C, self, "CheckFallingDistanceComponent")
     end
   end
-  if slua.isValid(self.STCharacterMovement) then
-    self.STCharacterMovement.bPositiveBlowUp = true
-  end
+  if slua.isValid(self.STCharacterMovement) then self.STCharacterMovement.bPositiveBlowUp = true end
   if self.Role == ENetRole.ROLE_AutonomousProxy then
     self:AddControlEvent(self, "OnPawnStateDisabled", self.OnPawnStateChange, self)
     self:AddControlEvent(self, "OnPawnStateEnabled", self.OnPawnStateChange, self)
-    self:AddControlEventConditionOnly(self, "OnAttrChangeEventDelegate", {
-      AttrName = { "bCanSelfRescue" }
-    }, self.CharacterAttrChangeEvent, self)
+    self:AddControlEventConditionOnly(self, "OnAttrChangeEventDelegate", { AttrName = { "bCanSelfRescue" } }, self.CharacterAttrChangeEvent, self)
   end
-  if Client then
-    printf(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay, PlayerKey:%u ", self.PlayerKey)
-    GameplayData.AddCharacter(self.Object)
-  else
-    self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, {
-      [1] = "FinishedState"
-    }, self.HandleFinishedState, self)
-  end
+  if Client then GameplayData.AddCharacter(self.Object)
+  else self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, { [1] = "FinishedState" }, self.HandleFinishedState, self) end
 end
-
 function BRPlayerCharacterBase:CharacterAttrChangeEvent(uPawn, AttrName, AttrVal)
   BRPlayerCharacterBase.__super.CharacterAttrChangeEvent(self, uPawn, AttrName, AttrVal)
   if self.Object ~= uPawn then return end
   if self.Role == ENetRole.ROLE_AutonomousProxy and AttrName == "bCanSelfRescue" then
     local uPlayerController = self:GetPlayerControllerSafety()
-    if slua.isValid(uPlayerController) then
-      uPlayerController:BroadcastUIMessage("UIMsg_CanSelfRescue", 0, "", "")
-    end
+    if slua.isValid(uPlayerController) then uPlayerController:BroadcastUIMessage("UIMsg_CanSelfRescue", 0, "", "") end
   end
 end
-
 function BRPlayerCharacterBase:OnPawnStateChange(PawnState)
-  print("BRPlayerCharacterBase:OnPawnStateChange:", PawnState)
   if PawnState == EPawnState.SwitchPP then
     local uPlayerController = self:GetPlayerControllerSafety()
-    if slua.isValid(uPlayerController) then
-      uPlayerController:BroadcastUIMessage("UIMsg_FPPModeChange", 0, "", "")
-    end
+    if slua.isValid(uPlayerController) then uPlayerController:BroadcastUIMessage("UIMsg_FPPModeChange", 0, "", "") end
   end
 end
-
 function BRPlayerCharacterBase:HandleFinishedState()
-  print(bWriteLog and "BRPlayerCharacterBase:HandleFinishedState", self.STCharacterMovement)
   if slua.isValid(self.STCharacterMovement) and self.STCharacterMovement.SetDynamicSimpleQueryConfigDisable then
     local EDynamicSimpleQueryConfigDisableMask = import("EDynamicSimpleQueryConfigDisableMask")
     self.STCharacterMovement:SetDynamicSimpleQueryConfigDisable(EDynamicSimpleQueryConfigDisableMask.Bit0, true)
   end
 end
-
 function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
   if CGameMode and CGameMode.GameModeType and CGameState and CGameState.GameModeID then
     local GameModeType = CGameMode.GameModeType
     local GameModeID = tonumber(CGameState.GameModeID)
     local bModeTypeSatisfy = GameModeType == EGameModeType.ETypicalGameMode or GameModeType == EGameModeType.EFourInOneGameMode or GameModeType == EGameModeType.EHeavyWeaponGameMode
-    local bModeIDSatisfy = not MatchModeIds[GameModeID]
-    print(bWriteLog and "BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent:", GameModeType, GameModeID, bModeTypeSatisfy, bModeIDSatisfy)
-    return bModeTypeSatisfy and bModeIDSatisfy
+    return bModeTypeSatisfy and not MatchModeIds[GameModeID]
   end
   return false
 end
-
 function BRPlayerCharacterBase:LuaHandleParachuteStateChanged(LastParachuteState, NewParachuteState)
   BRPlayerCharacterBase.__super.LuaHandleParachuteStateChanged(self, LastParachuteState, NewParachuteState)
   if not Client then
@@ -136,9 +100,7 @@ function BRPlayerCharacterBase:LuaHandleParachuteStateChanged(LastParachuteState
     end
   end
 end
-
 function BRPlayerCharacterBase:OnLanded()
-  printf("BRPlayerCharacterBase:OnLanded PlayerKey:%d", self.PlayerKey)
   if self.HandleOnLanded then self:HandleOnLanded(-1) end
   if not Client then
     local uCurrentPlayerControl = self:GetPlayerControllerSafety()
@@ -152,98 +114,58 @@ function BRPlayerCharacterBase:OnLanded()
     end
   end
 end
-
 function BRPlayerCharacterBase:ReceiveEndPlay(EndPlayReason)
   BRPlayerCharacterBase.__super.ReceiveEndPlay(self, EndPlayReason)
   if Client then GameplayData.RemoveCharacter(self.Object) end
 end
-
 function BRPlayerCharacterBase:IsWarGameMode()
   local uGameState = GameplayData:GetGameState()
   if slua.isValid(uGameState) and Game:IsClassOf(uGameState, STExtraGameStateBase) then
     return uGameState.GameModeType == EGameModeType.EWarGameMode
-  else
-    return false
   end
+  return false
 end
-
-function BRPlayerCharacterBase:BPOnRecycled()
-  print(bWriteLog and string.format("%s BPOnRecycled()", Game:GetPlainName(self.Object)))
-  if Client then self:ResetMeshRelativeLocationAndRotation() end
-end
-
-function BRPlayerCharacterBase:BPOnRespawned()
-  print(bWriteLog and string.format("%s BPOnRespawned()", Game:GetPlainName(self.Object)))
-  if Client then self:ResetMeshRelativeLocationAndRotation() end
-end
-
+function BRPlayerCharacterBase:BPOnRecycled() if Client then self:ResetMeshRelativeLocationAndRotation() end end
+function BRPlayerCharacterBase:BPOnRespawned() if Client then self:ResetMeshRelativeLocationAndRotation() end end
 function BRPlayerCharacterBase:ReceiveOnRecycle()
-  print(bWriteLog and string.format("%s IReusable:ReceiveOnRecycle()", Game:GetPlainName(self.Object)))
-  if Client then
-    self:ResetMeshRelativeLocationAndRotation()
-    GameplayData.RemoveCharacter(self.Object)
-  end
+  if Client then self:ResetMeshRelativeLocationAndRotation(); GameplayData.RemoveCharacter(self.Object) end
 end
-
 function BRPlayerCharacterBase:ReceiveOnSpawn()
-  print(bWriteLog and string.format("%s IReusable:ReceiveOnSpawn()", Game:GetPlainName(self.Object)))
-  if Client then
-    self:ResetMeshRelativeLocationAndRotation()
-    GameplayData.AddCharacter(self.Object)
-  end
+  if Client then self:ResetMeshRelativeLocationAndRotation(); GameplayData.AddCharacter(self.Object) end
 end
-
 function BRPlayerCharacterBase:ResetMeshRelativeLocationAndRotation()
   if Game:IsValid(self.Object) and Game:IsValid(self.Mesh) then
     local uDefaultMeshRot = FRotator(0, -90, 0)
-    local uDefaultMeshRelativeLoc = FVector(0, 0, 0)
-    if self.Mesh.K2_SetRelativeRotation then
-      self.Mesh:K2_SetRelativeRotation(uDefaultMeshRot, false, nil, false)
-    end
-    self:CacheInitialMeshOffset(uDefaultMeshRelativeLoc, uDefaultMeshRot)
-    local vRelativeRot = self.Mesh.RelativeRotation
-    local vBaseRotationOffset = self.BaseRotationOffset
-    local vBaseRotation = Game:QuatToRotator(vBaseRotationOffset)
-    print(bWriteLog and string.format("%s ResetMeshRelativeLocationAndRotation() Mesh.RelativeRotation: %s %s %s   Pawn.BaseRotationOffset:%s %s %s ", Game:GetPlainName(self.Object), tostring(vRelativeRot.Pitch), tostring(vRelativeRot.Yaw), tostring(vRelativeRot.Roll), tostring(vBaseRotation.Pitch), tostring(vBaseRotation.Yaw), tostring(vBaseRotation.Roll)))
+    if self.Mesh.K2_SetRelativeRotation then self.Mesh:K2_SetRelativeRotation(uDefaultMeshRot, false, nil, false) end
+    self:CacheInitialMeshOffset(FVector(0, 0, 0), uDefaultMeshRot)
   end
 end
-
 function BRPlayerCharacterBase:HandleOnMovementModeChangedNew()
-  print(bWriteLog and "BRPlayerCharacterBase:HandleOnMovementModeChanged11")
   if Game:IsValid(self.STCharacterMovement) and self.STCharacterMovement.MovementMode == EMovementMode.MOVE_Swimming and self:CheckBaseIsMoveable() then
-    print(bWriteLog and "BRPlayerCharacterBase:HandleOnMovementModeChanged22")
     self.CharacterMovement:SetBase(nil, "", true)
   end
   if self.Role == ENetRole.ROLE_AutonomousProxy and Game:IsValid(self.STCharacterMovement) and self.STCharacterMovement.MovementMode == EMovementMode.MOVE_Walking and UIManager.UI_Config_InGame.ParachuteOpenUI then
-    print(bWriteLog and "BRPlayerCharacterBase:HandleOnMovementModeChangedNew CloseUI")
     UIManager.CloseUI(UIManager.UI_Config_InGame.ParachuteOpenUI)
   end
 end
-
 function BRPlayerCharacterBase:BPOnMissPlayerDamageRecord() end
-
 function BRPlayerCharacterBase:PreAttachedToVehicle()
-  local IsDS = UKismetSystemLibrary.IsDedicatedServer(self)
-  if not IsDS then return end
+  if not UKismetSystemLibrary.IsDedicatedServer(self) then return end
   local MainPlayerController = self:GetPlayerControllerSafety()
   if not slua.isValid(MainPlayerController) then return end
   local CharacterAvatarComp2_BP = self.CharacterAvatarComp2_BP
   if not slua.isValid(CharacterAvatarComp2_BP) then return end
   local CommerAvatarDataUtil = require("GameLua.Activity.Commercialize.GamePlay.CommerAvatarDataUtil")
   local changedVehicleId = CommerAvatarDataUtil:ChangeVehicleSkinByClothes(MainPlayerController, CharacterAvatarComp2_BP)
-  local ESTExtraVehicleShapeType = import("ESTExtraVehicleShapeType")
   if changedVehicleId then
+    local ESTExtraVehicleShapeType = import("ESTExtraVehicleShapeType")
     local UAvatarUtils = import("AvatarUtils")
     if UAvatarUtils.GetVehicleShapeBySkinID(changedVehicleId) == ESTExtraVehicleShapeType.VST_Horse then
       local uCurPlayerState = self:GetPlayerStateSafety()
-      if slua.isValid(uCurPlayerState) then
-        print(bWriteLog and "  BRPlayerCharacterBase:PreAttachedToVehicle. changedVehicleId: " .. tostring(changedVehicleId))
-        uCurPlayerState:AddGeneralCount(468, 1, false)
-      end
+      if slua.isValid(uCurPlayerState) then uCurPlayerState:AddGeneralCount(468, 1, false) end
     end
   end
 end
-
 function BRPlayerCharacterBase:ParachuteJump()
   local uPlayerController = self:GetControllerSafety()
   if slua.isValid(uPlayerController) then
@@ -253,28 +175,21 @@ function BRPlayerCharacterBase:ParachuteJump()
         uPlayerController:ReInitParachuteItem()
         uPlayerController:ServerChangeStatePC(EStateType.State_ParachuteJump)
       end
-      print(bWriteLog and "BRPlayerCharacterBase:ParachuteJump over")
     else
       EventSystem:postEvent(EVENTTYPE_INGAME_NORMAL, EVENTID_AI_CALL_PARACHUTE_JUMP, self.Object)
-      print(bWriteLog and "BRPlayerCharacterBase:ParachuteJump AI JUMP over, Loc=", tostring(self:K2_GetActorLocation():ToString()))
     end
   end
 end
-
 function BRPlayerCharacterBase:OnMovementBaseChangedEvent(uCharacter, uNewMovementBase, uOldMovementBase)
   if uCharacter ~= self.Object then return end
-  print(bWriteLog and string.format("BRPlayerCharacterBase:OnMovementBaseChangedEvent %s, Base: %s -> %s", uCharacter, uOldMovementBase, uNewMovementBase))
   local MedievalCrane = self:GetMedievalCraneFromBase(uNewMovementBase)
   if MedievalCrane and MedievalCrane.AddCharacter then
     MedievalCrane:AddCharacter(self.Object)
   else
     MedievalCrane = self:GetMedievalCraneFromBase(uOldMovementBase)
-    if MedievalCrane and MedievalCrane.RemoveCharacter then
-      MedievalCrane:RemoveCharacter(self.Object)
-    end
+    if MedievalCrane and MedievalCrane.RemoveCharacter then MedievalCrane:RemoveCharacter(self.Object) end
   end
 end
-
 function BRPlayerCharacterBase:GetMedievalCraneFromBase(Base)
   if not slua.isValid(Base) or not Base.GetOwner then return end
   local Lifter = Base:GetOwner()
@@ -282,137 +197,86 @@ function BRPlayerCharacterBase:GetMedievalCraneFromBase(Base)
   if not Lifter.AddCharacter then return end
   return Lifter
 end
-
 function BRPlayerCharacterBase:CheckForbidFlaregun()
   local uPlayerState = self:GetPlayerStateSafety()
   if not slua.isValid(uPlayerState) then return false end
   if uPlayerState.CanUseFlaregun == false and self:IsLocallyControlled() then
     local uPlayerController = self:GetPlayerControllerSafety()
-    if slua.isValid(uPlayerController) then
-      uPlayerController:DisplayGameTipWithMsgID(48532)
-    end
+    if slua.isValid(uPlayerController) then uPlayerController:DisplayGameTipWithMsgID(48532) end
   end
   return not uPlayerState.CanUseFlaregun
 end
-
-function BRPlayerCharacterBase:ServerRPC_NearDeathGiveupRescue()
-  self:HandleNearDeathGiveupRescue()
-end
-
+function BRPlayerCharacterBase:ServerRPC_NearDeathGiveupRescue() self:HandleNearDeathGiveupRescue() end
 function BRPlayerCharacterBase:HandleNearDeathGiveupRescue()
   local uNearDeathComp = self.NearDeatchComponent
   if self:IsNearDeath() and slua.isValid(uNearDeathComp) and self.bCanNearDeathGiveup == true then
     local uPlayerState = self:GetPlayerStateSafety()
-    if slua.isValid(uPlayerState) then
-      uPlayerState:AddGeneralCount(1613, 1, false)
-    end
+    if slua.isValid(uPlayerState) then uPlayerState:AddGeneralCount(1613, 1, false) end
     uNearDeathComp:TriggerGotoDieExplictly(self.Object)
   end
 end
-
 function BRPlayerCharacterBase:RPC_Server_GmPlayAction(actionId)
-  log(bWriteLog and "  BRPlayerCharacterBase:RPC_Server_GmPlayAction.  actionId: " .. tostring(actionId))
-  if USTExtraBlueprintFunctionLibrary.IsDevelopment() then
-    log(bWriteLog and "  BRPlayerCharacterBase:RPC_Server_GmPlayAction. IsDevelopment actionId: " .. tostring(actionId))
-    self:MulticastRPC_GmPlayAction(actionId)
-  end
+  if USTExtraBlueprintFunctionLibrary.IsDevelopment() then self:MulticastRPC_GmPlayAction(actionId) end
 end
-
 function BRPlayerCharacterBase:MulticastRPC_GmPlayAction(actionId)
   if not Client then return end
-  log(bWriteLog and "  BRPlayerCharacterBase:MulticastRPC_GmPlayAction.  actionId: " .. tostring(actionId))
   local uPlayEmoteComp = self:GetPlayEmoteComponent()
   if not slua.isValid(uPlayEmoteComp) then return end
   local LogFilter = require("common.log_filter")
   LogFilter.SetLogTreeEnable(true)
   local animCfg = CDataTable.GetTableData("EmoteBPTable", actionId)
   if not animCfg then return end
-  local handlePath = animCfg.Path
-  local EmoteHandleAsset = slua.loadObject(handlePath)
+  local EmoteHandleAsset = slua.loadObject(animCfg.Path)
   local assetsArray = slua.Array(UEnums.EPropertyClass.Struct, import("/Script/CoreUObject.SoftObjectPath"))
   local handle = EmoteHandleAsset()
   uPlayEmoteComp:OnLoadEmoteAssetBegin(handle, actionId, assetsArray, "")
-  log(bWriteLog and "  BRPlayerCharacterBase:MulticastRPC_GmPlayAction. assetsArray:Num(): " .. tostring(assetsArray:Num()))
   local tb = FuncUtil.LuaArrayToTable(assetsArray)
   local asset_util = require("common.asset_util")
   local function loadLater() uPlayEmoteComp:OnLoadEmoteAssetEnd(handle, actionId, 0) end
   asset_util.GetAssetsArrayAsyncParallel(tb, loadLater)
 end
-
 function BRPlayerCharacterBase:RPC_Client_SetShouldCheckPassWall(bServerSyncShouldCheckPassWall)
-  print(bWriteLog and "BRPlayerCharacterBase:RPC_Client_SetShouldCheckPassWall " .. tostring(bServerSyncShouldCheckPassWall))
   if slua.isValid(self.ParachuteComponent) then
     self.ParachuteComponent.bServerSyncShouldCheckPassWall = bServerSyncShouldCheckPassWall
   end
 end
-
 function BRPlayerCharacterBase:OnPlayerEnterCarryBoxState()
   self.Super:OnPlayerEnterCarryBoxState()
-  local CharName = self:GetPlayerNameSafety()
-  print(bWriteLog and string.format("DeadBoxLog BRPlayerCharacterBase:OnPlayerEnterCarryBoxState Role:%s PlayerKey:%s Name:%s", tostring(self.Role), tostring(self.PlayerKey), tostring(CharName)))
   if self.CarryDeadBoxFeature then self.CarryDeadBoxFeature:OnPlayerEnterCarryBoxState() end
 end
-
 function BRPlayerCharacterBase:OnPlayerLeaveCarryBoxState(bInIsInterrupt)
   self.Super:OnPlayerLeaveCarryBoxState(bInIsInterrupt)
-  local CharName = self:GetPlayerNameSafety()
-  print(bWriteLog and string.format("DeadBoxLog BRPlayerCharacterBase:OnPlayerLeaveCarryBoxState Role:%s PlayerKey:%s Name:%s bInIsInterrupt:%s", tostring(self.Role), tostring(self.PlayerKey), tostring(CharName), tostring(bInIsInterrupt)))
   if self.CarryDeadBoxFeature then self.CarryDeadBoxFeature:OnPlayerLeaveCarryBoxState(bInIsInterrupt) end
 end
-
 function BRPlayerCharacterBase:ServerRPC_CarryDeadBox(uInDeadBox)
   if slua.isValid(uInDeadBox) and Game:IsClassOf(uInDeadBox, import("/Script/ShadowTrackerExtra.PlayerTombBox")) and self.CarryDeadBoxFeature then
     self.CarryDeadBoxFeature:CarryDeadBox(uInDeadBox)
   end
 end
-
-function BRPlayerCharacterBase:SetAreaID(AreaID)
-  self:SetAttrValue("AreaID", AreaID, -1)
-end
-
-function BRPlayerCharacterBase:GetAreaID()
-  return math.floor(self:GetAttrValue("AreaID") + 0.5)
-end
-
-function BRPlayerCharacterBase:CannotChangeIntoPetSpectator()
-  print(bWriteLog and "BRPlayerCharacterBase:CannotChangeIntoPetSpectator")
-  return self.bCannotChangeIntoPetSpectator
-end
-
+function BRPlayerCharacterBase:SetAreaID(AreaID) self:SetAttrValue("AreaID", AreaID, -1) end
+function BRPlayerCharacterBase:GetAreaID() return math.floor(self:GetAttrValue("AreaID") + 0.5) end
+function BRPlayerCharacterBase:CannotChangeIntoPetSpectator() return self.bCannotChangeIntoPetSpectator end
 function BRPlayerCharacterBase:DoModChangeToBT()
-  print(bWriteLog and string.format("BRPlayerCharacterBase:DoModChangeToBT, PlayerKey=%s", tostring(self.PlayerKey)))
-  if self:HasState(EPawnState.SpecialSuit) then
-    self:TriggerEntrySkillWithID(4301101, true)
-    print(bWriteLog and string.format("BRPlayerCharacterBase:DoModChangeToBT, PlayerKey=%s, HasState(EPawnState.SpecialSuit)", tostring(self.PlayerKey)))
-  end
+  if self:HasState(EPawnState.SpecialSuit) then self:TriggerEntrySkillWithID(4301101, true) end
 end
-
 function BRPlayerCharacterBase:SwitchCameraToParachuteOpening()
-  print(bWriteLog and "BRPlayerCharacterBase:SwitchCameraToParachuteOpening")
   self.Super:SwitchCameraToParachuteOpening()
   if self.ParachuteFormation and self.ParachuteFormation.ShouldApplyFormationCamera and self.ParachuteFormation:ShouldApplyFormationCamera() then
     self.ParachuteFormation:OverlayFormationCameraParams()
-    print(bWriteLog and "BRPlayerCharacterBase:SwitchCameraToParachuteOpening - Formation camera overlaid")
   end
 end
-
 function BRPlayerCharacterBase:SwitchCameraToParachuteFalling()
-  print(bWriteLog and "BRPlayerCharacterBase:SwitchCameraToParachuteFalling")
   self.Super:SwitchCameraToParachuteFalling()
   if self.ParachuteFormation and self.ParachuteFormation.ShouldApplyFormationCamera and self.ParachuteFormation:ShouldApplyFormationCamera() then
     self.ParachuteFormation:OverlayFormationCameraParams()
-    print(bWriteLog and "BRPlayerCharacterBase:SwitchCameraToParachuteFalling - Formation camera overlaid")
   end
 end
-
 function BRPlayerCharacterBase:SwitchCameraToNormal()
-  print(bWriteLog and "BRPlayerCharacterBase:SwitchCameraToNormal")
   self.Super:SwitchCameraToNormal()
   if self.ParachuteFormation and self.ParachuteFormation.OnLandingClearFormationCamera then
     self.ParachuteFormation:OnLandingClearFormationCamera()
   end
 end
-
 function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
   if self:HasState(EPawnState.AttachToOther) then
     local Weapon = self:GetWeaponBySlot(Slot)
@@ -420,7 +284,6 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
       local WeaponID = Weapon:GetWeaponID()
       local AttachToOtherConfig = GamePlayTools.GetCurrentConfig("AttachToOtherConfig")
       if AttachToOtherConfig and AttachToOtherConfig.CheckIsWeaponInBlackList and AttachToOtherConfig.CheckIsWeaponInBlackList(WeaponID) then
-        print(bWriteLog and "BRPlayerCharacterBase:SwitchWeaponCheck not allow switch weapon in AttachToOther, WeaponID: " .. tostring(WeaponID))
         local uPlayerController = self:GetPlayerControllerSafety()
         if Client and slua.isValid(uPlayerController) and uPlayerController.Role == ENetRole.ROLE_AutonomousProxy then
           uPlayerController:DisplayGameTipWithMsgID(47306)
@@ -434,7 +297,6 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
     if slua.isValid(SpiderSwingObj) then
       local nCurState = SpiderSwingObj:GetCurMoveState()
       if nCurState == ESpiderSwingMoveState.Launching or nCurState == ESpiderSwingMoveState.Swinging then
-        print(bWriteLog and "BRPlayerCharacterBase:SwitchWeaponCheck blocked by SpiderSwing state: " .. tostring(nCurState))
         return false
       end
     end
@@ -443,12 +305,24 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
 --=============================================================================
--- ESP — FIXED (single-layer text) + OPTIMIZED (60 FPS / low latency)
+-- ESP v3 — HARD FIX for "layer behind" ghosting
+--
+--   * bIsVolatile = true  → bypasses Slate paint cache entirely (no ghosts)
+--   * SetRenderTransform(FWidgetTransform) → atomic Layout+Paint invalidation
+--   * Pure text (no shadow, no outline) → no doubled edges on mobile GPUs
+--   * 30 Hz update → smooth visuals + minimal CPU
+--   * All positions rounded to integers → no sub-pixel AA ghosting
 --=============================================================================
 local ESP_Enabled = true
 
-local FVector2D     = _G.FVector2D     or import("Vector2D")
-local FLinearColor  = _G.FLinearColor  or import("LinearColor")
+local FVector2D    = _G.FVector2D    or import("Vector2D")
+local FLinearColor = _G.FLinearColor or import("LinearColor")
+local FWidgetTransform
+pcall(function() FWidgetTransform = import("WidgetTransform") end)
+if not FWidgetTransform then
+  pcall(function() FWidgetTransform = import("/Script/SlateCore.WidgetTransform") end)
+end
+
 local SlateBlueprintLibrary, WidgetLayoutLibrary, SlateColor, GameplayStaticsESP
 local KismetSystemLibraryESP, HitResultClassESP
 pcall(function() SlateBlueprintLibrary  = import("SlateBlueprintLibrary") end)
@@ -458,7 +332,7 @@ pcall(function() GameplayStaticsESP     = import("GameplayStatics") end)
 pcall(function() KismetSystemLibraryESP = import("KismetSystemLibrary") end)
 pcall(function() HitResultClassESP      = import("HitResult") end)
 
-local TraceStartPos = { X = 0, Y = 0, Z = 0 }
+local TraceStartPos  = { X = 0, Y = 0, Z = 0 }
 local CachedHitResult
 pcall(function() CachedHitResult = HitResultClassESP and HitResultClassESP() or {} end)
 
@@ -467,40 +341,32 @@ local function ESPValid(obj)
   local ok, v = pcall(slua.isValid, obj)
   return ok and v == true
 end
-local function ESPV2(x, y)
-  if FVector2D then return FVector2D(x, y) end
-  return { X = x, Y = y }
-end
-local function ESPMKC(r,g,b,a)
-  if FLinearColor then return FLinearColor(r,g,b,a) end
-  return { R=r,G=g,B=b,A=a }
-end
+local function ESPV2(x, y)     if FVector2D    then return FVector2D(x, y)       end return { X = x, Y = y } end
+local function ESPMKC(r,g,b,a) if FLinearColor then return FLinearColor(r,g,b,a) end return { R=r,G=g,B=b,A=a } end
 
 local CFG = {
-  MaxDistance       = 50000,
-  MaxTracked        = 32,
-  ScreenMargin      = 500,
-  TopTextY          = 6.0,
-  SnapOriginY       = 0.0,
-  SnapThickness     = 1.8,
-  BoxMinHeight      = 1,
-  BoxWidthFactor    = 0.62,
-  BoxMinWidth       = 22,
-  BoxMaxWidth       = 320,
-  SideBarWidth      = 3.5,
-  SideBgAlpha       = 0.55,
-  DeadZone          = 0.5,
-  SizeHyst          = 2.0,
-  NameFontSize      = 15,
-  DistFontSize      = 13,
-  StateFontSize     = 13,
-  CounterFontSize   = 17,
-  VisInterval       = 0.25,
-  InfoW             = 100,
-  InfoH             = 70,
-  InfoYOffset       = 18,
-  InfoMoveMin       = 1.0,   -- deadzone px: skip SetPosition when within this
-  InfoPctMin        = 0.03,  -- deadzone %: skip health bar redraw
+  MaxDistance      = 50000,
+  MaxTracked       = 32,
+  ScreenMargin     = 500,
+  TopTextY         = 6.0,
+  SnapOriginY      = 0.0,
+  SnapThickness    = 2.0,     -- integer for crisper lines
+  BoxMinHeight     = 1,
+  BoxWidthFactor   = 0.62,
+  BoxMinWidth      = 22,
+  BoxMaxWidth      = 320,
+  SideBarWidth     = 4.0,     -- integer for crisp health bar
+  SideBgAlpha      = 0.55,
+  SizeHyst         = 2.0,
+  NameFontSize     = 15,
+  DistFontSize     = 13,
+  StateFontSize    = 13,
+  CounterFontSize  = 17,
+  VisInterval      = 0.25,
+  InfoW            = 100,
+  InfoH            = 70,
+  InfoYOffset      = 20,
+  InfoMoveMin      = 1.0,     -- px deadzone
 }
 
 local C_WHITE  = ESPMKC(1,1,1,1)
@@ -508,56 +374,39 @@ local C_BLACK  = ESPMKC(0,0,0,1)
 local C_GREEN  = ESPMKC(0.12,1.0,0.25,1)
 local C_RED    = ESPMKC(1.0,0.15,0.15,1)
 
-local TEAM_COLORS = {
-  ESPMKC(0.20,0.65,1.00,1), ESPMKC(1.00,0.28,0.28,1),
-  ESPMKC(0.25,0.90,0.40,1), ESPMKC(1.00,0.72,0.18,1),
-  ESPMKC(0.72,0.40,1.00,1), ESPMKC(0.10,0.88,0.85,1),
-  ESPMKC(1.00,0.42,0.78,1), ESPMKC(0.72,0.82,0.92,1),
-}
-
 local function Lerp(a,b,t) return a + (b - a) * t end
 
--- Precompute 21 health-colour buckets (0..20) → zero per-frame alloc
+-- Precomputed health colours (0..20) — zero per-frame allocation
 local HEALTH_COLORS = {}
 for i = 0, 20 do
   local p = i / 20
   local r, g, b
   if p >= 0.7 then
-    local t = (p - 0.7) / 0.3; r = Lerp(0.75,0.12,t); g = 1; b = Lerp(0.15,0.25,t)
+    local t = (p - 0.7)/0.3; r = Lerp(0.75,0.12,t); g = 1; b = Lerp(0.15,0.25,t)
   elseif p >= 0.4 then
-    local t = (p - 0.4) / 0.3; r = 1; g = Lerp(0.45,0.95,t); b = Lerp(0.45,0.20,t)
+    local t = (p - 0.4)/0.3; r = 1; g = Lerp(0.45,0.95,t); b = Lerp(0.45,0.20,t)
   else
-    local t = p / 0.4; r = 1; g = Lerp(0.15,0.45,t); b = Lerp(0.15,0.45,t)
+    local t = p/0.4; r = 1; g = Lerp(0.15,0.45,t); b = Lerp(0.15,0.45,t)
   end
   HEALTH_COLORS[i] = ESPMKC(r, g, b, 1)
 end
-local function HealthBucket(pct)
-  return math.max(0, math.min(20, math.floor(pct * 20 + 0.5)))
-end
-
-local function TeamColor(teamID, isBot, fallbackKey)
-  local n = tonumber(teamID)
-  if n then
-    n = math.abs(math.floor(n))
-  else
-    local s = tostring(fallbackKey or "x"); n = 0
-    for i = 1, #s do n = (n * 31 + string.byte(s,i)) % 2147483647 end
-  end
-  return TEAM_COLORS[(n % #TEAM_COLORS) + 1]
-end
+local function HealthBucket(pct) return math.max(0, math.min(20, math.floor(pct * 20 + 0.5))) end
 local function RND(v) if v ~= v then return 0 end return math.floor(v + 0.5) end
 
 local ESP = {
   Canvas = nil,
   Lines = {}, HealthBg = {}, HealthFill = {}, Infos = {},
   Counter = nil, EnemyCache = {}, VisCache = {},
-  AllWidgets = {},  -- registry for guaranteed cleanup
+  AllWidgets = {},
   ScaleX = 1.0, ScaleY = 1.0, OffsetX = 0.0, OffsetY = 0.0,
   ViewW = 1920, ViewH = 1080,
   CachedCenterX = nil, CachedCenterViewW = 0,
-  LightInterval = 0.1, ScanInterval = 0.5, TransformInterval = 1.0,
+  LightInterval = 0.033,   -- 30 Hz update (was 0.1 = choppy)
+  ScanInterval = 0.5,
+  TransformInterval = 1.0,
   LastScan = -999.0, LastTransform = -999.0, LastWorld = nil,
   bActive = false, _nowOverride = nil,
+  RealCount = 0, BotCount = 0,
 }
 
 function ESP.Now()
@@ -577,11 +426,10 @@ function ESP.World()
   local w; pcall(function() if slua and slua.getWorld then w = slua.getWorld() end end)
   return w
 end
-
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
   local ok, GDP = pcall(function() return require("GameLua.GameCore.Data.GameplayData") end)
-  if ok and GDP then ESP._GDP = GDP; return GDP end
+  if ok and GDP then ESP._GDP = GDP return GDP end
   return nil
 end
 function ESP.GetController()
@@ -610,7 +458,6 @@ function ESP.GetLocalCharacter()
   end
   return ESPValid(c) and c or nil
 end
-
 function ESP.GetAllCharacters()
   local result, got = {}, false
   pcall(function()
@@ -618,7 +465,7 @@ function ESP.GetAllCharacters()
       local pawns = Game:GetAllPlayerPawns()
       if pawns then
         for k, ch in pairs(pawns) do
-          if ch and slua.isValid(ch) then result[k] = ch; got = true end
+          if ch and slua.isValid(ch) then result[k] = ch got = true end
         end
       end
     end
@@ -636,17 +483,6 @@ function ESP.GetAllCharacters()
     end
   end)
   return result
-end
-
-function ESP.GetMyPlayerKey()
-  local pc = ESP.GetController()
-  if not ESPValid(pc) then return nil end
-  local k
-  pcall(function()
-    if pc.GetPlayerKey then k = pc:GetPlayerKey()
-    elseif pc.PlayerState then k = pc.PlayerState.PlayerKey end
-  end)
-  return k
 end
 function ESP.GetTeamID(C)
   if not ESPValid(C) then return nil end
@@ -785,12 +621,6 @@ function ESP.ActorLocation(C)
   end)
   return loc
 end
-function ESP.DistMeters(a, b)
-  if not a or not b then return math.huge end
-  local dx,dy,dz = a.X-b.X, a.Y-b.Y, a.Z-b.Z
-  return math.sqrt(dx*dx+dy*dy+dz*dz) / 100.0
-end
-
 function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   if not ESPValid(pc) or not ESPValid(target) or not bonePos or not camLoc then return false end
   if not KismetSystemLibraryESP or not KismetSystemLibraryESP.LineTraceSingle then return true end
@@ -802,8 +632,7 @@ function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   TraceStartPos.Z = camLoc.Z + (dz/d)*60
   local bVis = false
   pcall(function()
-    local hit = KismetSystemLibraryESP.LineTraceSingle(
-      pc, TraceStartPos, bonePos, 0, false, nil, 0, CachedHitResult, false)
+    local hit = KismetSystemLibraryESP.LineTraceSingle(pc, TraceStartPos, bonePos, 0, false, nil, 0, CachedHitResult, false)
     if hit then
       local ha
       if CachedHitResult then
@@ -817,7 +646,6 @@ function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   end)
   return bVis
 end
-
 function ESP.IsVisible(key, pc, camLoc, C)
   local now = ESP.Now()
   local c = ESP.VisCache[key]
@@ -825,9 +653,7 @@ function ESP.IsVisible(key, pc, camLoc, C)
   local bVis = true
   if ESPValid(C) and ESPValid(pc) and camLoc then
     local bp = ESP.GetBonePos(C, "head")
-    if not bp or (bp.X==0 and bp.Y==0 and bp.Z==0) then
-      bp = ESP.GetBonePos(C, "spine_03")
-    end
+    if not bp or (bp.X==0 and bp.Y==0 and bp.Z==0) then bp = ESP.GetBonePos(C, "spine_03") end
     if bp and (bp.X~=0 or bp.Y~=0 or bp.Z~=0) then
       bVis = ESP.IsBoneVisible(pc, camLoc, C, bp)
     end
@@ -835,7 +661,6 @@ function ESP.IsVisible(key, pc, camLoc, C)
   ESP.VisCache[key] = { b = bVis, t = now }
   return bVis
 end
-
 function ESP.GetVerticalBounds(C)
   if not ESPValid(C) then return nil, nil end
   local center, half
@@ -873,7 +698,6 @@ function ESP.GetHeadFeet(C)
   return { X=center.X, Y=center.Y, Z=center.Z+half },
          { X=center.X, Y=center.Y, Z=center.Z-half }
 end
-
 function ESP.GetCanvas()
   if ESPValid(ESP.Canvas) then return ESP.Canvas end
   local root
@@ -887,7 +711,7 @@ function ESP.GetCanvas()
     if ESPValid(root.CanvasPanel_0) then c = root.CanvasPanel_0
     elseif ESPValid(root.CanvasPanel_42) then c = root.CanvasPanel_42 end
   end)
-  if ESPValid(c) then ESP.Canvas = c; return c end
+  if ESPValid(c) then ESP.Canvas = c return c end
   return nil
 end
 function ESP.UpdateCanvasTransform(pc)
@@ -944,10 +768,7 @@ function ESP.Project(pc, world)
                pix.Y*(ESP.ScaleY or 1)+ (ESP.OffsetY or 0)), pix
 end
 function ESP.CanvasCenterX(viewW)
-  -- Cached: canvas centre only changes on resolution change
-  if ESP.CachedCenterX and math.abs(ESP.CachedCenterViewW - viewW) < 2 then
-    return ESP.CachedCenterX
-  end
+  if ESP.CachedCenterX and math.abs(ESP.CachedCenterViewW - viewW) < 2 then return ESP.CachedCenterX end
   local cw
   pcall(function()
     local c = ESP.GetCanvas()
@@ -967,8 +788,35 @@ function ESP.CanvasCenterX(viewW)
   return result
 end
 
--- FIX #1: no outline+shadow combo. Outline only → single crisp layer.
--- FIX #2: wrap in pcall (invalid UObjects silently ignored).
+--=====================================================================
+-- FIX CORE: volatile widgets + atomic render-transform invalidation
+--=====================================================================
+local function SetVolatile(widget)
+  if not ESPValid(widget) then return end
+  pcall(function()
+    if widget.SetIsVolatile then widget:SetIsVolatile(true) end
+    widget.bIsVolatile = true
+  end)
+end
+
+-- SetRenderTransform always invalidates Layout+Paint (no conditional check)
+local function ForcePaint(widget, angle)
+  if not ESPValid(widget) then return end
+  if FWidgetTransform then
+    pcall(function()
+      local t = FWidgetTransform()
+      t.Translation = ESPV2(0, 0)
+      t.Scale = ESPV2(1, 1)
+      t.Shear = ESPV2(0, 0)
+      t.Angle = angle or 0
+      widget:SetRenderTransform(t)
+    end)
+  elseif angle ~= nil then
+    pcall(function() widget:SetRenderAngle(angle) end)
+  end
+end
+
+-- FIX: pure text — no shadow, no outline → no doubled edge on any GPU
 function ESP.SetFont(w, size)
   if not ESPValid(w) then return end
   pcall(function()
@@ -976,16 +824,13 @@ function ESP.SetFont(w, size)
     if f then
       f.Size = size
       if f.OutlineSettings then
-        f.OutlineSettings.OutlineSize  = 1
-        f.OutlineSettings.OutlineColor = C_BLACK
+        f.OutlineSettings.OutlineSize = 0
+        f.OutlineSettings.OutlineColor = ESPMKC(0,0,0,0)
       end
       w:SetFont(f)
     end
-    -- Shadow deliberately cleared → prevents doubled/ghosted text
     if w.SetShadowOffset then w:SetShadowOffset(ESPV2(0, 0)) end
-    if w.SetShadowColorAndOpacity then
-      w:SetShadowColorAndOpacity(ESPMKC(0,0,0,0))
-    end
+    if w.SetShadowColorAndOpacity then w:SetShadowColorAndOpacity(ESPMKC(0,0,0,0)) end
   end)
 end
 function ESP.SetTextColor(w, c)
@@ -995,8 +840,6 @@ function ESP.SetTextColor(w, c)
     else w:SetColorAndOpacity(c) end
   end)
 end
-
--- Register every created widget for orphan-proof cleanup
 function ESP.Track(widget)
   if widget then ESP.AllWidgets[#ESP.AllWidgets+1] = widget end
 end
@@ -1009,12 +852,13 @@ function ESP.NewLine(color, z)
   if not ESPValid(b) then return nil end
   pcall(function()
     b:SetBrushColor(color)
-    b:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+    b:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
     b:SetRenderTransformPivot(ESPV2(0, 0.5))
   end)
+  SetVolatile(b)
   local slot
   pcall(function() slot = canvas:AddChildToCanvas(b) end)
-  if not slot then pcall(function() b:RemoveFromParent() end); return nil end
+  if not slot then pcall(function() b:RemoveFromParent() end) return nil end
   pcall(function() slot:SetAutoSize(false); slot:SetZOrder(z or 30) end)
   ESP.Track(b)
   return { Widget = b, Slot = slot }
@@ -1023,46 +867,46 @@ function ESP.Hide(d)
   if d and ESPValid(d.Widget) and d.hidden ~= true then
     pcall(function() d.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
     d.hidden = true
-    -- Reset caches so next show triggers a real update
     d.lx1, d.ly1, d.lx2, d.ly2, d.th = nil, nil, nil, nil, nil
-    d.bx, d.bt, d.bh = nil, nil, nil
   end
 end
 function ESP.Destroy(d)
   if not d then return end
   local w = d.Widget or d.Container
-  if w then
-    -- Try removal even if slua.isValid reports false (defensive)
-    pcall(function() w:RemoveFromParent() end)
-  end
+  if w then pcall(function() w:RemoveFromParent() end) end
 end
+
 function ESP.DrawLine(d, x1, y1, x2, y2, thickness)
   if not d or not ESPValid(d.Widget) or not d.Slot then return false end
   if x1~=x1 or y1~=y1 or x2~=x2 or y2~=y2 then return false end
+  -- Round EVERYTHING to integers → no sub-pixel AA ghosting
   x1, y1, x2, y2 = RND(x1), RND(y1), RND(x2), RND(y2)
+  thickness = RND(thickness)
+  if thickness < 1 then thickness = 1 end
   if d.lx1 == x1 and d.ly1 == y1 and d.lx2 == x2 and d.ly2 == y2 and d.th == thickness then
     if d.hidden == true then
-      pcall(function() d.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
+      pcall(function() d.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible) end)
       d.hidden = false
     end
     return true
   end
   local dx, dy = x2-x1, y2-y1
   local len = math.sqrt(dx*dx+dy*dy)
-  if len < 1 then ESP.Hide(d); return false end
+  if len < 1 then ESP.Hide(d) return false end
   local ang = math.atan2 and math.atan2(dy,dx) or math.atan(dy,dx)
   ang = math.floor((ang * 180 / math.pi) * 10 + 0.5) / 10
   len = RND(len)
+  local py = RND(y1 - thickness * 0.5)
   local ok = pcall(function()
-    d.Slot:SetPosition(ESPV2(x1, y1 - thickness*0.5))
+    d.Slot:SetPosition(ESPV2(x1, py))
     d.Slot:SetSize(ESPV2(len, thickness))
-    d.Widget:SetRenderAngle(ang)
-    d.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+    d.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
   end)
-  if ok then
-    d.lx1, d.ly1, d.lx2, d.ly2, d.th = x1, y1, x2, y2, thickness
-    d.hidden = false
-  end
+  if not ok then return false end
+  -- FIX: atomic Layout + Paint invalidation via SetRenderTransform
+  ForcePaint(d.Widget, ang)
+  d.lx1, d.ly1, d.lx2, d.ly2, d.th = x1, y1, x2, y2, thickness
+  d.hidden = false
   return true
 end
 function ESP.SetBrush(d, color, key)
@@ -1092,18 +936,16 @@ function ESP.UpdateHealthBar(key, pct, x, y, w)
   local bg   = ESP.EnsureHealthBg(key)
   local fill = ESP.EnsureHealthFill(key)
   if not bg or not fill then return end
-  w = math.max(1, tonumber(w) or 1)
+  w = math.max(1, RND(w))
   ESP.DrawLine(bg, x, y, x + w, y, CFG.SideBarWidth)
   pct = math.max(0, math.min(1, tonumber(pct) or 1))
-
-  -- FIX: deadzone on pct → skip SetBrushColor when bucket unchanged
   local bucket = HealthBucket(pct)
   if fill.lastBucket ~= bucket then
     fill.lastBucket = bucket
     ESP.SetBrush(fill, HEALTH_COLORS[bucket], bucket)
   end
   local fw = RND(w * pct)
-  if fw < 1 then ESP.Hide(fill); return end
+  if fw < 1 then ESP.Hide(fill) return end
   ESP.DrawLine(fill, x, y, x + fw, y, CFG.SideBarWidth)
 end
 
@@ -1130,10 +972,11 @@ function ESP.CreateInfo()
   pcall(function()
     nName:SetText("Player"); nDist:SetText("0m"); nState:SetText("Open")
     for _, w in ipairs({nName, nDist, nState}) do
-      w:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+      w:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
       if w.SetJustification then w:SetJustification(1) end
     end
   end)
+  SetVolatile(nName); SetVolatile(nDist); SetVolatile(nState); SetVolatile(box)
   ESP.SetTextColor(nName, C_WHITE)
   ESP.SetTextColor(nDist, C_WHITE)
   ESP.SetTextColor(nState, C_GREEN)
@@ -1146,8 +989,6 @@ function ESP.CreateInfo()
   pcall(function() s2 = box:AddChildToCanvas(nState) end)
   pcall(function() ms = canvas:AddChildToCanvas(box) end)
   if not (s0 and s1 and s2 and ms) then ESP.Destroy({ Widget = box }); return nil end
-
-  -- FIX: static layout positions set ONCE (never touched in UpdateInfo)
   pcall(function()
     s0:SetAutoSize(false); s0:SetSize(ESPV2(CFG.InfoW, 22)); s0:SetAlignment(ESPV2(0.5,0.5)); s0:SetPosition(ESPV2(0, 0))
     s1:SetAutoSize(true);  s1:SetAlignment(ESPV2(0.5,0.5)); s1:SetPosition(ESPV2(50, 34))
@@ -1157,7 +998,7 @@ function ESP.CreateInfo()
   ESP.Track(box)
   return { Container = box, Name = nName, Dist = nDist, State = nState,
            S0 = s0, S1 = s1, S2 = s2, Slot = ms,
-           lastBX = nil, lastBY = nil, lastVis = nil, lastStateCol = nil }
+           lastBX = nil, lastBY = nil, lastVis = nil }
 end
 
 function ESP.UpdateInfo(key, C, isBot, teamID, distM, bVis, headX, headY)
@@ -1194,8 +1035,10 @@ function ESP.UpdateInfo(key, C, isBot, teamID, distM, bVis, headX, headY)
     d.hidden = false
     pcall(function()
       d.Slot:SetPosition(ESPV2(bx, by))
-      d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+      d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
     end)
+    -- FIX: force atomic repaint so old position is fully cleared
+    ForcePaint(d.Container, 0)
   end
 end
 
@@ -1208,9 +1051,10 @@ function ESP.CreateCounter()
   if not (ESPValid(box) and ESPValid(txt)) then ESP.Destroy({ Widget = box }); return nil end
   pcall(function()
     txt:SetText("Players: 0 | Bots: 0")
-    txt:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+    txt:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
     if txt.SetJustification then txt:SetJustification(1) end
   end)
+  SetVolatile(txt); SetVolatile(box)
   ESP.SetTextColor(txt, C_WHITE); ESP.SetFont(txt, CFG.CounterFontSize)
   local s0, ms
   pcall(function() s0 = box:AddChildToCanvas(txt) end)
@@ -1238,9 +1082,10 @@ function ESP.UpdateCounter(nP, nB, viewW)
     if d.px == nil or math.abs(d.px - cx) >= 1.0 then
       d.px = cx
       d.Slot:SetPosition(ESPV2(cx, CFG.TopTextY))
+      ForcePaint(d.Container, 0)
     end
     if d.hidden then
-      d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+      d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
       d.hidden = false
     end
   end)
@@ -1265,7 +1110,6 @@ function ESP.ReleaseTarget(key)
   ESP.VisCache[key] = nil
 end
 function ESP.ResetWidgets()
-  -- FIX: full registry sweep → guarantees no orphans
   for i = #ESP.AllWidgets, 1, -1 do
     local w = ESP.AllWidgets[i]
     if w then pcall(function() w:RemoveFromParent() end) end
@@ -1279,9 +1123,9 @@ end
 function ESP.Scan()
   local pc = ESP.GetController()
   local me = ESP.GetLocalCharacter()
-  if not pc or not me then ESP.EnemyCache = {}; return pc, 0, 0 end
+  if not pc or not me then ESP.EnemyCache = {} return pc, 0, 0 end
   local myLoc = ESP.ActorLocation(me)
-  if not myLoc then ESP.EnemyCache = {}; return pc, 0, 0 end
+  if not myLoc then ESP.EnemyCache = {} return pc, 0, 0 end
   local myTeam = ESP.GetTeamID(me)
   local list, seen, nR, nB = {}, {}, 0, 0
   local maxSq = (CFG.MaxDistance * 100) * (CFG.MaxDistance * 100)
@@ -1299,8 +1143,8 @@ function ESP.Scan()
               seen[key] = true
               local isBot = ESP.IsBot(ch)
               if isBot then nB = nB + 1 else nR = nR + 1 end
-              list[#list+1] = { Character = ch, Key = key, IsBot = isBot,
-                                TeamID = team, Distance = math.sqrt(sq)/100.0 }
+              list[#list+1] = { Character = ch, Key = key, IsBot = isBot, TeamID = team,
+                                Distance = math.sqrt(sq)/100.0 }
             end
           end
         end
@@ -1315,7 +1159,7 @@ function ESP.Scan()
 end
 
 function ESP.Update()
-  if not ESP_Enabled then ESP.ResetWidgets(); return end
+  if not ESP_Enabled then ESP.ResetWidgets() return end
   local world = ESP.World()
   if world ~= ESP.LastWorld then
     ESP.ResetWidgets()
@@ -1326,9 +1170,8 @@ function ESP.Update()
 
   ESP._nowOverride = ESP.Now()
   local now = ESP._nowOverride
-
   local pc = ESP.GetController()
-  if not pc then ESP._nowOverride = nil; return end
+  if not pc then ESP._nowOverride = nil return end
 
   if (now - ESP.LastScan) >= ESP.ScanInterval then
     local _, r, b = ESP.Scan()
@@ -1341,16 +1184,15 @@ function ESP.Update()
   end
 
   local vw, vh = ESP.Viewport(pc)
-  local hyst = CFG.SizeHyst or 2.0
-  if math.abs(vw - (ESP.ViewW or 0)) > hyst or math.abs(vh - (ESP.ViewH or 0)) > hyst then
+  if math.abs(vw - (ESP.ViewW or 0)) > CFG.SizeHyst or math.abs(vh - (ESP.ViewH or 0)) > CFG.SizeHyst then
     ESP.ViewW, ESP.ViewH = vw, vh
     ESP.CachedCenterX = nil
   else
     vw, vh = ESP.ViewW, ESP.ViewH
   end
 
-  local originX, originY = ESP.UpdateCounter(ESP.RealCount or 0, ESP.BotCount or 0, vw)
-  if not originX then ESP._nowOverride = nil; return end
+  local originX, originY = ESP.UpdateCounter(ESP.RealCount, ESP.BotCount, vw)
+  if not originX then ESP._nowOverride = nil return end
   local camLoc = ESP.GetCamLoc(pc)
 
   local active = {}
@@ -1378,25 +1220,16 @@ function ESP.Update()
               ESP.DrawLine(ESP.EnsureSnap(key), originX, originY, hs.X, hs.Y, CFG.SnapThickness)
               local bVis = ESP.IsVisible(key, pc, camLoc, c)
               ESP.UpdateInfo(key, c, item.IsBot, item.TeamID, item.Distance, bVis, hs.X, hs.Y)
-            else
-              ESP.HideTarget(key)
-            end
-          else
-            ESP.HideTarget(key)
-          end
-        else
-          ESP.HideTarget(key)
-        end
-      else
-        ESP.HideTarget(key)
-      end
+            else ESP.HideTarget(key) end
+          else ESP.HideTarget(key) end
+        else ESP.HideTarget(key) end
+      else ESP.HideTarget(key) end
     end
   end
 
   for k in pairs(ESP.Lines) do if not active[k] then ESP.HideTarget(k) end end
   for k in pairs(ESP.Infos) do if not active[k] then ESP.HideTarget(k) end end
 
-  -- Release unreferenced widgets (prevents table growth + orphan leaks)
   local cacheKeys = {}
   for _, it in ipairs(ESP.EnemyCache) do cacheKeys[it.Key] = true end
   for k in pairs(ESP.VisCache) do
@@ -1407,7 +1240,6 @@ function ESP.Update()
 end
 
 function ESP.Tick() pcall(ESP.Update) end
-
 function ESP.AttachTimers()
   local pc = ESP.GetController()
   if not ESPValid(pc) or not pc.AddGameTimer then
@@ -1438,13 +1270,6 @@ end
 _G.ESP = ESP
 _G.PlayerMapMarker = ESP
 
-local function ESPLater(sec, fn)
-  local tk
-  pcall(function() tk = require("common.time_ticker") end)
-  if tk and tk.AddTimerOnce then pcall(function() tk.AddTimerOnce(sec, fn) end); return end
-  pcall(function() require("timer").SetGameTimer(sec, false, fn) end)
-end
-
 local _startedPC = nil
 local function ESPStartAll()
   local pc
@@ -1470,7 +1295,7 @@ if not _G.__ESPLookTickStarted then
 end
 
 --=============================================================================
--- Class registration (unchanged)
+-- Class registration
 --=============================================================================
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
