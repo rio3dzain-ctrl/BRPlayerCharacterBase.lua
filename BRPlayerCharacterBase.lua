@@ -441,30 +441,40 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
 -- ================================================================
--- ESP  (Optimized)  -- All features preserved
+-- ESP  (Crash-Proof + 60 FPS Optimized)
 -- ================================================================
 local ESP_Enabled = true
 
+-- ═══ Cached requires — CRITICAL FIX: require() was inside hot loop ═══
+local InGameUITools_C   = nil
+local GameplayData_C    = nil
+local TimeTicker_C      = nil
+pcall(function() InGameUITools_C = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools") end)
+pcall(function() GameplayData_C  = require("GameLua.GameCore.Data.GameplayData")          end)
+pcall(function() TimeTicker_C    = require("common.time_ticker")                          end)
+
+-- ═══ Type imports (cached once) ═══
 local FVector2D          = _G.FVector2D or import("Vector2D")
 local FLinearColor       = _G.FLinearColor or import("LinearColor")
-local SlateBlueprintLibrary = nil
-local WidgetLayoutLibrary   = nil
-local SlateColor            = nil
-local GameplayStaticsESP    = nil
-local KismetSystemLibraryESP = nil
-local HitResultClassESP     = nil
-pcall(function() SlateBlueprintLibrary   = import("SlateBlueprintLibrary") end)
-pcall(function() WidgetLayoutLibrary     = import("WidgetLayoutLibrary") end)
-pcall(function() SlateColor              = import("SlateColor") or import("/Script/SlateCore.SlateColor") end)
-pcall(function() GameplayStaticsESP      = import("GameplayStatics") end)
-pcall(function() KismetSystemLibraryESP  = import("KismetSystemLibrary") end)
-pcall(function() HitResultClassESP       = import("HitResult") end)
+local SlateBlueprintLibrary   = nil
+local WidgetLayoutLibrary     = nil
+local SlateColor              = nil
+local GameplayStaticsESP      = nil
+local KismetSystemLibraryESP  = nil
+local HitResultClassESP       = nil
+pcall(function() SlateBlueprintLibrary    = import("SlateBlueprintLibrary") end)
+pcall(function() WidgetLayoutLibrary      = import("WidgetLayoutLibrary") end)
+pcall(function() SlateColor               = import("SlateColor") or import("/Script/SlateCore.SlateColor") end)
+pcall(function() GameplayStaticsESP       = import("GameplayStatics") end)
+pcall(function() KismetSystemLibraryESP   = import("KismetSystemLibrary") end)
+pcall(function() HitResultClassESP        = import("HitResult") end)
+
+-- ═══ atan2 compatibility (math.atan2 removed in Lua 5.3+) ═══
+local _atan2 = math.atan2 or math.atan
 
 local TraceStartPos   = { X = 0, Y = 0, Z = 0 }
 local CachedHitResult = nil
-pcall(function()
-  CachedHitResult = HitResultClassESP and HitResultClassESP() or {}
-end)
+pcall(function() CachedHitResult = HitResultClassESP and HitResultClassESP() or {} end)
 
 local function ESPValid(obj)
   if obj == nil then return false end
@@ -483,7 +493,8 @@ local function ESPMKC(r, g, b, a)
 end
 
 local CFG = {
-  MaxDistance = 50000, RenderTrackingDistance = 50000, MaxTracked = 128,
+  MaxDistance = 50000, RenderTrackingDistance = 50000,
+  MaxTracked = 64,                -- was 128 → 2× fewer projections & traces
   ScreenMargin = 500, TopTextY = 6.0, SnapOriginY = 0.0,
   SnapThickness = 1.8, CornerThickness = 2.2, CornerLen = 0.28,
   CornerMin = 6, CornerMax = 28, BoxMinWidth = 22, BoxMaxWidth = 320,
@@ -493,12 +504,13 @@ local CFG = {
   MarkGapV = 6.0, MarkThickness = 2.4, NameFontSize = 15, DistFontSize = 13,
   StateFontSize = 13, TextGap = 1.0, CounterFontSize = 17,
   CounterW = 300.0, CounterH = 28.0, DeadZone = 0.5,
-  -- ==== OPTIMIZED TIMINGS ====
-  VisInterval        = 0.06,      -- was 0.00833 (was ~23k traces/s -> now ~2k/s)
-  ScanInterval       = 0.033,     -- was 0.00833 (30 Hz is plenty for enemy list)
-  TransformInterval  = 1.0,       -- was 0.00833 (geometry rarely changes)
+  -- ═══ OPTIMIZED TIMINGS — big FPS win ═══
+  VisInterval        = 0.12,      -- 8 Hz visibility trace (was 16 Hz)
+  ScanInterval       = 0.10,      -- 10 Hz enemy refresh (was 30 Hz)
+  TransformInterval  = 1.0,       -- 1 Hz canvas transform refresh
   LightInterval      = 0.016667,  -- 60 FPS render tick
   SizeHyst = 2.0,
+  PosEpsilon = 2.0,               -- skip widget writes if pos shift < 2 px
 }
 
 local C_WHITE  = ESPMKC(1.0, 1.0, 1.0, 1.0)
@@ -516,12 +528,12 @@ local TEAM_COLORS = {
   ESPMKC(1.00, 0.42, 0.78, 1.00),
   ESPMKC(0.72, 0.82, 0.92, 1.00),
 }
-
--- Team color cache
 local TEAM_HASH_CACHE = {}
+
 local function TeamColor(teamID, isBot, fallbackKey)
   local n = tonumber(teamID)
   if n then
+    if n ~= n then n = 0 end                     -- CRASH FIX: NaN guard
     n = math.abs(math.floor(n))
   else
     local key = tostring(fallbackKey or "unknown")
@@ -533,7 +545,7 @@ local function TeamColor(teamID, isBot, fallbackKey)
       TEAM_HASH_CACHE[key] = n
     end
   end
-  return TEAM_COLORS[(n % #TEAM_COLORS) + 1]
+  return TEAM_COLORS[(n % #TEAM_COLORS) + 1] or C_WHITE   -- CRASH FIX: never nil
 end
 
 local function RND(v)
@@ -542,7 +554,7 @@ local function RND(v)
 end
 local function Lerp(a, b, t) return a + (b - a) * t end
 
--- ==== Health color: precomputed buckets (41 entries: 0..40 => pct 0..1) ====
+-- ═══ Health color buckets — safe index [0..40] ═══
 local HEALTH_COLOR_BUCKETS = {}
 local function _buildHealthColor(pct)
   local r, g, b
@@ -560,10 +572,13 @@ local function _buildHealthColor(pct)
 end
 for i = 0, 40 do HEALTH_COLOR_BUCKETS[i] = _buildHealthColor(i / 40) end
 
-local function HealthColor(pct)
+local function HealthColorBucket(pct)
   pct = tonumber(pct) or 1.0
+  if pct ~= pct then pct = 1.0 end
   if pct < 0 then pct = 0 elseif pct > 1 then pct = 1 end
-  return HEALTH_COLOR_BUCKETS[math.floor(pct * 40 + 0.5)]
+  local i = math.floor(pct * 40 + 0.5)
+  if i < 0 then i = 0 elseif i > 40 then i = 40 end
+  return i
 end
 
 local ESP = {
@@ -578,12 +593,9 @@ local ESP = {
   _pc = nil, _me = nil, _world = nil,
 }
 
--- ============ World / Time / Controller Caches ============
+-- ═════════ World / Time / Controller ═════════
 function ESP.GetGameplayData()
-  if ESP._GDP then return ESP._GDP end
-  local ok, GDP = pcall(require, "GameLua.GameCore.Data.GameplayData")
-  if ok and GDP then ESP._GDP = GDP return GDP end
-  return nil
+  return GameplayData_C
 end
 
 function ESP.World()
@@ -598,9 +610,9 @@ end
 function ESP.Now()
   local w = ESP._world
   if w and GameplayStaticsESP and GameplayStaticsESP.GetRealTimeSeconds then
-    return GameplayStaticsESP.GetRealTimeSeconds(w)
+    local ok, t = pcall(function() return GameplayStaticsESP.GetRealTimeSeconds(w) end)
+    if ok and t then return t end
   end
-  -- fallback: os.clock (cheap)
   if os and os.clock then return os.clock() end
   return 0.0
 end
@@ -610,7 +622,7 @@ function ESP.GetController()
   if ESPValid(pc) then return pc end
   pc = nil
   pcall(function()
-    local GDP = ESP.GetGameplayData()
+    local GDP = GameplayData_C
     if GDP and GDP.GetPlayerController then pc = GDP.GetPlayerController() end
   end)
   if not ESPValid(pc) then
@@ -625,7 +637,7 @@ function ESP.GetLocalCharacter()
   if ESPValid(c) then return c end
   c = nil
   pcall(function()
-    local GDP = ESP.GetGameplayData()
+    local GDP = GameplayData_C
     if GDP then
       if GDP.GetPlayerCharacter then c = GDP.GetPlayerCharacter() end
       if not ESPValid(c) and GDP.GetLocalCharacter then c = GDP.GetLocalCharacter() end
@@ -639,36 +651,28 @@ function ESP.GetLocalCharacter()
   return ESP._me
 end
 
--- ==== Character list: cached 100 ms (was merged 3× every scan) ====
+-- ═══ Character list cache (100ms) — simpler, single pass ═══
 function ESP.GetAllCharacters()
   local now = ESP._now
   local cache = ESP._charsCache
   if cache and (now - (ESP._charsCacheTime or 0)) < 0.1 then return cache end
   local AllChars = {}
+  local seen = {}
   local function merge(chars)
     if not chars then return end
-    for k, ch in pairs(chars) do
-      if ch and ESPValid(ch) then
-        local pKey = k
-        if not pKey then
-          pcall(function()
-            if ch.GetPlayerKey then pKey = ch:GetPlayerKey() end
-          end)
-          if not pKey then pKey = ch.PlayerKey end
-        end
-        if pKey then AllChars[pKey] = ch end
+    for _, ch in pairs(chars) do
+      if ch and ESPValid(ch) and not seen[ch] then
+        seen[ch] = true
+        local pk = nil
+        pcall(function() if ch.GetPlayerKey then pk = ch:GetPlayerKey() end end)
+        if pk == nil then pk = ch.PlayerKey end
+        if pk == nil then pk = tostring(ch) end
+        AllChars[pk] = ch
       end
     end
   end
   pcall(function() if Game and Game.GetAllPlayerPawns then merge(Game:GetAllPlayerPawns()) end end)
-  pcall(function()
-    local GDP = ESP.GetGameplayData()
-    if GDP and GDP.GetAllCharacters then merge(GDP:GetAllCharacters()) end
-  end)
-  pcall(function()
-    local GS = require("GameLua.GameCore.Data.CGameState")
-    if GS and GS.GetAllCharacters then merge(GS:GetAllCharacters()) end
-  end)
+  pcall(function() if GameplayData_C and GameplayData_C.GetAllCharacters then merge(GameplayData_C:GetAllCharacters()) end end)
   ESP._charsCache = AllChars
   ESP._charsCacheTime = now
   return AllChars
@@ -828,6 +832,7 @@ end
 
 function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   if not KismetSystemLibraryESP or not KismetSystemLibraryESP.LineTraceSingle then return true end
+  if not camLoc or not bonePos then return true end
   local dx = bonePos.X - camLoc.X
   local dy = bonePos.Y - camLoc.Y
   local dz = bonePos.Z - camLoc.Z
@@ -857,7 +862,6 @@ function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   return bVis
 end
 
--- ==== OPTIMIZED: single head-bone trace, cached longer ====
 function ESP.IsVisible(key, pc, camLoc, Character)
   local now = ESP._now
   local cached = ESP.VisCache[key]
@@ -930,14 +934,13 @@ function ESP.GetHeadFeet(Character)
          { X = center.X, Y = center.Y, Z = center.Z - half }
 end
 
--- ==== Canvas: cached + geometry cached ====
+-- ═══ Canvas (cached, single lookup on miss) ═══
 function ESP.GetCanvas()
   if ESPValid(ESP.Canvas) then return ESP.Canvas end
   local root = nil
-  pcall(function()
-    local InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools")
-    if InGameUITools and InGameUITools.GetMainControlBaseUI then root = InGameUITools.GetMainControlBaseUI() end
-  end)
+  if InGameUITools_C and InGameUITools_C.GetMainControlBaseUI then
+    pcall(function() root = InGameUITools_C.GetMainControlBaseUI() end)
+  end
   if not ESPValid(root) then return nil end
   local canvas = nil
   pcall(function()
@@ -1005,13 +1008,14 @@ function ESP.Project(pc, worldLoc)
   local ok = false
   pcall(function()
     local res = pc:ProjectWorldLocationToScreen(worldLoc, pix, true)
-    ok = (res == true or res == 1 or (pix and (pix.X ~= 0 or pix.Y ~= 0)))
+    ok = (res == true or res == 1)
   end)
-  if not ok then return nil end
+  if not ok or not pix or type(pix.X) ~= "number" or type(pix.Y) ~= "number" then
+    return nil
+  end
   return ESPV2(pix.X * ESP.ScaleX + ESP.OffsetX, pix.Y * ESP.ScaleY + ESP.OffsetY), pix
 end
 
--- ==== Cached canvas width ====
 function ESP.GetCanvasWidth()
   if ESP.CanvasGeoW and ESP.CanvasGeoW > 1 then return ESP.CanvasGeoW end
   local canvas = ESP.GetCanvas()
@@ -1062,12 +1066,10 @@ function ESP.SetFont(w, size)
   end)
 end
 
+-- CRASH FIX: pass color struct directly; SlateColor(class) would error
 function ESP.SetTextColor(w, color)
-  if not ESPValid(w) then return end
-  pcall(function()
-    if SlateColor then w:SetColorAndOpacity(SlateColor(color))
-    else w:SetColorAndOpacity(color) end
-  end)
+  if not ESPValid(w) or not color then return end
+  pcall(function() w:SetColorAndOpacity(color) end)
 end
 
 function ESP.NewLine(color, z)
@@ -1105,7 +1107,7 @@ function ESP.DrawLine(data, x1, y1, x2, y2, thickness)
   local dx, dy = x2 - x1, y2 - y1
   local len = math.sqrt(dx * dx + dy * dy)
   if len < 1 then ESP.Hide(data) return false end
-  local angle = ((math.atan2 and math.atan2(dy, dx)) or math.atan(dy, dx)) * 180.0 / math.pi
+  local angle = _atan2(dy, dx) * 180.0 / math.pi
   angle = math.floor(angle * 10 + 0.5) / 10
   len = RND(len)
   if data.lx1 == x1 and data.ly1 == y1 and data.lx2 == x2 and data.ly2 == y2 and data.th == thickness then
@@ -1133,12 +1135,11 @@ function ESP.Hide(data)
     pcall(function() data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
     data.hidden = true
     data.lx1, data.ly1, data.lx2, data.ly2, data.th = nil, nil, nil, nil, nil
-    data.bx, data.bt, data.bh = nil, nil, nil
   end
 end
 
 function ESP.SetBrush(data, color, colorKey)
-  if not data or not ESPValid(data.Widget) then return end
+  if not data or not ESPValid(data.Widget) or not color then return end  -- nil-color crash guard
   if colorKey and data.colorKey == colorKey then return end
   pcall(function() data.Widget:SetBrushColor(color) end)
   if colorKey then data.colorKey = colorKey end
@@ -1264,7 +1265,7 @@ function ESP.CreateInfo()
            S0 = bSlot, S1 = nSlot, S2 = s2, S3 = s3, Slot = ms }
 end
 
--- ==== UpdateInfo: skip fully if nothing changed ====
+-- CRASH FIX: all SetText/SetBrushColor wrapped in pcall + epsilon-based skip
 function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, headY, footX, footY, boxL, boxR)
   local d = ESP.Infos[key]
   if not d or not ESPValid(d.Container) then
@@ -1284,8 +1285,13 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   local bx  = RND(headX)
   local by  = RND(headY - 18.0)
   local dm  = math.floor((tonumber(distM) or 0) + 0.5)
-  -- Fast-path: if position, distance, visibility, and identity all unchanged, skip the widget updates
-  if d._lx == bx and d._ly == by and d._dm == dm and d._lv == bVisible and d._ln == name then
+
+  -- Wider fast-path (epsilon px) — avoids widget layout churn on tiny camera jitter
+  local px_d = d._lx and math.abs(d._lx - bx) or 9999
+  local py_d = d._ly and math.abs(d._ly - by) or 9999
+  if px_d < CFG.PosEpsilon and py_d < CFG.PosEpsilon
+     and d._dm == dm and d._lv == bVisible and d._ln == name
+     and d._tID == teamID and d._tBot == isBot then
     return
   end
 
@@ -1293,11 +1299,11 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   local st = bVisible and "Open" or "Close"
   local teamColor = TeamColor(teamID, isBot, key)
 
-  if d.LastN ~= name then d.Name:SetText(name) d.LastN = name end
-  if d.LastD ~= dl   then d.Dist:SetText(dl)   d.LastD = dl   end
-  if d.LastS ~= st   then d.State:SetText(st)  d.LastS = st   end
+  if d.LastN ~= name then pcall(function() d.Name:SetText(name) end) d.LastN = name end
+  if d.LastD ~= dl   then pcall(function() d.Dist:SetText(dl) end)   d.LastD = dl   end
+  if d.LastS ~= st   then pcall(function() d.State:SetText(st) end)  d.LastS = st   end
   if d._tID ~= teamID or d._tBot ~= isBot then
-    d.TeamBox:SetBrushColor(teamColor)
+    pcall(function() d.TeamBox:SetBrushColor(teamColor) end)
     d._tID, d._tBot = teamID, isBot
   end
   ESP.SetTextColor(d.State, bVisible and C_GREEN or C_RED)
@@ -1340,11 +1346,10 @@ function ESP.UpdateHealthBar(key, pct, x, y, w)
   local thickness = CFG.SideBarWidth
   w = math.max(1, tonumber(w) or 1)
   ESP.DrawLine(bg, x, y, x + w, y, thickness)
-  pct = tonumber(pct) or 1.0
-  if pct < 0 then pct = 0 elseif pct > 1 then pct = 1 end
-  local bucket = math.floor(pct * 40 + 0.5)
+  local bucket = HealthColorBucket(pct)
   ESP.SetBrush(fill, HEALTH_COLOR_BUCKETS[bucket], bucket)
-  local fw = w * pct
+  if bucket <= 0 then ESP.Hide(fill) return end
+  local fw = w * (bucket / 40)
   if fw < 1 then ESP.Hide(fill) return end
   ESP.DrawLine(fill, x, y, x + fw, y, thickness)
 end
@@ -1401,7 +1406,7 @@ function ESP.ResetWidgets()
   ESP._charsCache = nil
 end
 
--- ==== Scan (30 Hz) ====
+-- ═══ Scan (10 Hz — was 30 Hz) ═══
 function ESP.Scan()
   local pc = ESP.GetController()
   local me = ESP.GetLocalCharacter()
@@ -1429,7 +1434,6 @@ function ESP.Scan()
       end
     end
   end
-  -- partial-sort: keep only closest CFG.MaxTracked
   if #list > CFG.MaxTracked then
     table.sort(list, function(a, b) return (a.Distance or 1e9) < (b.Distance or 1e9) end)
     while #list > CFG.MaxTracked do list[#list] = nil end
@@ -1438,11 +1442,10 @@ function ESP.Scan()
   return pc, nReal, nBot
 end
 
--- ==== Main Update (60 Hz) ====
+-- ═══ Main Update (60 Hz) ═══
 function ESP.Update()
   if not ESP_Enabled then ESP.ResetWidgets() return end
 
-  -- Refresh world + now ONCE per tick
   ESP.World()
   ESP._now = ESP.Now()
   local now = ESP._now
@@ -1455,10 +1458,10 @@ function ESP.Update()
     ESP._pc, ESP._me, ESP._myKey = nil, nil, nil
   end
 
+  -- Single canvas fetch per frame (was 5–10×)
   local canvas = ESP.GetCanvas()
   if not canvas then return end
 
-  -- invalidate cached controller/pawn if they've become stale
   if ESP._pc and not ESPValid(ESP._pc) then ESP._pc = nil end
   if ESP._me and not ESPValid(ESP._me) then ESP._me = nil end
 
@@ -1546,17 +1549,20 @@ function ESP.Update()
     end
   end
 
-  -- GC pass (only for widgets whose target vanished from cache)
+  -- ═══ Consolidated GC — one pass instead of 3 ═══
   local seenCache = {}
   for _, it in ipairs(ESP.EnemyCache) do seenCache[it.Key] = true end
-  local function stillActive(k) return active[k] == true end
-  for k in pairs(ESP.Lines) do if not stillActive(k) then ESP.HideTarget(k) end end
-  for k in pairs(ESP.Infos) do if not stillActive(k) then ESP.HideTarget(k) end end
+  for k, v in pairs(ESP.Lines) do
+    if not active[k] then ESP.HideTarget(k) end
+  end
+  for k in pairs(ESP.Infos) do
+    if not active[k] then ESP.HideTarget(k) end
+  end
   for k in pairs(ESP.Corners) do
-    if not stillActive(k) and not seenCache[k] then ESP.ReleaseTarget(k) end
+    if not active[k] and not seenCache[k] then ESP.ReleaseTarget(k) end
   end
   for k in pairs(ESP.HealthBg) do
-    if not seenCache[k] and not stillActive(k) then ESP.ReleaseTarget(k) end
+    if not seenCache[k] and not active[k] then ESP.ReleaseTarget(k) end
   end
 end
 
@@ -1597,9 +1603,10 @@ _G.ESP = ESP
 _G.PlayerMapMarker = ESP
 
 local function ESPLater(sec, fn)
-  local tk = nil
-  pcall(function() tk = require("common.time_ticker") end)
-  if tk and tk.AddTimerOnce then pcall(function() tk.AddTimerOnce(sec, fn) end) return end
+  if TimeTicker_C and TimeTicker_C.AddTimerOnce then
+    pcall(function() TimeTicker_C.AddTimerOnce(sec, fn) end)
+    return
+  end
   pcall(function() require("timer").SetGameTimer(sec, false, fn) end)
 end
 
