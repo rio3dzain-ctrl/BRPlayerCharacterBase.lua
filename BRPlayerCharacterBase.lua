@@ -545,11 +545,11 @@ end
 local CFG = {
   MaxDistance = 50000,
   RenderTrackingDistance = 50000,
-  MaxTracked = 32,          -- was 128, reduced per-frame work
+  MaxTracked = 32,
   ScreenMargin = 500,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
-  SnapThickness = 1.8,
+  SnapThickness = 2.0,     -- Made integer for crisp lines
   CornerThickness = 2.2,
   CornerLen = 0.28,
   CornerMin = 6,
@@ -561,7 +561,7 @@ local CFG = {
   WidthScale = 1.22,
   HeadExtra = 0.06,
   FootExtra = 0.02,
-  SideBarWidth = 3.5,
+  SideBarWidth = 4.0,      -- Made integer for crisp health bar
   SideBarGap = 5.0,
   SideBgAlpha = 0.55,
   MarkGap = 8.0,
@@ -660,7 +660,6 @@ ESP.OffsetX = 0.0
 ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
--- Timers slowed down dramatically (was 0.008333 each — 120 Hz)
 ESP.ScanInterval      = 0.08
 ESP.LightInterval     = 0.05
 ESP.TransformInterval = 0.08
@@ -1000,7 +999,6 @@ function ESP.IsVisible(key, pc, camLoc, Character, distM)
     return cached.b
   end
   local bVis
-  -- Skip the (expensive) line trace for distant targets
   if distM and distM > 150 then
     bVis = true
   elseif ESPValid(Character) and ESPValid(pc) and camLoc then
@@ -1144,7 +1142,6 @@ function ESP.UpdateCanvasTransform(pc)
     ESP.OffsetX = 0.0
     ESP.OffsetY = 0.0
   end
-  -- Invalidate cached Slate-derived positions after re-calibration
   ESP._CachedCX = nil
   ESP._CachedVW = nil
   return true
@@ -1185,14 +1182,15 @@ function ESP.SetFont(w, size)
     local f = w.Font
     if f then
       f.Size = size
+      -- FIX: Removed outline and shadow to stop double-text
       if f.OutlineSettings then
-        pcall(function() f.OutlineSettings.OutlineSize = 1 end)
-        pcall(function() f.OutlineSettings.OutlineColor = C_BLACK end)
+        pcall(function() f.OutlineSettings.OutlineSize = 0 end)
+        pcall(function() f.OutlineSettings.OutlineColor = ESPMKC(0,0,0,0) end)
       end
       w:SetFont(f)
     end
-    if w.SetShadowOffset then w:SetShadowOffset(ESPV2(1.0, 1.0)) end
-    if w.SetShadowColorAndOpacity then w:SetShadowColorAndOpacity(C_BLACK) end
+    if w.SetShadowOffset then w:SetShadowOffset(ESPV2(0.0, 0.0)) end
+    if w.SetShadowColorAndOpacity then w:SetShadowColorAndOpacity(ESPMKC(0,0,0,0)) end
   end)
 end
 
@@ -1212,8 +1210,9 @@ function ESP.NewLine(color, z)
   if not ESPValid(border) then return nil end
   pcall(function()
     border:SetBrushColor(color)
-    border:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+    border:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
     border:SetRenderTransformPivot(ESPV2(0.0, 0.5))
+    if border.SetIsVolatile then border:SetIsVolatile(true) end
   end)
   local slot = nil
   pcall(function() slot = canvas:AddChildToCanvas(border) end)
@@ -1221,7 +1220,13 @@ function ESP.NewLine(color, z)
     pcall(function() border:RemoveFromParent() end)
     return nil
   end
-  pcall(function() slot:SetAutoSize(false) slot:SetZOrder(z or 30) end)
+  -- FIX: Base size 1x1. We will use RenderScale to adjust length/thickness later.
+  pcall(function() 
+    slot:SetAutoSize(false) 
+    slot:SetSize(ESPV2(1, 1)) 
+    slot:SetPosition(ESPV2(0, 0))
+    slot:SetZOrder(z or 30) 
+  end)
   return { Widget = border, Slot = slot }
 end
 
@@ -1247,16 +1252,17 @@ function ESP.DrawLine(data, x1, y1, x2, y2, thickness)
   len = RND(len)
   if data.lx1 == x1 and data.ly1 == y1 and data.lx2 == x2 and data.ly2 == y2 and data.th == thickness then
     if data.hidden == true then
-      pcall(function() data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
+      pcall(function() data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible) end)
       data.hidden = false
     end
     return true
   end
   local ok = pcall(function()
-    data.Slot:SetPosition(ESPV2(x1, y1 - thickness * 0.5))
-    data.Slot:SetSize(ESPV2(len, thickness))
+    -- FIX: Use RenderTranslation and RenderScale to bypass Layout Engine
+    data.Widget:SetRenderTranslation(ESPV2(x1, y1 - thickness * 0.5))
+    data.Widget:SetRenderScale(ESPV2(len, thickness))
     data.Widget:SetRenderAngle(angle)
-    data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+    data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
   end)
   if ok then
     data.lx1, data.ly1, data.lx2, data.ly2, data.th = x1, y1, x2, y2, thickness
@@ -1277,16 +1283,17 @@ function ESP.DrawVBar(data, x, top, h, thickness)
   end
   if data.bx == x and data.bt == top and data.bh == h then
     if data.hidden == true then
-      pcall(function() data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
+      pcall(function() data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible) end)
       data.hidden = false
     end
     return true
   end
   local ok = pcall(function()
-    data.Slot:SetPosition(ESPV2(x, top))
-    data.Slot:SetSize(ESPV2(thickness, h))
+    -- FIX: Use RenderTranslation and RenderScale to bypass Layout Engine
+    data.Widget:SetRenderTranslation(ESPV2(x, top))
+    data.Widget:SetRenderScale(ESPV2(thickness, h))
     data.Widget:SetRenderAngle(0)
-    data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+    data.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
   end)
   if ok then data.bx, data.bt, data.bh = x, top, h data.hidden = false end
   return true
@@ -1330,6 +1337,7 @@ function ESP.CreateCounter()
     txt:SetText("Players: 0 | Bots: 0")
     txt:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
     if txt.SetJustification then txt:SetJustification(1) end
+    if txt.SetIsVolatile then txt:SetIsVolatile(true) end
   end)
   ESP.SetTextColor(txt, C_WHITE)
   ESP.SetFont(txt, CFG.CounterFontSize)
@@ -1339,13 +1347,17 @@ function ESP.CreateCounter()
   if not tSlot or not mSlot then ESP.Destroy({ Widget = container }) return nil end
   local W, H = CFG.CounterW or 300.0, CFG.CounterH or 28.0
   pcall(function()
-    tSlot:SetAutoSize(true)
+    -- FIX: AutoSize(false) prevents layout recalculation when count changes
+    tSlot:SetAutoSize(false)
+    tSlot:SetSize(ESPV2(W, H))
     tSlot:SetAlignment(ESPV2(0.5, 0.5))
-    tSlot:SetPosition(ESPV2(W * 0.5, H * 0.5))
+    tSlot:SetPosition(ESPV2(0, 0))
     tSlot:SetZOrder(5)
+    
     mSlot:SetAutoSize(false)
+    mSlot:SetSize(ESPV2(1, 1)) -- Locked base size
     mSlot:SetAlignment(ESPV2(0.5, 0.0))
-    mSlot:SetSize(ESPV2(W, H))
+    mSlot:SetPosition(ESPV2(0, 0))
     mSlot:SetZOrder(60)
   end)
   return { Container = container, Text = txt, Slot = mSlot, W = W, H = H }
@@ -1392,7 +1404,8 @@ function ESP.UpdateCounter(nPlayers, nBots, pc, viewW)
     if d.px == nil or math.abs(d.px - cx) >= 1.0 then
       d.px = cx
       pcall(function()
-        d.Slot:SetPosition(ESPV2(cx, CFG.TopTextY))
+        -- FIX: Bypass Layout Engine
+        d.Container:SetRenderTranslation(ESPV2(cx, CFG.TopTextY))
         d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
       end)
     else
@@ -1462,13 +1475,19 @@ function ESP.CreateInfo()
     nSlot:SetAlignment(ESPV2(0.5, 0.5))
     nSlot:SetZOrder(36)
 
-    s2:SetAutoSize(true)
+    -- FIX: AutoSize(false) to stop text layout recalculation (ghosting)
+    s2:SetAutoSize(false)
+    s2:SetSize(ESPV2(120.0, 20.0))
     s2:SetAlignment(ESPV2(0.5, 0.5))
     s2:SetZOrder(36)
-    s3:SetAutoSize(true)
+    
+    s3:SetAutoSize(false)
+    s3:SetSize(ESPV2(120.0, 20.0))
     s3:SetAlignment(ESPV2(0.5, 0.5))
     s3:SetZOrder(36)
+    
     ms:SetAutoSize(false)
+    ms:SetSize(ESPV2(1, 1)) -- Locked base size
     ms:SetZOrder(35)
   end)
   return { Container = container, TeamBox = teamBox, Name = tName, Dist = tDist, State = tState,
@@ -1495,7 +1514,6 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   local st = bVisible and "Open" or "Close"
   local teamKey = tostring(teamID) .. ":" .. tostring(isBot)
 
-  -- Text / color updates only when changed
   pcall(function()
     if d.LastN ~= name   then d.Name:SetText(name) d.LastN = name end
     if d.LastD ~= dl     then d.Dist:SetText(dl)   d.LastD = dl   end
@@ -1506,51 +1524,35 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
     end
   end)
 
-  -- Visibility color only when it flips
   if d.LastVColor ~= st then
     ESP.SetTextColor(d.State, bVisible and C_GREEN or C_RED)
     d.LastVColor = st
   end
 
-  -- Static layout: set ONCE per widget
   if not d.LayoutDone then
     pcall(function()
-      d.Slot:SetSize(ESPV2(100.0, 70.0))
       d.S0:SetPosition(ESPV2(0.0, 0.0))
-      d.S0:SetSize(ESPV2(100.0, 22.0))
       d.S1:SetPosition(ESPV2(0.0, 0.0))
-      d.S1:SetSize(ESPV2(100.0, 22.0))
-      d.S2:SetPosition(ESPV2(50.0, 34.0))
-      d.S3:SetPosition(ESPV2(50.0, 52.0))
+      d.S2:SetPosition(ESPV2(0.0, 34.0))
+      d.S3:SetPosition(ESPV2(0.0, 52.0))
     end)
     d.LayoutDone = true
   end
 
-  -- Un-collapse if previously hidden
   if d.LastVis ~= "vis" then
     pcall(function() d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
     d.LastVis = "vis"
   end
 
-  -- Position update only when it actually moves (sub-pixel jitter kills perf)
   local bx = RND(headX)
   local by = RND(headY - 18.0)
   if d.LastBX ~= bx or d.LastBY ~= by then
-    pcall(function() d.Slot:SetPosition(ESPV2(bx, by)) end)
+    -- FIX: Bypass Layout Engine completely
+    pcall(function() d.Container:SetRenderTranslation(ESPV2(bx, by)) end)
     d.LastBX, d.LastBY = bx, by
   end
 
   d.ix, d.iy = bx, by
-end
-
-function ESP.EnsureCorner(key, idx, color)
-  local t = ESP.Corners[key]
-  if not t then t = {} ESP.Corners[key] = t end
-  local d = t[idx]
-  if d and ESPValid(d.Widget) then return d end
-  d = ESP.NewLine(color or C_WHITE, 32)
-  t[idx] = d
-  return d
 end
 
 function ESP.EnsureHealthBg(key)
@@ -1573,7 +1575,7 @@ function ESP.UpdateHealthBar(key, pct, x, y, w)
   local bg = ESP.EnsureHealthBg(key)
   local fill = ESP.EnsureHealthFill(key)
   if not bg or not fill then return end
-  local thickness = CFG.SideBarWidth or 3.5
+  local thickness = CFG.SideBarWidth or 4.0
   w = math.max(1, tonumber(w) or 1)
 
   ESP.DrawLine(bg, x, y, x + w, y, thickness)
@@ -1594,10 +1596,6 @@ function ESP.UpdateHealthBar(key, pct, x, y, w)
     return
   end
   ESP.DrawLine(fill, x, y, x + fw, y, thickness)
-end
-
-function ESP.EnsureMark(key, idx)
-  return nil
 end
 
 function ESP.EnsureSnap(key)
@@ -1725,7 +1723,7 @@ function ESP.Update()
   end
   pc = pc or ESP.GetController()
   if not pc then return end
-  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 0.0.08) then
+  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 0.08) then
     ESP.UpdateCanvasTransform(pc)
     ESP.LastTransform = now
   end
@@ -1780,7 +1778,7 @@ function ESP.Update()
               if marks then for i = 1, 4 do ESP.Hide(marks[i]) end end
 
               ESP.DrawLine(ESP.EnsureSnap(key), origin.X, origin.Y, headS.X, headS.Y,
-                           CFG.SnapThickness or 1.8)
+                           CFG.SnapThickness or 2.0)
 
               local bVis = ESP.IsVisible(key, pc, camLoc, c, item.Distance)
               ESP.UpdateInfo(key, c, item.IsBot, item.TeamID, item.Distance, bVis,
@@ -1825,7 +1823,7 @@ function ESP.AttachTimers()
       if ESP._TimerPC == pc and ESP._TimerHooked then return end
       ESP._TimerPC = pc
       ESP._TimerHooked = true
-      pc:AddGameTimer(ESP.LightInterval or 0.008, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.05, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
