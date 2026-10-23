@@ -32,7 +32,6 @@ BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = {
     UEnums.EPropertyClass.Bool
   }
 }
-
 local ENetRole = import("ENetRole")
 local EPawnState = import("EPawnState")
 local ESpecialMovementType = import("ESpecialMovementType")
@@ -529,8 +528,7 @@ end)
 
 local function ESPValid(obj)
   if obj == nil then return false end
-  local ok, v = pcall(function() return slua.isValid(obj) end)
-  return ok and v == true
+  return slua.isValid(obj) == true
 end
 
 local function ESPV2(x, y)
@@ -661,8 +659,8 @@ ESP.OffsetX = 0.0
 ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
-ESP.ScanInterval      = 0.05
-ESP.LightInterval     = 0.016
+ESP.ScanInterval      = 0.05   -- 20 Hz scanning
+ESP.LightInterval     = 0.016  -- 60 FPS smooth tracking
 ESP.TransformInterval = 0.08
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
@@ -707,7 +705,7 @@ function ESP.GetAllCharacters()
   local function merge(chars)
     if not chars then return end
     for k, ch in pairs(chars) do
-      if ch and ESPValid(ch) then
+      if ch and slua.isValid(ch) then
         local pKey = k
         if not pKey and ch.GetPlayerKey then pKey = ch:GetPlayerKey() end
         if not pKey and ch.PlayerKey then pKey = ch.PlayerKey end
@@ -719,9 +717,8 @@ function ESP.GetAllCharacters()
   if Game and Game.GetAllPlayerPawns then merge(Game:GetAllPlayerPawns()) end
   local GDP = ESP.GetGameplayData()
   if GDP and GDP.GetAllCharacters then merge(GDP:GetAllCharacters()) end
-  
-  local ok, GS = pcall(require, "GameLua.GameCore.Data.CGameState")
-  if ok and GS and GS.GetAllCharacters then merge(GS:GetAllCharacters()) end
+  local GS = require("GameLua.GameCore.Data.CGameState")
+  if GS and GS.GetAllCharacters then merge(GS:GetAllCharacters()) end
   return AllChars
 end
 
@@ -736,17 +733,11 @@ end
 
 function ESP.GetTeamID(Character)
   if not ESPValid(Character) then return nil end
-  local id = nil
-  if Character.GetTeamID then id = Character:GetTeamID() end
-  if id == nil then id = Character.TeamID end
+  local id = Character.GetTeamID and Character:GetTeamID() or Character.TeamID
   if id == nil then
-    local ps = nil
-    if Character.GetPlayerStateSafety then ps = Character:GetPlayerStateSafety() 
-    elseif Character.GetPlayerState then ps = Character:GetPlayerState() 
-    else ps = Character.PlayerState end
+    local ps = Character.GetPlayerStateSafety and Character:GetPlayerStateSafety() or Character.PlayerState
     if ESPValid(ps) then
-      if ps.GetTeamID then id = ps:GetTeamID() end
-      if id == nil then id = ps.TeamID end
+      id = ps.GetTeamID and ps:GetTeamID() or ps.TeamID
     end
   end
   return id
@@ -754,8 +745,7 @@ end
 
 function ESP.IsAlive(Character)
   if not ESPValid(Character) then return false end
-  local alive = nil
-  if Character.IsAlive then alive = Character:IsAlive() end
+  local alive = Character.IsAlive and Character:IsAlive()
   if type(alive) == "boolean" then return alive end
   local hp = Character.Health or Character.HP
   if type(hp) == "number" then return hp > 0 end
@@ -803,23 +793,17 @@ end
 
 function ESP.ResolveName(Character, isBot)
   if isBot then return "Bot" end
-  local name = nil
-  if Character.GetPlayerNameSafety then name = Character:GetPlayerNameSafety() end
-  if not name and Character.GetPlayerName then name = Character:GetPlayerName() end
-  if not name then name = Character.PlayerName end
-  if not name then name = Character.NickName end
-  
+  local name = Character.GetPlayerNameSafety and Character:GetPlayerNameSafety()
+            or Character.GetPlayerName and Character:GetPlayerName()
+            or Character.PlayerName
+            or Character.NickName
   if not name then
-    local ps = nil
-    if Character.GetPlayerStateSafety then ps = Character:GetPlayerStateSafety()
-    elseif Character.GetPlayerState then ps = Character:GetPlayerState()
-    else ps = Character.PlayerState end
-    
+    local ps = Character.GetPlayerStateSafety and Character:GetPlayerStateSafety() or Character.PlayerState
     if ps then
-      if ps.GetPlayerName then name = ps:GetPlayerName() end
-      if not name then name = ps.PlayerName end
-      if not name then name = ps.PlayerNamePrivate end
-      if not name then name = ps.NickName end
+      name = ps.GetPlayerName and ps:GetPlayerName()
+             or ps.PlayerName
+             or ps.PlayerNamePrivate
+             or ps.NickName
     end
   end
   return NormalizeName(name) or "Player"
@@ -827,10 +811,9 @@ end
 
 function ESP.GetBonePos(Character, boneName)
   if not ESPValid(Character) or not boneName then return nil end
-  local pos = nil
-  if Character.GetBonePos then pos = Character:GetBonePos(boneName, { X = 0, Y = 0, Z = 0 }) end
+  local pos = Character.GetBonePos and Character:GetBonePos(boneName, { X = 0, Y = 0, Z = 0 })
   if not pos or (pos.X == 0 and pos.Y == 0 and pos.Z == 0) then
-    if Character.GetSocketLocation then pos = Character:GetSocketLocation(boneName) end
+    pos = Character.GetSocketLocation and Character:GetSocketLocation(boneName)
   end
   if (not pos or (pos.X == 0 and pos.Y == 0 and pos.Z == 0)) and ESPValid(Character.Mesh) then
     local mesh = Character.Mesh
@@ -922,7 +905,6 @@ function ESP.GetVerticalBounds(Character)
   if capsule then
     if capsule.K2_GetComponentLocation then center = capsule:K2_GetComponentLocation()
     elseif capsule.GetComponentLocation then center = capsule:GetComponentLocation() end
-    
     if capsule.GetScaledCapsuleHalfHeight then halfHeight = capsule:GetScaledCapsuleHalfHeight()
     elseif capsule.GetUnscaledCapsuleHalfHeight then halfHeight = capsule:GetUnscaledCapsuleHalfHeight()
     elseif capsule.CapsuleHalfHeight then halfHeight = capsule.CapsuleHalfHeight end
@@ -961,8 +943,8 @@ end
 function ESP.GetCanvas()
   if ESPValid(ESP.Canvas) then return ESP.Canvas end
   local root = nil
-  local ok, InGameUITools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameUITools")
-  if ok and InGameUITools and InGameUITools.GetMainControlBaseUI then root = InGameUITools.GetMainControlBaseUI() end
+  local InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools")
+  if InGameUITools and InGameUITools.GetMainControlBaseUI then root = InGameUITools.GetMainControlBaseUI() end
   if not ESPValid(root) then return nil end
   local canvas = nil
   if ESPValid(root.CanvasPanel_0) then canvas = root.CanvasPanel_0
@@ -1086,9 +1068,8 @@ function ESP.DrawLine(data, x1, y1, x2, y2, thickness)
     return false
   end
   
-  -- SAFE FALLBACK FOR LUA 5.3+ MATH.ATAN2
-  local angle = math.atan2 and math.atan2(dy, dx) or math.atan(dy, dx)
-  angle = math.floor((angle * 180.0 / math.pi) * 10 + 0.5) / 10
+  local angle = math.atan2(dy, dx) * 180.0 / math.pi
+  angle = math.floor(angle * 10 + 0.5) / 10
   len = RND(len)
   
   data.Widget:SetRenderTranslation(ESPV2(x1, y1 - thickness * 0.5))
@@ -1264,7 +1245,7 @@ function ESP.CreateInfo()
   s3:SetZOrder(36)
   
   ms:SetAutoSize(false)
-  ms:SetSize(ESPV2(200.0, 100.0))
+  ms:SetSize(ESPV2(200.0, 100.0)) -- Large fixed size to prevent layout recalculations
   ms:SetZOrder(35)
 
   return { Container = container, TeamBox = teamBox, Name = tName, Dist = tDist, State = tState,
@@ -1553,13 +1534,9 @@ _G.ESP = ESP
 _G.PlayerMapMarker = ESP
 
 local function ESPLater(sec, fn)
-  local ok, tk = pcall(require, "common.time_ticker")
-  if ok and tk and tk.AddTimerOnce then 
-    tk.AddTimerOnce(sec, fn) 
-    return 
-  end
-  local ok2, timer = pcall(require, "timer")
-  if ok2 and timer and timer.SetGameTimer then timer.SetGameTimer(sec, false, fn) end
+  local tk = require("common.time_ticker")
+  if tk and tk.AddTimerOnce then tk.AddTimerOnce(sec, fn) return end
+  require("timer").SetGameTimer(sec, false, fn)
 end
 
 local _ESPStartedPC = nil
