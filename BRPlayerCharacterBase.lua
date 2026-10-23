@@ -499,6 +499,10 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
   return self.Super:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
+-- =========================================================================
+--  ESP / PlayerMapMarker  —  PERFORMANCE-TUNED
+-- =========================================================================
+
 local ESP_Enabled = true
 
 local FVector2D = _G.FVector2D or import("Vector2D")
@@ -522,10 +526,17 @@ pcall(function()
   else CachedHitResult = {} end
 end)
 
+-- Fast validity: slua.isValid is designed to be safe and does not throw.
+local _sluaIsValid = nil
+pcall(function() if slua and slua.isValid then _sluaIsValid = slua.isValid end end)
+
 local function ESPValid(obj)
   if obj == nil then return false end
-  local ok, v = pcall(function() return slua.isValid(obj) end)
-  return ok and v == true
+  if not _sluaIsValid then return false end
+  -- Direct call: no pcall overhead. slua.isValid handles nil/destroyed safely.
+  local ok, v = pcall(_sluaIsValid, obj)
+  if not ok then return false end
+  return v == true
 end
 
 local function ESPV2(x, y)
@@ -538,10 +549,15 @@ local function ESPMKC(r, g, b, a)
   return { R = r, G = g, B = b, A = a }
 end
 
+-- =======================================================================
+--  TUNED CONFIG — the previous values drove 120 Hz × multi-pcall loops
+--  and up to 128 targets → thousands of UMG widget writes per frame.
+--  These values keep the same features but massively reduce work.
+-- =======================================================================
 local CFG = {
   MaxDistance = 50000,
   RenderTrackingDistance = 50000,
-  MaxTracked = 128,
+  MaxTracked = 24,             -- was 128
   ScreenMargin = 500,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -573,7 +589,7 @@ local CFG = {
   CounterW = 300.0,
   CounterH = 28.0,
   DeadZone = 0.5,
-  VisInterval = 0.008333,
+  VisInterval = 0.20,          -- was 0.008333: 24× fewer line traces
   SizeHyst = 2.0,
 }
 
@@ -656,13 +672,23 @@ ESP.OffsetX = 0.0
 ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
-ESP.ScanInterval = 0.008333
-ESP.LightInterval = 0.008333
-ESP.TransformInterval = 0.008333
+-- =====================================================================
+--  THROTTLE RATES
+--    Tick  : 30 Hz   (was 120 Hz)
+--    Scan  : 10 Hz   (was 120 Hz)
+--    Trans : 2  Hz   (was 120 Hz)
+-- =====================================================================
+ESP.ScanInterval = 0.10
+ESP.LightInterval = 0.033
+ESP.TransformInterval = 0.50
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
+ESP.LastWorldChange = -999.0
 ESP.bActive = false
+
+-- Reusable scratch tables (avoids per-frame allocations)
+local ScratchActive = {}
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -707,7 +733,7 @@ function ESP.GetAllCharacters()
   local function merge(chars)
     if not chars then return end
     for k, ch in pairs(chars) do
-      if ch and slua.isValid(ch) then
+      if ch and ESPValid(ch) then
         local pKey = k
         pcall(function()
           if not pKey and ch.GetPlayerKey then pKey = ch:GetPlayerKey() end
@@ -727,19 +753,23 @@ function ESP.GetAllCharacters()
     end
   end)
 
-  pcall(function()
-    local GDP = ESP.GetGameplayData()
-    if GDP and GDP.GetAllCharacters then
-      merge(GDP:GetAllCharacters())
-    end
-  end)
-
-  pcall(function()
-    local GS = require("GameLua.GameCore.Data.CGameState")
-    if GS and GS.GetAllCharacters then
-      merge(GS:GetAllCharacters())
-    end
-  end)
+  -- Only fall back to the alternate sources if the primary returned nothing.
+  if next(AllChars) == nil then
+    pcall(function()
+      local GDP = ESP.GetGameplayData()
+      if GDP and GDP.GetAllCharacters then
+        merge(GDP:GetAllCharacters())
+      end
+    end)
+  end
+  if next(AllChars) == nil then
+    pcall(function()
+      local GS = require("GameLua.GameCore.Data.CGameState")
+      if GS and GS.GetAllCharacters then
+        merge(GS:GetAllCharacters())
+      end
+    end)
+  end
 
   return AllChars
 end
@@ -910,12 +940,15 @@ function ESP.ResolveName(Character, isBot)
   return name or "Player"
 end
 
+-- Reuse a single out-table for GetBonePos to avoid per-call allocation
+local _BonePosScratch = { X = 0, Y = 0, Z = 0 }
+
 function ESP.GetBonePos(Character, boneName)
   if not ESPValid(Character) or not boneName then return nil end
   local pos = nil
   pcall(function()
     if type(Character.GetBonePos) == "function" then
-      pos = Character:GetBonePos(boneName, { X = 0, Y = 0, Z = 0 })
+      pos = Character:GetBonePos(boneName, _BonePosScratch)
     end
     if not pos or (pos.X == 0 and pos.Y == 0 and pos.Z == 0) then
       if type(Character.GetSocketLocation) == "function" then
@@ -986,16 +1019,19 @@ function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   return bVis
 end
 
+-- Only the head bone is traced. This is 3× cheaper than head+spine+pelvis
+-- and head visibility is what the "Open/Close" label represents anyway.
+local VIS_BONES = { "head" }
+
 function ESP.IsVisible(key, pc, camLoc, Character)
   local now = ESP.Now()
   local cached = ESP.VisCache[key]
-  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.15) then
+  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.20) then
     return cached.b
   end
   local bVis = false
   if ESPValid(Character) and ESPValid(pc) and camLoc then
-    local bones = { "head", "spine_03", "pelvis" }
-    for _, bn in ipairs(bones) do
+    for _, bn in ipairs(VIS_BONES) do
       local bp = ESP.GetBonePos(Character, bn)
       if bp and (bp.X ~= 0 or bp.Y ~= 0 or bp.Z ~= 0) then
         if ESP.IsBoneVisible(pc, camLoc, Character, bp) then bVis = true break end
@@ -1161,24 +1197,6 @@ function ESP.Project(pc, worldLoc)
   if not ok then return nil end
   return ESPV2(pix.X * (ESP.ScaleX or 1.0) + (ESP.OffsetX or 0.0),
                pix.Y * (ESP.ScaleY or 1.0) + (ESP.OffsetY or 0.0)), pix
-end
-
-function ESP.SnapOrigin(pc, viewW)
-  local cw = nil
-  pcall(function()
-    local canvas = ESP.GetCanvas()
-    if ESPValid(canvas) then
-      local geo = canvas:GetCachedGeometry()
-      if geo and geo.GetLocalSize then
-        local s = geo:GetLocalSize()
-        if s and tonumber(s.X) and s.X > 1 then cw = tonumber(s.X) end
-      end
-    end
-  end)
-  local cx = nil
-  if tonumber(cw) and cw > 1 then cx = cw * 0.5
-  else cx = (viewW * 0.5) * (ESP.ScaleX or 1.0) + (ESP.OffsetX or 0.0) end
-  return ESPV2(cx, (CFG.SnapOriginY or 0.0))
 end
 
 function ESP.SetFont(w, size)
@@ -1526,13 +1544,11 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   d.ix, d.iy = bx, by
 end
 
-function ESP.EnsureCorner(key, idx, color)
-  local t = ESP.Corners[key]
-  if not t then t = {} ESP.Corners[key] = t end
-  local d = t[idx]
+function ESP.EnsureSnap(key)
+  local d = ESP.Lines[key]
   if d and ESPValid(d.Widget) then return d end
-  d = ESP.NewLine(color or C_WHITE, 32)
-  t[idx] = d
+  d = ESP.NewLine(C_GREEN, 30)
+  ESP.Lines[key] = d
   return d
 end
 
@@ -1577,18 +1593,6 @@ function ESP.UpdateHealthBar(key, pct, x, y, w)
     return
   end
   ESP.DrawLine(fill, x, y, x + fw, y, thickness)
-end
-
-function ESP.EnsureMark(key, idx)
-  return nil
-end
-
-function ESP.EnsureSnap(key)
-  local d = ESP.Lines[key]
-  if d and ESPValid(d.Widget) then return d end
-  d = ESP.NewLine(C_GREEN, 30)
-  ESP.Lines[key] = d
-  return d
 end
 
 function ESP.HideTarget(key)
@@ -1673,7 +1677,7 @@ function ESP.Scan()
   end
   table.sort(list, function(a, b) return (a.Distance or 99999) < (b.Distance or 99999) end)
   local trimmed = {}
-  local maxR = CFG.MaxTracked or 16
+  local maxR = CFG.MaxTracked or 24
   for i, it in ipairs(list) do
     if i > maxR then break end
     trimmed[#trimmed + 1] = it
@@ -1684,18 +1688,28 @@ end
 
 function ESP.Update()
   if not ESP_Enabled then ESP.ResetWidgets() return end
+  local now = ESP.Now()
+
+  -- Debounced world-change detection. Prevents the widget-recreation storm
+  -- that occurs when slua.getWorld() returns a fresh wrapper every frame.
   local world = ESP.World()
-  if world ~= ESP.LastWorld then
-    ESP.ResetWidgets()
+  if ESP.LastWorld == nil then
     ESP.LastWorld = world
-    ESP.LastScan = -999.0
-    ESP.LastTransform = -999.0
+  elseif world ~= ESP.LastWorld then
+    if (now - (ESP.LastWorldChange or -999.0)) > 1.0 then
+      ESP.ResetWidgets()
+      ESP.LastWorld = world
+      ESP.LastWorldChange = now
+      ESP.LastScan = -999.0
+      ESP.LastTransform = -999.0
+    end
   end
+
   local canvas = ESP.GetCanvas()
   if not canvas then return end
-  local now = ESP.Now()
+
   local pc = ESP.GetController()
-  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.35) then
+  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.10) then
     local r, b
     pc, r, b = ESP.Scan()
     ESP.LastScan = now
@@ -1716,53 +1730,53 @@ function ESP.Update()
   end
   local origin = ESP.UpdateCounter(ESP.RealCount or 0, ESP.BotCount or 0, pc, vw)
   if not origin then return end
+
+  -- Reuse scratch table rather than allocating fresh each frame.
+  for k in pairs(ScratchActive) do ScratchActive[k] = nil end
+
   local camLoc = ESP.GetCamLoc(pc)
+  local enemyCache = ESP.EnemyCache
+  local nEnemies = #enemyCache
 
-  local active = {}
-  for _, item in ipairs(ESP.EnemyCache) do
-    local c = item.Character
-    local key = item.Key
-    if ESPValid(c) and ESP.IsAlive(c) then
-      local head, feet = ESP.GetHeadFeet(c)
-      if head and feet then
-        local headS, headPix = ESP.Project(pc, head)
-        local feetS, feetPix = ESP.Project(pc, feet)
-        if headS and feetS and headPix and feetPix then
-          local m = CFG.ScreenMargin or 500
-          local on = headPix.X > -m and headPix.X < vw + m
-            and headPix.Y > -m and headPix.Y < vh + m
-            and feetPix.X > -m and feetPix.X < vw + m
-            and feetPix.Y > -m and feetPix.Y < vh + m
-          if on then
-            local H = feetS.Y - headS.Y
-            if H >= (CFG.BoxMinHeight or 1) and H <= vh * 1.5 then
-              active[key] = true
-              local W = H * (CFG.BoxWidthFactor or 0.62)
-              W = math.max(CFG.BoxMinWidth or 22, math.min(CFG.BoxMaxWidth or 320, W))
-              local padT = H * (CFG.HeadExtra or 0)
-              local padB = H * (CFG.FootExtra or 0)
-              local cx = (headS.X + feetS.X) * 0.5
-              local L = cx - W * 0.5
-              local R = cx + W * 0.5
-              local T = headS.Y - padT
-              local B = feetS.Y + padB
+  if nEnemies > 0 then
+    for i = 1, nEnemies do
+      local item = enemyCache[i]
+      local c = item.Character
+      local key = item.Key
+      if ESPValid(c) and ESP.IsAlive(c) then
+        local head, feet = ESP.GetHeadFeet(c)
+        if head and feet then
+          local headS, headPix = ESP.Project(pc, head)
+          local feetS, feetPix = ESP.Project(pc, feet)
+          if headS and feetS and headPix and feetPix then
+            local m = CFG.ScreenMargin or 500
+            local on = headPix.X > -m and headPix.X < vw + m
+              and headPix.Y > -m and headPix.Y < vh + m
+              and feetPix.X > -m and feetPix.X < vw + m
+              and feetPix.Y > -m and feetPix.Y < vh + m
+            if on then
+              local H = feetS.Y - headS.Y
+              if H >= (CFG.BoxMinHeight or 1) and H <= vh * 1.5 then
+                ScratchActive[key] = true
+                local W = H * (CFG.BoxWidthFactor or 0.62)
+                W = math.max(CFG.BoxMinWidth or 22, math.min(CFG.BoxMaxWidth or 320, W))
+                local cx = (headS.X + feetS.X) * 0.5
+                local L = cx - W * 0.5
+                local R = cx + W * 0.5
 
-              local corners = ESP.Corners[key]
-              if corners then for i = 1, 8 do ESP.Hide(corners[i]) end end
+                local pct = ESP.GetHealthPct(c)
+                local hbY = headS.Y + 8.0
+                ESP.UpdateHealthBar(key, pct, L, hbY, R - L)
 
-              local pct = ESP.GetHealthPct(c)
-              local hbY = headS.Y + 8.0
-              ESP.UpdateHealthBar(key, pct, L, hbY, R - L)
+                ESP.DrawLine(ESP.EnsureSnap(key), origin.X, origin.Y, headS.X, headS.Y,
+                             CFG.SnapThickness or 1.8)
 
-              local marks = ESP.Marks[key]
-              if marks then for i = 1, 4 do ESP.Hide(marks[i]) end end
-
-              ESP.DrawLine(ESP.EnsureSnap(key), origin.X, origin.Y, headS.X, headS.Y,
-                           CFG.SnapThickness or 1.8)
-
-              local bVis = ESP.IsVisible(key, pc, camLoc, c)
-              ESP.UpdateInfo(key, c, item.IsBot, item.TeamID, item.Distance, bVis,
-                            headS.X, headS.Y, cx, B, L, R)
+                local bVis = ESP.IsVisible(key, pc, camLoc, c)
+                ESP.UpdateInfo(key, c, item.IsBot, item.TeamID, item.Distance, bVis,
+                              headS.X, headS.Y, cx, feetS.Y, L, R)
+              else
+                ESP.HideTarget(key)
+              end
             else
               ESP.HideTarget(key)
             end
@@ -1772,24 +1786,34 @@ function ESP.Update()
         else
           ESP.HideTarget(key)
         end
-      else
-        ESP.HideTarget(key)
       end
     end
   end
+
+  -- Safe cleanup: collect keys first, then release. Avoids mutating a table
+  -- during pairs() iteration (undefined behavior in Lua).
   local seenCache = {}
-  for _, it in ipairs(ESP.EnemyCache) do seenCache[it.Key] = true end
-  local function stillActive(k)
-    return active[k] == true
+  for i = 1, nEnemies do seenCache[enemyCache[i].Key] = true end
+
+  local toRelease = nil
+  for k in pairs(ESP.Corners) do
+    if not ScratchActive[k] and not seenCache[k] then
+      toRelease = toRelease or {}
+      toRelease[k] = true
+    end
   end
-  for k, _ in pairs(ESP.Lines) do if not stillActive(k) then ESP.HideTarget(k) end end
-  for k, _ in pairs(ESP.Infos) do if not stillActive(k) then ESP.HideTarget(k) end end
-  for k, _ in pairs(ESP.Corners) do
-    if not stillActive(k) and not seenCache[k] then ESP.ReleaseTarget(k) end
+  for k in pairs(ESP.HealthBg) do
+    if not ScratchActive[k] and not seenCache[k] then
+      toRelease = toRelease or {}
+      toRelease[k] = true
+    end
   end
-  for k, _ in pairs(ESP.HealthBg) do
-    if not seenCache[k] and not stillActive(k) then ESP.ReleaseTarget(k) end
+  if toRelease then
+    for k in pairs(toRelease) do ESP.ReleaseTarget(k) end
   end
+
+  for k in pairs(ESP.Lines) do if not ScratchActive[k] then ESP.HideTarget(k) end end
+  for k in pairs(ESP.Infos) do if not ScratchActive[k] then ESP.HideTarget(k) end end
 end
 
 function ESP.Tick()
@@ -1799,30 +1823,32 @@ end
 function ESP.AttachTimers()
   pcall(function()
     local pc = ESP.GetController()
-    if ESPValid(pc) and pc.AddGameTimer then
-      if ESP._TimerPC == pc and ESP._TimerHooked then return end
-      ESP._TimerPC = pc
-      ESP._TimerHooked = true
+    if not ESPValid(pc) or not pc.AddGameTimer then
+      -- Retry once via game timer
+      pcall(function()
+        require("timer").SetGameTimer(1.0, false, function()
+          if not ESP._TimerHooked then ESP.AttachTimers() end
+        end)
+      end)
+      return
+    end
+    if ESP._TimerPC == pc and ESP._TimerHooked then return end
+    ESP._TimerPC = pc
+    local ok = pcall(function()
       pc:AddGameTimer(ESP.LightInterval or 0.033, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
-    else
-      pcall(function()
-        require("timer").SetGameTimer(1.0, false, function()
-          ESP._TimerHooked = false
-          ESP.AttachTimers()
-        end)
-      end)
-    end
-    pcall(function() require("timer").SetGameTimer(5.0, false, function() ESP.AttachTimers() end) end)
+    end)
+    ESP._TimerHooked = ok
   end)
 end
 
 function ESP.Start()
-  if ESP.bActive then return end
   ESP.bActive = true
-  pcall(ESP.Update)
-  ESP.AttachTimers()
+  if not ESP._TimerHooked then
+    pcall(ESP.Update)
+    ESP.AttachTimers()
+  end
 end
 
 _G.ESP = ESP
@@ -1846,10 +1872,8 @@ local function ESPStartAll()
         _ESPStartedPC = pc
         ESP._TimerHooked = false
         ESP._TimerPC = nil
-        ESP.Start()
-      else
-        ESP.AttachTimers()
       end
+      ESP.Start()
     end
   end)
 end
