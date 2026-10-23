@@ -1593,22 +1593,6 @@ end
 -- KHỞI CHẠY LẦN ĐẦU TIÊN
 if not _G.ModConfigLoaded then
     _G.LoadModSettings()
-
-    -- Safety configuration: keep ESP / wallhack features disabled.
-    for key, _ in pairs(_G.LexusConfig or {}) do
-        if type(key) == "string" and
-           (string.match(key, "^Esp") or string.match(key, "^BoxESP")) then
-            _G.LexusConfig[key] = false
-        end
-    end
-    _G.LexusConfig.WallXuyenTuong = false
-    _G.LexusConfig.WallVehicle = false
-    _G.LexusConfig.ColorBodyV2 = false
-    _G.LexusConfig.ColorBodyV3 = false
-    _G.LexusConfig.ColorBodyNew = false
-    _G.LexusConfig.EspOutline = false
-    _G.SaveModSettings()
-
     AutoSaveLoop()
     _G.ModConfigLoaded = true
 end
@@ -6787,7 +6771,7 @@ local function MainLoop()
     local Cached_MyHUD = pc and pc.MyHUD or nil
 
     if _G.LexusConfig.UnlockFPS then InitializeGraphicsUnlock() end
-    -- InitializeNativeESP() -- disabled by requested ESP-off configuration
+    InitializeNativeESP()
     ShowLexusVIPMenu()
     
     -- [GỌI LOGIC ESP ITEM VÀ VEHICLE VÀO VÒNG LẶP]
