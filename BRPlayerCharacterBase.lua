@@ -374,53 +374,21 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
 -- ============================================================================
---  ESP MODULE — hardened v3
---  Hard-disable at any time:  _G.ESP_FORCE_DISABLED = true
+--  ESP MODULE  v4 — restored working imports, kept all crash fixes
+--  Kill switch:  _G.ESP_FORCE_DISABLED = true
+--  Debug log:    _G.ESP_DEBUG = true
 -- ============================================================================
 
 local ESP_Enabled = true
 
--- Struct type imports. FVector/FVector2D/FRotator are already globals in this
--- codebase (used above), but we guard anyway and *smoke-test* each one. If any
--- construction fails, ESP turns itself off — this prevents crashes from
--- passing a plain Lua table to a native that expects a UStruct.
-local FVector2D     = _G.FVector2D     or (pcall(import, "/Script/CoreUObject.Vector2D")   and import("/Script/CoreUObject.Vector2D"))
-local FLinearColor  = _G.FLinearColor  or (pcall(import, "/Script/CoreUObject.LinearColor") and import("/Script/CoreUObject.LinearColor"))
-local FVector       = _G.FVector       or (pcall(import, "/Script/CoreUObject.Vector")      and import("/Script/CoreUObject.Vector"))
+-- USE THE EXACT import() paths that worked in v1. Do NOT use /Script/... paths.
+local FVector2D, FLinearColor, FVector
+pcall(function() FVector2D = _G.FVector2D or import("Vector2D") end)
+pcall(function() FLinearColor = _G.FLinearColor or import("LinearColor") end)
+pcall(function() FVector = _G.FVector or import("Vector") end)
 
-local function MakeVec2(x, y)
-  if not FVector2D then return nil end
-  if x ~= x or y ~= y then return nil end
-  local ok, v = pcall(function() return FVector2D(x, y) end)
-  return ok and v or nil
-end
-
-local function MakeColor(r, g, b, a)
-  if not FLinearColor then return nil end
-  local ok, v = pcall(function() return FLinearColor(r, g, b, a) end)
-  return ok and v or nil
-end
-
-local function MakeVec3(x, y, z)
-  if not FVector then return nil end
-  if x ~= x or y ~= y or z ~= z then return nil end
-  local ok, v = pcall(function() return FVector(x, y, z) end)
-  return ok and v or nil
-end
-
--- Smoke tests — if any of these fail, ESP is disabled entirely. This is the
--- ONLY way to be sure we never pass a plain Lua table into a native setter
--- (which can hard-crash the engine, uncatchable by pcall).
-do
-  local okVec2 = MakeVec2(0, 0) ~= nil
-  local okCol  = MakeColor(1, 1, 1, 1) ~= nil
-  local okVec3 = MakeVec3(0, 0, 0) ~= nil
-  if not okVec2 or not okCol or not okVec3 then
-    print(string.format("[ESP] DISABLED at load — Vector2D=%s LinearColor=%s Vector=%s",
-      tostring(okVec2), tostring(okCol), tostring(okVec3)))
-    ESP_Enabled = false
-  end
-end
+print(string.format("[ESP] Types: FVector2D=%s FLinearColor=%s FVector=%s",
+  tostring(FVector2D ~= nil), tostring(FLinearColor ~= nil), tostring(FVector ~= nil)))
 
 local SlateBlueprintLibrary, WidgetLayoutLibrary, SlateColor, GameplayStaticsESP
 pcall(function() SlateBlueprintLibrary = import("SlateBlueprintLibrary") end)
@@ -428,19 +396,56 @@ pcall(function() WidgetLayoutLibrary = import("WidgetLayoutLibrary") end)
 pcall(function() SlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor") end)
 pcall(function() GameplayStaticsESP = import("GameplayStatics") end)
 
+local KismetSystemLibraryESP, HitResultClassESP
+pcall(function() KismetSystemLibraryESP = import("KismetSystemLibrary") end)
+pcall(function() HitResultClassESP = import("HitResult") end)
+
 local function ESPValid(obj)
   if obj == nil then return false end
   local ok, v = pcall(function() return slua.isValid(obj) end)
   return ok and v == true
 end
 
+local function ESPLog(...)
+  if _G.ESP_DEBUG or bWriteLog then print("[ESP]", ...) end
+end
+
+-- Safe constructors — try native first, fall back to plain Lua table
+-- (v1 proved tables work with all the UMG setters on this engine)
+local function MakeVec2(x, y)
+  if x ~= x or y ~= y then return nil end
+  if FVector2D then
+    local ok, v = pcall(function() return FVector2D(x, y) end)
+    if ok and v then return v end
+  end
+  return { X = x, Y = y }
+end
+
+local function MakeColor(r, g, b, a)
+  if FLinearColor then
+    local ok, v = pcall(function() return FLinearColor(r, g, b, a) end)
+    if ok and v then return v end
+  end
+  return { R = r, G = g, B = b, A = a }
+end
+
+-- FVector MUST be real — ProjectWorldLocationToScreen will crash on a table.
+-- But `_G.FVector` is guaranteed because the base class uses FVector(0,0,0).
+local function MakeVec3(x, y, z)
+  if x ~= x or y ~= y or z ~= z then return nil end
+  if FVector then
+    local ok, v = pcall(function() return FVector(x, y, z) end)
+    if ok and v then return v end
+  end
+  return nil
+end
+
 -- ============================================================================
---  CONFIG (workload reduced — was the only common cause of perceived crashes
---  i.e. engine under load / TDR)
+--  CONFIG
 -- ============================================================================
 local CFG = {
-  RenderTrackingDistance = 60000,   -- 600 m (was 800)
-  MaxTracked             = 15,      -- was 20
+  RenderTrackingDistance = 60000,
+  MaxTracked             = 15,
   ScreenMargin           = 400,
   TopTextY               = 6.0,
   SnapOriginY            = 0.0,
@@ -451,23 +456,20 @@ local CFG = {
   NameFontSize           = 15, DistFontSize = 13, StateFontSize = 13,
   CounterFontSize        = 17, CounterW = 300.0, CounterH = 28.0,
   DeadZone               = 0.5,
-  LightInterval          = 0.033,   -- 30 Hz
-  ScanInterval           = 0.20,    -- 5 Hz
-  TransformInterval      = 0.08,    -- 12 Hz
+  LightInterval          = 0.033,
+  ScanInterval           = 0.20,
+  TransformInterval      = 0.08,
   VisInterval            = 0.25,
   SizeHyst               = 2.0,
-  UseVisibility          = false,   -- tracing off; enable only if needed
+  UseVisibility          = false,
   VisibilityMaxDist      = 40000,
-  TextUpdateInterval     = 0.10,    -- name/dist/state update throttle
-  BoxUpdateInterval      = 0.00,    -- 0 = every frame (position must stay smooth)
-  MaxProjAge             = 0.20,    -- discard target if screen pos is stale this long
+  TextUpdateInterval     = 0.10,
 }
 
 local C_WHITE  = MakeColor(1.0, 1.0, 1.0, 1.0)
 local C_BLACK  = MakeColor(0.0, 0.0, 0.0, 1.0)
 local C_GREEN  = MakeColor(0.12, 1.0, 0.25, 1.0)
 local C_RED    = MakeColor(1.0, 0.15, 0.15, 1.0)
-local C_YELLOW = MakeColor(1.0, 0.90, 0.30, 1.0)
 
 local TEAM_COLORS = {
   MakeColor(0.20, 0.65, 1.00, 1.00), MakeColor(1.00, 0.28, 0.28, 1.00),
@@ -519,7 +521,9 @@ ESP.LastScan, ESP.LastTransform = -999.0, -999.0
 ESP.bActive, ESP._t = false, nil
 ESP._TimerHooked, ESP._TimerKind, ESP._TimerPC = false, nil, nil
 ESP._infoAttempts, ESP._textUpdates = {}, {}
-ESP._lastCanvasFind, ESP._lastCanvasOK = 0, 0
+ESP._lastCanvasFind = 0
+ESP._LastPC = nil
+ESP._errCount = 0
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -538,12 +542,12 @@ function ESP.GetController()
     pcall(function() if slua_GameFrontendHUD then pc = slua_GameFrontendHUD:GetPlayerController() end end)
   end
   pc = ESPValid(pc) and pc or nil
-  -- PC change detection → invalidate canvas & widgets
   if pc ~= ESP._LastPC then
     if ESP._LastPC ~= nil then
-      -- PC swapped (match transition) — reset everything
       ESP.ResetWidgets()
-      ESP._TimerKind, ESP._TimerHooked, ESP._TimerPC = nil, false, nil
+      if ESP._TimerKind == "pc" then
+        ESP._TimerKind, ESP._TimerHooked, ESP._TimerPC = nil, false, nil
+      end
     end
     ESP._LastPC = pc
   end
@@ -614,14 +618,9 @@ function ESP.GetTeamID(Character)
   return id
 end
 
--- ============================================================================
---  STRONG IsAlive — catches dead bodies via PawnState AND Health.
---  Never calls the native Character:IsAlive() (crash risk on remote pawns).
--- ============================================================================
+-- STRONG alive check — corpses filtered out by PawnState
 function ESP.IsAlive(Character)
   if not ESPValid(Character) then return false end
-
-  -- 1. PawnState — the most reliable signal for "corpse sitting on ground"
   if EPawnState then
     local ps = nil
     pcall(function() ps = Character.PawnState end)
@@ -634,26 +633,15 @@ function ESP.IsAlive(Character)
       end
     end
   end
-
-  -- 2. Explicit boolean dead flags
   local v
-  pcall(function() v = Character.bDead end)
-  if v == true then return false end
-  pcall(function() v = Character.bIsDead end)
-  if v == true then return false end
-  pcall(function() v = Character.bDying end)
-  if v == true then return false end
-  pcall(function() v = Character.bIsDying end)
-  if v == true then return false end
-
-  -- 3. Health
+  pcall(function() v = Character.bDead end) if v == true then return false end
+  pcall(function() v = Character.bIsDead end) if v == true then return false end
+  pcall(function() v = Character.bDying end) if v == true then return false end
   local hp = nil
   pcall(function() hp = Character.Health end)
   if type(hp) ~= "number" then pcall(function() hp = Character.HP end) end
   if type(hp) ~= "number" then pcall(function() hp = Character.CurrentHealth end) end
   if type(hp) == "number" then return hp > 0 end
-
-  -- 4. Mesh visibility as final fallback
   local mesh = nil
   pcall(function() mesh = Character.Mesh end)
   if ESPValid(mesh) then
@@ -661,7 +649,6 @@ function ESP.IsAlive(Character)
     pcall(function() vis = mesh:IsVisible() end)
     if vis == false then return false end
   end
-
   return true
 end
 
@@ -748,9 +735,6 @@ function ESP.ResolveName(Character, isBot)
   return name or "Player"
 end
 
--- ============================================================================
---  SAFE GetBonePos — Mesh first, only fall back to native GetBonePos
--- ============================================================================
 function ESP.GetBonePos(Character, boneName)
   if not ESPValid(Character) or not boneName then return nil end
   local pos = nil
@@ -762,7 +746,8 @@ function ESP.GetBonePos(Character, boneName)
   if not pos or (pos.X == 0 and pos.Y == 0 and pos.Z == 0) then
     pcall(function()
       if type(Character.GetBonePos) == "function" then
-        pos = Character:GetBonePos(boneName, MakeVec3(0, 0, 0) or { X = 0, Y = 0, Z = 0 })
+        local v = MakeVec3(0, 0, 0)
+        if v then pos = Character:GetBonePos(boneName, v) end
       end
     end)
   end
@@ -789,12 +774,8 @@ function ESP.GetCamLoc(pc)
   return loc
 end
 
--- ============================================================================
---  Camera forward with THREE fallbacks; without this the "behind camera"
---  filter cannot fire and you get mirror-ghosts.
--- ============================================================================
+-- Three fallbacks so "behind camera" filter never silently fails
 function ESP.GetCameraForward(pc)
-  -- 1. Camera manager rotation
   local fwd = nil
   pcall(function()
     if GameplayStaticsESP and GameplayStaticsESP.GetPlayerCameraManager then
@@ -809,8 +790,6 @@ function ESP.GetCameraForward(pc)
     end
   end)
   if fwd then return fwd end
-
-  -- 2. PlayerController control rotation
   pcall(function()
     if pc.GetControlRotation then
       local rot = pc:GetControlRotation()
@@ -821,8 +800,6 @@ function ESP.GetCameraForward(pc)
     end
   end)
   if fwd then return fwd end
-
-  -- 3. Local character forward vector
   pcall(function()
     local c = ESP.GetLocalCharacter()
     if ESPValid(c) and c.GetActorForwardVector then
@@ -832,13 +809,6 @@ function ESP.GetCameraForward(pc)
   end)
   return fwd
 end
-
--- ============================================================================
---  Visibility — disabled by default; if enabled, per-call HR + safe ctx
--- ============================================================================
-local KismetSystemLibraryESP, HitResultClassESP
-pcall(function() KismetSystemLibraryESP = import("KismetSystemLibrary") end)
-pcall(function() HitResultClassESP = import("HitResult") end)
 
 function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   if not CFG.UseVisibility then return true end
@@ -906,12 +876,6 @@ function ESP.DistMeters(a, b)
   return math.sqrt(dx * dx + dy * dy + dz * dz) / 100.0
 end
 
--- ============================================================================
---  Head/feet using REAL FVector (this was the top native crash — plain Lua
---  tables passed to ProjectWorldLocationToScreen).
--- ============================================================================
-local _headVec, _feetVec
-
 function ESP.GetVerticalBounds(Character)
   if not ESPValid(Character) then return nil, nil end
   local center, halfHeight = nil, nil
@@ -942,25 +906,14 @@ function ESP.GetVerticalBounds(Character)
   return center, halfHeight
 end
 
+-- Head/feet MUST return real FVectors (native projection crashes on tables)
 function ESP.GetHeadFeet(Character)
   local center, half = ESP.GetVerticalBounds(Character)
   if not center or not half then return nil, nil end
-  if not _headVec then
-    _headVec = MakeVec3(0, 0, 0)
-    _feetVec = MakeVec3(0, 0, 0)
-    if not _headVec or not _feetVec then return nil, nil end
-  end
-  -- Mutate the reusable FVectors in place (avoids GC churn, keeps UE-type)
-  local ok = pcall(function()
-    _headVec.X = center.X
-    _headVec.Y = center.Y
-    _headVec.Z = center.Z + half
-    _feetVec.X = center.X
-    _feetVec.Y = center.Y
-    _feetVec.Z = center.Z - half
-  end)
-  if not ok then return nil, nil end
-  return _headVec, _feetVec
+  local head = MakeVec3(center.X, center.Y, center.Z + half)
+  local feet = MakeVec3(center.X, center.Y, center.Z - half)
+  if not head or not feet then return nil, nil end
+  return head, feet
 end
 
 function ESP.Now()
@@ -984,17 +937,11 @@ function ESP.World()
   return w
 end
 
--- ============================================================================
---  Canvas — detect canvas swap (new HUD after match transition) and
---  destroy stale widgets. Without this you get dangling widget pointers.
--- ============================================================================
 function ESP.GetCanvas()
   if ESPValid(ESP.Canvas) then return ESP.Canvas end
-
   local now = ESP.Now()
   if (now - (ESP._lastCanvasFind or 0)) < 0.25 then return nil end
   ESP._lastCanvasFind = now
-
   local canvas = nil
   pcall(function()
     local InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools")
@@ -1006,19 +953,14 @@ function ESP.GetCanvas()
       end
     end
   end)
-
   if ESPValid(canvas) then
     if canvas ~= ESP.Canvas then
-      -- NEW canvas — all old widgets are parented to the dead one; destroy them
       ESP.ResetWidgets()
       ESP.Canvas = canvas
-      ESP._lastCanvasOK = now
+      ESPLog("canvas bound")
     end
     return canvas
   end
-
-  -- Could not resolve a canvas. If we haven't resolved one recently, wipe
-  -- the cached pointer so the widgets get destroyed next time we do.
   ESP.Canvas = nil
   return nil
 end
@@ -1073,12 +1015,11 @@ function ESP.Viewport(pc)
   return w, h
 end
 
--- ============================================================================
---  Project — 3rd arg FALSE (2-arg form is safest across UE builds),
---  dot-check vs camera forward, reject NaN / absurd.
--- ============================================================================
 function ESP.Project(pc, worldLoc, camFwd, camLoc)
   if not pc or not worldLoc then return nil end
+  -- Must be a real FVector, not a table
+  local wType = type(worldLoc)
+  if wType == "table" then return nil end
   if camLoc and camFwd then
     local dx = worldLoc.X - camLoc.X
     local dy = worldLoc.Y - camLoc.Y
@@ -1117,7 +1058,7 @@ function ESP.SetFont(w, size)
     if w.SetShadowOffset then
       local so = MakeVec2(1.0, 1.0); if so then w:SetShadowOffset(so) end
     end
-    if w.SetShadowColorAndOpacity and C_BLACK then w:SetShadowColorAndOpacity(C_BLACK) end
+    if w.SetShadowColorAndOpacity and C_BLACK then pcall(function() w:SetShadowColorAndOpacity(C_BLACK) end) end
   end)
 end
 
@@ -1284,7 +1225,7 @@ function ESP.UpdateCounter(nPlayers, nBots, pc, viewW)
     d = ESP.CreateCounter()
     ESP.Counter = d
   end
-  if not d then return nil end
+  if not d then return MakeVec2(0, CFG.SnapOriginY) end
   local label = string.format("Players: %d | Bots: %d", nPlayers or 0, nBots or 0)
   pcall(function()
     if d.Last ~= label then d.Text:SetText(label) d.Last = label end
@@ -1372,7 +1313,6 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   end
   if not d then return end
 
-  -- Throttled text updates (name/dist/state change slowly)
   local now = ESP.Now()
   local lastText = ESP._textUpdates[key] or 0
   if (now - lastText) >= CFG.TextUpdateInterval then
@@ -1395,7 +1335,6 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
     end)
   end
 
-  -- Position updates every frame (smooth tracking)
   local bannerW = 100.0
   local bannerH = 22.0
   local bx = RND(headX)
@@ -1651,35 +1590,50 @@ function ESP.Update()
   for k in pairs(toRelease)    do ESP.ReleaseTarget(k) end
 end
 
--- ============================================================================
---  Timer — one repeating timer, no self re-registration.
--- ============================================================================
 function ESP.TickLoop()
   if not ESP.bActive then return end
   local ok, err = pcall(ESP.Update)
-  if not ok and bWriteLog then print("[ESP] update error:", tostring(err)) end
+  if not ok then
+    ESP._errCount = (ESP._errCount or 0) + 1
+    if ESP._errCount <= 5 then print("[ESP] update error #"..ESP._errCount..": "..tostring(err)) end
+  end
 end
 
+-- PC timer primary (matches the working original), global fallback
 function ESP.AttachTimers()
   if ESP._TimerHooked then return end
   ESP._TimerHooked = true
 
-  local ok = pcall(function() require("timer").SetGameTimer(CFG.LightInterval, true, ESP.TickLoop) end)
-  if ok then ESP._TimerKind = "global" return end
-
   local pc = ESP.GetController()
   if ESPValid(pc) and pc.AddGameTimer then
-    ok = pcall(function() pc:AddGameTimer(CFG.LightInterval, true, ESP.TickLoop) end)
-    if ok then ESP._TimerKind = "pc" ESP._TimerPC = pc return end
+    local ok = pcall(function() pc:AddGameTimer(CFG.LightInterval, true, ESP.TickLoop) end)
+    if ok then
+      ESPLog("timer via PC")
+      ESP._TimerKind = "pc"
+      ESP._TimerPC = pc
+      return
+    end
   end
 
+  local ok = pcall(function() require("timer").SetGameTimer(CFG.LightInterval, true, ESP.TickLoop) end)
+  if ok then
+    ESPLog("timer via global")
+    ESP._TimerKind = "global"
+    return
+  end
+
+  ESPLog("timer attach FAILED")
   ESP._TimerHooked = false
 end
 
 function ESP.Start()
-  if not ESP_Enabled then return end
+  if not ESP_Enabled then
+    ESPLog("Start skipped (disabled)")
+    return
+  end
   if ESP.bActive then return end
   ESP.bActive = true
+  ESPLog("Started")
   pcall(ESP.Update)
   ESP.AttachTimers()
 end
