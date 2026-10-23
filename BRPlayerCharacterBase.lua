@@ -500,7 +500,7 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
 -- ============================================================================
---  ESP MODULE  (fixed for 60 fps, crash-safe, single-timer, capped traces)
+--  ESP MODULE  (60 fps tracking / ghost-free / crash-safe)
 -- ============================================================================
 
 local ESP_Enabled = true
@@ -543,50 +543,50 @@ local function ESPMKC(r, g, b, a)
 end
 
 -- ============================================================================
---  PERFORMANCE BUDGET (updated values)
+--  PERFORMANCE BUDGET (ghost-free)
 -- ============================================================================
 local CFG = {
-  MaxDistance          = 25000,   -- 250 m absolute scan cut
-  RenderTrackingDistance = 20000, -- 200 m render cutoff (metres *100)
-  MaxTracked           = 20,      -- was 128  ← biggest win
-  ScreenMargin         = 500,
-  TopTextY             = 6.0,
-  SnapOriginY          = 0.0,
-  SnapThickness        = 1.8,
-  CornerThickness      = 2.2,
-  CornerLen            = 0.28,
-  CornerMin            = 6,
-  CornerMax            = 28,
-  BoxMinWidth          = 22,
-  BoxMaxWidth          = 320,
-  BoxMinHeight         = 1,
-  BoxWidthFactor       = 0.62,
-  WidthScale           = 1.22,
-  HeadExtra            = 0.06,
-  FootExtra            = 0.02,
-  SideBarWidth         = 3.5,
-  SideBarGap           = 5.0,
-  SideBgAlpha          = 0.55,
-  MarkGap              = 8.0,
-  MarkW                = 15.0,
-  MarkH                = 10.0,
-  MarkGapV             = 6.0,
-  MarkThickness        = 2.4,
-  NameFontSize         = 15,
-  DistFontSize         = 13,
-  StateFontSize        = 13,
-  TextGap              = 1.0,
-  CounterFontSize      = 17,
-  CounterW             = 300.0,
-  CounterH             = 28.0,
-  DeadZone             = 0.5,
+  MaxDistance            = 25000,
+  RenderTrackingDistance = 50000,
+  MaxTracked             = 20,
+  ScreenMargin           = 500,
+  TopTextY               = 6.0,
+  SnapOriginY            = 0.0,
+  SnapThickness          = 1.8,
+  CornerThickness        = 2.2,
+  CornerLen              = 0.28,
+  CornerMin              = 6,
+  CornerMax              = 28,
+  BoxMinWidth            = 22,
+  BoxMaxWidth            = 320,
+  BoxMinHeight           = 1,
+  BoxWidthFactor         = 0.62,
+  WidthScale             = 1.22,
+  HeadExtra              = 0.06,
+  FootExtra              = 0.02,
+  SideBarWidth           = 3.5,
+  SideBarGap             = 5.0,
+  SideBgAlpha            = 0.55,
+  MarkGap                = 8.0,
+  MarkW                  = 15.0,
+  MarkH                  = 10.0,
+  MarkGapV               = 6.0,
+  MarkThickness          = 2.4,
+  NameFontSize           = 15,
+  DistFontSize           = 13,
+  StateFontSize          = 13,
+  TextGap                = 1.0,
+  CounterFontSize        = 17,
+  CounterW               = 300.0,
+  CounterH               = 28.0,
+  DeadZone               = 0.5,
   -- ---- timer / cache intervals ----
-  LightInterval        = 0.0333,  -- 30 fps  (was 0.008333 / 120 fps)
-  ScanInterval         = 0.15,    -- 6.7 Hz target scan
-  TransformInterval    = 0.15,
-  VisInterval          = 0.20,    -- 5 Hz line-trace cache
-  VisibilityMaxDist    = 15000,   -- 150 m trace cutoff
-  SizeHyst             = 2.0,
+  LightInterval          = 0.0166,  -- 60 fps → smooth, no trailing ghost
+  ScanInterval           = 0.125,   -- 8 Hz target scan
+  TransformInterval      = 0.05,    -- 20 Hz canvas transform
+  VisInterval            = 0.15,    -- 6.7 Hz line-trace cache
+  VisibilityMaxDist      = 15000,   -- 150 m trace cutoff
+  SizeHyst               = 2.0,
 }
 
 local C_WHITE  = ESPMKC(1.0, 1.0, 1.0, 1.0)
@@ -675,7 +675,7 @@ ESP.bActive = false
 ESP._t = nil
 ESP._TimerPC = nil
 ESP._TimerHooked = false
-ESP._lastInfoAttempt = nil
+ESP._infoAttempts = {}   -- per-key cooldown (fixes ghost freeze)
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -999,11 +999,10 @@ function ESP.IsBoneVisible(pc, camLoc, target, bonePos)
   return bVis
 end
 
--- FIX: distance-skip + single-bone (head) trace, cached at 5 Hz
 function ESP.IsVisible(key, pc, camLoc, Character)
   local now = ESP.Now()
   local cached = ESP.VisCache[key]
-  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.20) then
+  if cached and (now - (cached.t or 0)) < (CFG.VisInterval or 0.15) then
     return cached.b
   end
   local bVis = false
@@ -1086,7 +1085,6 @@ function ESP.GetHeadFeet(Character)
   return head, feet
 end
 
--- FIX: cache time, no direct world access without validity guard
 function ESP.Now()
   pcall(function()
     local w = slua and slua.getWorld and slua.getWorld() or nil
@@ -1284,6 +1282,8 @@ function ESP.DrawLine(data, x1, y1, x2, y2, thickness)
   if ok then
     data.lx1, data.ly1, data.lx2, data.ly2, data.th = x1, y1, x2, y2, thickness
     data.hidden = false
+  else
+    ESP.Hide(data)
   end
   return true
 end
@@ -1494,14 +1494,16 @@ end
 function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, headY, footX, footY, boxL, boxR)
   local d = ESP.Infos[key]
   if not d or not ESPValid(d.Container) then
-    -- FIX: cooldown on failed create to prevent 30×/s re-attempts
+    -- per-key cooldown (fixes global freeze ghost)
     local now = ESP.Now()
-    if ESP._lastInfoAttempt and (now - ESP._lastInfoAttempt) < 0.5 then return end
-    ESP._lastInfoAttempt = now
+    local lastT = ESP._infoAttempts[key]
+    if lastT and (now - lastT) < 0.5 then return end
+    ESP._infoAttempts[key] = now
 
     ESP.Destroy(d)
     d = ESP.CreateInfo()
     ESP.Infos[key] = d
+    if d then ESP._infoAttempts[key] = nil end
   end
   if not d then return end
 
@@ -1535,7 +1537,6 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   local bannerH = 22.0
   local bx = RND(headX)
   local by = RND(headY - 18.0)
-  local barY = RND(footY + 8.0)
 
   pcall(function()
     d.Slot:SetPosition(ESPV2(bx, by))
@@ -1550,16 +1551,6 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   end)
 
   d.ix, d.iy = bx, by
-end
-
-function ESP.EnsureCorner(key, idx, color)
-  local t = ESP.Corners[key]
-  if not t then t = {} ESP.Corners[key] = t end
-  local d = t[idx]
-  if d and ESPValid(d.Widget) then return d end
-  d = ESP.NewLine(color or C_WHITE, 32)
-  t[idx] = d
-  return d
 end
 
 function ESP.EnsureHealthBg(key)
@@ -1605,10 +1596,6 @@ function ESP.UpdateHealthBar(key, pct, x, y, w)
   ESP.DrawLine(fill, x, y, x + fw, y, thickness)
 end
 
-function ESP.EnsureMark(key, idx)
-  return nil
-end
-
 function ESP.EnsureSnap(key)
   local d = ESP.Lines[key]
   if d and ESPValid(d.Widget) then return d end
@@ -1647,6 +1634,17 @@ function ESP.ReleaseTarget(key)
   ESP.Destroy(ESP.Infos[key])
   ESP.Infos[key] = nil
   ESP.VisCache[key] = nil
+  ESP._infoAttempts[key] = nil
+end
+
+function ESP.HideAll()
+  for k in pairs(ESP.Corners)  do ESP.HideTarget(k) end
+  for k in pairs(ESP.Infos)    do ESP.HideTarget(k) end
+  for k in pairs(ESP.Lines)    do ESP.HideTarget(k) end
+  for k in pairs(ESP.HealthBg) do ESP.HideTarget(k) end
+  if ESP.Counter and ESPValid(ESP.Counter.Container) then
+    pcall(function() ESP.Counter.Container:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
+  end
 end
 
 function ESP.ResetWidgets()
@@ -1663,6 +1661,7 @@ function ESP.ResetWidgets()
   ESP.Marks = {}
   ESP.Infos = {}
   ESP.VisCache = {}
+  ESP._infoAttempts = {}
   if ESP.Counter then ESP.Destroy(ESP.Counter) end
   ESP.Counter = nil
   ESP.Canvas = nil
@@ -1680,7 +1679,7 @@ function ESP.Scan()
   local nReal, nBot = 0, 0
   local pawns = ESP.GetAllCharacters()
   local seen = {}
-  local maxDistM = (CFG.RenderTrackingDistance or 20000) / 100.0
+  local maxDistM = (CFG.RenderTrackingDistance or 50000) / 100.0
   local function addPawn(ch)
     if not ESPValid(ch) or ch == me or not ESP.IsAlive(ch) then return end
     local key = ESP.GetPlayerKey(ch)
@@ -1690,7 +1689,6 @@ function ESP.Scan()
     local loc = ESP.ActorLocation(ch)
     if not loc then return end
     local dm = ESP.DistMeters(myLoc, loc)
-    -- FIX: skip far targets before we do any extra work
     if dm > maxDistM then return end
     seen[key] = true
     local isBot = ESP.IsBot(ch)
@@ -1722,22 +1720,21 @@ function ESP.Update()
     ESP.LastTransform = -999.0
   end
   local canvas = ESP.GetCanvas()
-  if not canvas then return end
+  if not canvas then ESP.HideAll() return end
 
-  -- FIX: cache PC once instead of calling GetController 4-5×
   local now = ESP.Now()
   local pc = ESP.GetController()
-  if not pc then return end
+  if not pc then ESP.HideAll() return end
 
-  if (now - ESP.LastScan) >= (CFG.ScanInterval or 0.15) then
+  if (now - ESP.LastScan) >= (CFG.ScanInterval or 0.125) then
     local r, b
     pc, r, b = ESP.Scan()
     ESP.LastScan = now
     ESP.RealCount, ESP.BotCount = r or 0, b or 0
   end
-  if not pc then return end
+  if not pc then ESP.HideAll() return end
 
-  if (now - (ESP.LastTransform or -999.0)) >= (CFG.TransformInterval or 0.15) then
+  if (now - (ESP.LastTransform or -999.0)) >= (CFG.TransformInterval or 0.05) then
     ESP.UpdateCanvasTransform(pc)
     ESP.LastTransform = now
   end
@@ -1759,7 +1756,15 @@ function ESP.Update()
   for _, item in ipairs(ESP.EnemyCache) do
     local c = item.Character
     local key = item.Key
-    if ESPValid(c) and ESP.IsAlive(c) then
+
+    -- =====================================================================
+    --  GHOST FIX #1: hide immediately when target dies / is destroyed.
+    --  Previously a killed/destroyed actor kept its last-drawn widget for
+    --  up to ScanInterval(125 ms) → visible ghost.
+    -- =====================================================================
+    if not ESP.IsAlive(c) then
+      ESP.HideTarget(key)
+    else
       local head, feet = ESP.GetHeadFeet(c)
       if head and feet then
         local headS, headPix = ESP.Project(pc, head)
@@ -1776,30 +1781,20 @@ function ESP.Update()
               active[key] = true
               local W = H * (CFG.BoxWidthFactor or 0.62)
               W = math.max(CFG.BoxMinWidth or 22, math.min(CFG.BoxMaxWidth or 320, W))
-              local padT = H * (CFG.HeadExtra or 0)
-              local padB = H * (CFG.FootExtra or 0)
               local cx = (headS.X + feetS.X) * 0.5
               local L = cx - W * 0.5
               local R = cx + W * 0.5
-              local T = headS.Y - padT
-              local B = feetS.Y + padB
-
-              local corners = ESP.Corners[key]
-              if corners then for i = 1, 8 do ESP.Hide(corners[i]) end end
 
               local pct = ESP.GetHealthPct(c)
               local hbY = headS.Y + 8.0
               ESP.UpdateHealthBar(key, pct, L, hbY, R - L)
-
-              local marks = ESP.Marks[key]
-              if marks then for i = 1, 4 do ESP.Hide(marks[i]) end end
 
               ESP.DrawLine(ESP.EnsureSnap(key), origin.X, origin.Y, headS.X, headS.Y,
                            CFG.SnapThickness or 1.8)
 
               local bVis = ESP.IsVisible(key, pc, camLoc, c)
               ESP.UpdateInfo(key, c, item.IsBot, item.TeamID, item.Distance, bVis,
-                            headS.X, headS.Y, cx, B, L, R)
+                            headS.X, headS.Y, cx, feetS.Y, L, R)
             else
               ESP.HideTarget(key)
             end
@@ -1815,12 +1810,10 @@ function ESP.Update()
     end
   end
 
-  -- ============================================================================
-  --  CRASH FIX — safe iteration:
-  --   1) hide inactive first (HideTarget never mutates tables)
-  --   2) collect keys to release into a NEW table
-  --   3) release only after collection (never while iterating)
-  -- ============================================================================
+  -- =====================================================================
+  --  GHOST FIX #2: safe 3-phase cleanup (no pairs-modify crash, no
+  --  lingering widgets for targets that left EnemyCache).
+  -- =====================================================================
   local seenCache = {}
   for _, it in ipairs(ESP.EnemyCache) do seenCache[it.Key] = true end
 
@@ -1833,6 +1826,7 @@ function ESP.Update()
   for k in pairs(ESP.Corners)  do if not active[k] and not seenCache[k] then toRelease[k] = true end end
   for k in pairs(ESP.HealthBg) do if not active[k] and not seenCache[k] then toRelease[k] = true end end
   for k in pairs(ESP.Infos)    do if not active[k] and not seenCache[k] then toRelease[k] = true end end
+  for k in pairs(ESP.Lines)    do if not active[k] and not seenCache[k] then toRelease[k] = true end end
   for k in pairs(toRelease)    do ESP.ReleaseTarget(k) end
 end
 
@@ -1840,7 +1834,6 @@ function ESP.Tick()
   pcall(ESP.Update)
 end
 
--- FIX: single timer, no infinite re-entry chain
 function ESP.AttachTimers()
   if ESP._TimerHooked and ESPValid(ESP._TimerPC) then return end
   local pc = ESP.GetController()
@@ -1848,12 +1841,11 @@ function ESP.AttachTimers()
     ESP._TimerPC = pc
     ESP._TimerHooked = true
     pcall(function()
-      pc:AddGameTimer(CFG.LightInterval or 0.0333, true, function()
+      pc:AddGameTimer(CFG.LightInterval or 0.0166, true, function()
         if ESP.bActive then pcall(ESP.Update) end
       end)
     end)
   else
-    -- one retry only, no infinite 5 s chain
     pcall(function()
       require("timer").SetGameTimer(1.0, false, function()
         ESP._TimerHooked = false
@@ -1903,9 +1895,6 @@ pcall(function()
   ESPStartAll()
   ESPLater(1.0, ESPStartAll)
 end)
-
--- FIX: removed module-load startup block that caused first-map crashes.
--- ESPStartAll() + ESPLater(1.0, ESPStartAll) is sufficient.
 
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
