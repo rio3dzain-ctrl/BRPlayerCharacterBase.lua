@@ -503,7 +503,7 @@ end
 -- ============================ BẮT ĐẦU FULL LOGIC MOD ==========================
 -- ==============================================================================
 
-local function Notify(msg) local s = "[MOHSINXFILES VIP New] " .. tostring(msg)
+local function Notify(msg) local s = "[DUNG0610 VIP New] " .. tostring(msg)
 pcall(function() if _G.LexusNotify then _G.LexusNotify(s) end end)
 pcall(function() local sh = import("ScriptHelperClient") if sh and
 sh.AddOnScreenDebugMessage then sh.AddOnScreenDebugMessage(s, -1, 3.0, {R=1,
@@ -556,19 +556,33 @@ _G.LexusConfig = _G.LexusConfig or {
     EspLoai5 = false, 
     EspLoai6 = false, 
     EspLoai7 = false,
-    Esp7_SoLuong = true, -- [THÊM MỚI] Bật tắt Số lượng địch
-    Esp7_VuKhi = true,   -- [THÊM MỚI] Bật tắt Vũ khí địch
-    Esp7_TuThe = true,   -- [THÊM MỚI] Bật tắt Tư thế địch
+    Esp7_SoLuong = false, -- [THÊM MỚI] Bật tắt Số lượng địch
+    Esp7_VuKhi = false,   -- [THÊM MỚI] Bật tắt Vũ khí địch
+    Esp7_TuThe = false,   -- [THÊM MỚI] Bật tắt Tư thế địch
     EspLoai8 = false,
     EspLoai9 = false, -- Công tắc TỔNG ESP Loại 9
+    -- BoxESP from EspLeakedByLava.lua
+    BoxESPEnabled = false,
+    BoxESPShowBox = false,
+    BoxESPShowName = false,
+    BoxESPShowDistance = false,
+    BoxESPShowFlag = false,
+    BoxESPShowHealth = false,
+    BoxESPShowWeapon = false,
+    BoxESPShowState = false,
+    BoxESPShowLines = false,
+    BoxESPShowCounter = false,
+    BoxESPShowSkeleton = false,
     Esp9_Count = true,    -- Đếm người (RedBox)
     Esp9_Name = true,     -- Tên
     Esp9_HP = true,       -- Thanh Máu
     Esp9_Team = true,     -- Ô màu Team
     Esp9_Weapon = true,   -- Icon Súng
+    Esp9_Flag = true,     -- علم اللاعب
     Esp9_Distance = true, -- Khoảng cách
     Esp9_Line = true,     -- Sợi Line
     Esp9_Skeleton = true, -- Skeleton (Khung xương)
+    CounterStyle = 1,     -- نمط عدادات Player/Bot من 1 إلى 12
     EspBomMaster = false, 
     EspItemBom = false,   
     EspActiveBom = false, 
@@ -644,16 +658,14 @@ _G.LexusConfig = _G.LexusConfig or {
     AimTouchMortar = false, -- [THÊM MỚI] Bật/Tắt Aimbot Súng Cối
     
     -- Config Mod Skin VIP
-    ModEmote = true,       -- [THÊM MỚI] Công tắc Mod Emote Hành Động
-    ModSkin = true,           
-    SkinDeadBox = true,   
-    SkinAttachment = true, -- [THÊM MỚI] Công tắc Skin Phụ Kiện
-    SkinOptionOpen = true,
+    ModEmote = false,       -- [THÊM MỚI] Công tắc Mod Emote Hành Động
+    ModSkin = false,           
+    SkinDeadBox = false,   
+    SkinAttachment = false, -- [THÊM MỚI] Công tắc Skin Phụ Kiện
+    SkinOptionOpen = false,
     SkinOpenLink = false,  
-    KillMessage = true,    -- [THÊM MỚI] Công tắc Kill Messenger
-    KillCountUI = true, 
-    AddUC = false,
-   -- [THÊM MỚI] Công tắc Bộ Đếm Kill Count
+    KillMessage = false,    -- [THÊM MỚI] Công tắc Kill Messenger
+    KillCountUI = false,    -- [THÊM MỚI] Công tắc Bộ Đếm Kill Count
     
     -- Toggles Bật/Tắt riêng biệt từng món
     SkinEnable_Suit = false, SkinEnable_Top = false, SkinEnable_Gloves = false,
@@ -667,31 +679,11 @@ _G.LexusConfig = _G.LexusConfig or {
     WeaponGlow = false,
     
     -- Config Bug Màn
-    BugManEnable = false
-}
+    BugManEnable = false,
 
--- Keep skin-menu features, kill message/counter, dead-box skin, and Red/Green Chams.
--- Disable other boolean features without changing their implementation.
-pcall(function()
-    for key, value in pairs(_G.LexusConfig or {}) do
-        if type(value) == "boolean" then
-            local keepFeature =
-                string.match(key, "^Skin") ~= nil or
-                key == "ModSkin" or
-                key == "ModEmote" or
-                key == "KillMessage" or
-                key == "KillCountUI" or
-                key == "ColorBodyNew"
-            if keepFeature then
-                if key == "ColorBodyNew" then
-                    _G.LexusConfig[key] = true
-                end
-            else
-                _G.LexusConfig[key] = false
-            end
-        end
-    end
-end)
+    -- Config Fake CHACHA Visual
+    X3FakeVisual = false
+}
 
 -- CHỨA STATE HỆ THỐNG ĐÃ ĐƯỢC TỐI ƯU HÓA HOÀN TOÀN RAM TRỐNG
 _G.LexusState = _G.LexusState or { 
@@ -710,7 +702,7 @@ _G.LexusState = _G.LexusState or {
     PrevGraphicsState = {}
 }
 
-local limitTime = os.time({ year = 2027, month = 10, day = 25, hour = 23, min = 59, sec = 0 })
+local limitTime = os.time({ year = 2027, month = 10, day = 16, hour = 23, min = 59, sec = 0 })
 local currentTime = os.time(os.date("!*t"))
 local isExpired = false
 
@@ -803,11 +795,136 @@ end)
 isExpired = (currentTime > limitTime)
 
 -- ==============================================================================
+-- =========== CHACHA PALSU / FAKE CHACHA VISUAL (X3FakeVisual) ===============
+-- ==============================================================================
+do
+    _G.X3 = _G.X3 or {}
+    local X3 = _G.X3
+
+    local function LexusTrace(msg)
+        if _G.Notify then pcall(_G.Notify, "[X3FakeVisual] " .. tostring(msg)) end
+    end
+
+    -- FAKE CURRENCY (visual)
+    local function XFFakeMoneyInstall()
+        local DM = rawget(_G, "DataMgr")
+        if not DM then return end
+        if DM.__x3money then X3._FakeMoneyOK = true return end
+
+        -- طبّق القيم على DataMgr فوراً (visual)
+        pcall(function()
+            local M = 999999999
+            DM.gold = M; DM.ticket = M; DM.diamond = M; DM.fp_token = M
+            DM.gold_chip = M; DM.gen_ticket = M; DM.eternal_diamond = M
+            DM.corps_money = M; DM.smelt = M; DM.battle_coin = M
+            DM.wow_creation_score = M; DM.ugc_advanced_crystal = M
+            DM.carteam_coin_count = M; DM.anchor = M; DM.anchor_origin = M
+            if DM.roleData then DM.roleData.bgbg_vip = 1; DM.roleData.level = 100 end
+        end)
+
+        -- Hook على InitRoleData لو موجود (للـ lobby re-init)
+        if type(DM.InitRoleData) == "function" and not DM.__x3money then
+            local base = DM.InitRoleData
+            DM.InitRoleData = function(roleDataTb)
+                base(roleDataTb)
+                pcall(function()
+                    local M = 999999999
+                    DM.gold = M; DM.ticket = M; DM.diamond = M; DM.fp_token = M
+                    DM.gold_chip = M; DM.gen_ticket = M; DM.eternal_diamond = M
+                    DM.corps_money = M; DM.smelt = M; DM.battle_coin = M
+                    DM.wow_creation_score = M; DM.ugc_advanced_crystal = M
+                    DM.carteam_coin_count = M; DM.anchor = M; DM.anchor_origin = M
+                    if DM.roleData then DM.roleData.bgbg_vip = 1; DM.roleData.level = 100 end
+                    local ES = rawget(_G, "EventSystem")
+                    local ET = rawget(_G, "EVENTTYPE_DATA_MGR")
+                    if ES and ES.postEvent and ET then
+                        pcall(function() ES:postEvent(ET, rawget(_G, "EVENTID_DATAMGR_GOLD_CHANGE"), DM.gold) end)
+                        pcall(function() ES:postEvent(ET, rawget(_G, "EVENTID_DATAMGR_DIAMOND_CHANGE"), DM.diamond) end)
+                        pcall(function() ES:postEvent(ET, rawget(_G, "EVENTID_DATAMGR_TICKET_CHANGE"), DM.ticket) end)
+                    end
+                end)
+            end
+        end
+
+        DM.__x3money = true
+        X3._FakeMoneyOK = true
+        LexusTrace("fake currency terpasang (visual)")
+    end
+
+    -- FAKE COLLECT LV100 (visual)
+    local function XFSkinLevelInstall()
+        local MM = rawget(_G, "ModuleManager")
+        if not (MM and MM.GetModule and MM.LobbyModuleConfig) then return end
+        local cm = MM.GetModule(MM.LobbyModuleConfig.collect_module)
+        if not cm then return end
+        local MAXL = 100
+        if type(cm.GetLevelByScore) == "function" and not cm.__x3lvl_a then
+            cm.__x3lvl_a = true
+            local o = cm.GetLevelByScore
+            cm.GetLevelByScore = function(self, score)
+                if score and score >= 0 then return MAXL, MAXL, MAXL, 0, 0 end
+                return o(self, score)
+            end
+        end
+        if type(cm.GetLevelDataByScore) == "function" and not cm.__x3lvl_b then
+            cm.__x3lvl_b = true
+            local o = cm.GetLevelDataByScore
+            cm.GetLevelDataByScore = function(self, score, isSeason)
+                if score and score >= 0 then return MAXL, "", MAXL end
+                return o(self, score, isSeason)
+            end
+        end
+        if type(cm.GetSeasonLevelByScore) == "function" and not cm.__x3lvl_c then
+            cm.__x3lvl_c = true
+            local o = cm.GetSeasonLevelByScore
+            cm.GetSeasonLevelByScore = function(self, score, ...)
+                if score and score >= 0 then return MAXL, false, "" end
+                return o(self, score, ...)
+            end
+        end
+        X3._SkinLvlOK = true
+        LexusTrace("skin collect level 100 terpasang (visual)")
+    end
+
+    -- Lobby Visuals Tick (يفحص الـ flag كل 3 ثواني)
+    _G.X3.LobbyVisualsTick = function()
+        local now = os.clock()
+        local st = _G.X3._LVT or { last = 0 }
+        _G.X3._LVT = st
+        if (now - st.last) < 3.0 then return end
+        st.last = now
+        local XC = _G.LexusConfig
+        if XC and XC.X3FakeVisual == true then
+            if not _G.X3._FakeMoneyOK then pcall(XFFakeMoneyInstall) end
+            if not _G.X3._SkinLvlOK then pcall(XFSkinLevelInstall) end
+        end
+    end
+
+    -- تشغيل Tick على تايمر loop
+    pcall(function()
+        local okTicker, ticker = pcall(require, "common.time_ticker")
+        if not (okTicker and ticker) then return end
+        if not _G.LexusState then _G.LexusState = {} end
+        if _G.LexusState._X3FakeVisualRunning then return end
+        _G.LexusState._X3FakeVisualRunning = true
+
+        local function TickOnce()
+            pcall(_G.X3.LobbyVisualsTick)
+        end
+
+        -- AddTimer(sec, fn) في common.time_ticker = loop حقيقي
+        if ticker.AddTimer then
+            pcall(ticker.AddTimer, 3.0, TickOnce)
+        end
+    end)
+end
+
+-- ==============================================================================
 -- ================== KHỞI TẠO VÀ LOAD BYPASS ĐẦU TIÊN ==========================
 -- ==============================================================================
 
 -- ============================================================================
--- ULTIMATE MERGED BYPASS v3.0 - COMPLETE SECURITY DISABLEMENT
+-- CHACHA MERGED BYPASS v3.0 - COMPLETE SECURITY DISABLEMENT
 -- ============================================================================
 local function nop() return true end
 local function retFalse() return false end
@@ -1136,14 +1253,14 @@ local function InitializeOperationalStatsBypass()
                 OperationalStatsSubsystem.TimerHandle = nil
             end
             OperationalStatsSubsystem.StatsData = {}
-            print("[ULTIMATE BYPASS] OperationalStatsSubsystem blocked!")
+            print("[CHACHA BYPASS] OperationalStatsSubsystem blocked!")
         end
     end)
 end
 
 _G.StartBypass_VIP_v3 = function()
     pcall(function()
-        print("[ULTIMATE BYPASS] Starting initialization...")
+        print("[CHACHA BYPASS] Starting initialization...")
         InitializeSLUABypass()
         InitializeMD5Bypass()
         InitializeSkinBypass() -- Thêm dòng này
@@ -1166,7 +1283,7 @@ _G.StartBypass_VIP_v3 = function()
         InitializeKillAllSubsystems()
         InitializeOperationalStatsBypass() -- [NEW] BYPASS BÁO CÁO THỐNG KÊ (Operational Stats)
         InitializeFinalProtection()
-        print("[ULTIMATE BYPASS] Complete - All Security Systems Disabled")
+        print("[CHACHA BYPASS] Complete - All Security Systems Disabled")
     end)
 end
 
@@ -1372,7 +1489,8 @@ local function GetConfigPaths(fileName)
     return paths
 end
 
-local ConfigFileName = ""
+local ConfigFileName = "MOHSINXFILES_settings.txt"
+local KillCountFileName = "lexus_kill_count.txt"
 _G.LastConfigSaveStr = ""
 
 -- HÀM LƯU CONFIG
@@ -1386,6 +1504,14 @@ _G.SaveModSettings = function()
         if _G.LexusState and _G.LexusState.CustomTextData then
             for k, v in pairs(_G.LexusState.CustomTextData) do
                 data = data .. "  [\"" .. tostring(k) .. "\"] = " .. tostring(v) .. ",\n"
+            end
+        end
+        data = data .. "},\nKillCountInfo = {\n"
+        if _G.killCountInfo then
+            for weaponID, count in pairs(_G.killCountInfo) do
+                if tonumber(weaponID) and tonumber(count) then
+                    data = data .. "  [" .. tostring(weaponID) .. "] = " .. tostring(count) .. ",\n"
+                end
             end
         end
         data = data .. "}\n}"
@@ -1436,6 +1562,15 @@ _G.LoadModSettings = function()
                             _G.LexusState.CustomTextData[k] = v
                         end
                     end
+                    if savedData.KillCountInfo and type(savedData.KillCountInfo) == "table" then
+                        if _G.killCountInfo then
+                            for weaponID, count in pairs(savedData.KillCountInfo) do
+                                _G.killCountInfo[weaponID] = tonumber(count) or _G.killCountInfo[weaponID]
+                            end
+                        else
+                            _G.LoadedKillCountInfo = savedData.KillCountInfo
+                        end
+                    end
                 end
             end
         end
@@ -1458,6 +1593,22 @@ end
 -- KHỞI CHẠY LẦN ĐẦU TIÊN
 if not _G.ModConfigLoaded then
     _G.LoadModSettings()
+
+    -- Safety configuration: keep ESP / wallhack features disabled.
+    for key, _ in pairs(_G.LexusConfig or {}) do
+        if type(key) == "string" and
+           (string.match(key, "^Esp") or string.match(key, "^BoxESP")) then
+            _G.LexusConfig[key] = false
+        end
+    end
+    _G.LexusConfig.WallXuyenTuong = false
+    _G.LexusConfig.WallVehicle = false
+    _G.LexusConfig.ColorBodyV2 = false
+    _G.LexusConfig.ColorBodyV3 = false
+    _G.LexusConfig.ColorBodyNew = false
+    _G.LexusConfig.EspOutline = false
+    _G.SaveModSettings()
+
     AutoSaveLoop()
     _G.ModConfigLoaded = true
 end
@@ -1501,13 +1652,11 @@ function _G.InitModMenuTab()
     
     -- 1. TẠO BẢNG ID ẢO VỚI TEXT MỚI (Hỗ trợ 2 ngôn ngữ)
     local FakeTextMap = {
-        [999000] = T(" ZAID MOD VIP"),
-        [999001] = T("HIỂN THỊ (ESP) ", "VISUALS (ESP) MADE BY @MOHSINXFILES"),
-        [999002] = T("AIMBOT GỐC & ĐẠN ", "NATIVE AIMBOT & BULLET TRACK"),
-        [999003] = T("AIMBOT ROYAL - CUSTOM ( Aim Gần - Aim Scope )", "CUSTOM AIMBOT (Close & Scope)"),
-        [999004] = T("HỖ TRỢ & ĐỒ HỌA  ", "GRAPHICS "),
-        [999005] = T("MOD SKIN DỄ BỊ BAN ", "MOD SKIN (RISKY) "),
-        [999006] = T("ESP V2 (BẢN VIP) ", "ESP V2 (VIP) MADE BY @MOHSINXFILES")
+        [999000] = T("چاچو", "CHACHA"),
+        [999007] = T("جادو VIP", "VIP ESP"),
+        [999003] = T("پویوں آئل", "AIMBOT"),
+        [999004] = T("شوم", "MEMORY"),
+        [999005] = T("خطرہ )", "MOD SKIN (RISKY)"),
     }
 
     -- 2. HOOK TOÀN BỘ HÀM ĐỌC TEXT CỦA GAME (FIX LỖI TRỐNG THANH TAB)
@@ -1539,214 +1688,215 @@ function _G.InitModMenuTab()
     if not SettingPageDefine.ModMenu then
         local AliasMap = require("client.slua.umg.NewSetting.Item.AliasMap")
         
+        local function BoxESPSet(flag, key, c, v)
+            local enabled = v and true or false
+            _G.LexusConfig[key] = enabled
+            if _G.BoxESP then _G.BoxESP[flag] = enabled end
+            if _G.SaveModSettings then pcall(_G.SaveModSettings) end
+            return true
+        end
+
+        local StackBoxESP = {
+            { Key = "ModMenu_BoxESP", UI = AliasMap.Switcher, Text = T(" Show Box"), GetFunc = function() return _G.LexusConfig.BoxESPShowBox end, SetFunc = function(c,v) return BoxESPSet("bShowBox", "BoxESPShowBox", c, v) end },
+            { Key = "ModMenu_BoxESP_Name", UI = AliasMap.Switcher, Text = T("Show Name"), GetFunc = function() return _G.LexusConfig.BoxESPShowName end, SetFunc = function(c,v) return BoxESPSet("bShowName", "BoxESPShowName", c, v) end },
+            { Key = "ModMenu_BoxESP_Distance", UI = AliasMap.Switcher, Text = T(" Show Distance"), GetFunc = function() return _G.LexusConfig.BoxESPShowDistance end, SetFunc = function(c,v) return BoxESPSet("bShowDistance", "BoxESPShowDistance", c, v) end },
+            { Key = "ModMenu_BoxESP_Weapon", UI = AliasMap.Switcher, Text = T(" Show Weapon"), GetFunc = function() return _G.LexusConfig.BoxESPShowWeapon end, SetFunc = function(c,v) return BoxESPSet("bShowWeapon", "BoxESPShowWeapon", c, v) end },
+            { Key = "ModMenu_BoxESP_State", UI = AliasMap.Switcher, Text = T(" Show State"), GetFunc = function() return _G.LexusConfig.BoxESPShowState end, SetFunc = function(c,v) return BoxESPSet("bShowState", "BoxESPShowState", c, v) end },
+            { Key = "ModMenu_BoxESP_Flag", UI = AliasMap.Switcher, Text = T(" Show Flag"), GetFunc = function() return _G.LexusConfig.BoxESPShowFlag end, SetFunc = function(c,v) return BoxESPSet("bShowFlag", "BoxESPShowFlag", c, v) end },
+            { Key = "ModMenu_BoxESP_Health", UI = AliasMap.Switcher, Text = T(" Show Health"), GetFunc = function() return _G.LexusConfig.BoxESPShowHealth end, SetFunc = function(c,v) return BoxESPSet("bShowHealth", "BoxESPShowHealth", c, v) end },
+            { Key = "ModMenu_BoxESP_Lines", UI = AliasMap.Switcher, Text = T("   Show Snap Lines"), GetFunc = function() return _G.LexusConfig.BoxESPShowLines end, SetFunc = function(c,v) return BoxESPSet("bShowLines", "BoxESPShowLines", c, v) end },
+            { Key = "ModMenu_BoxESP_Counter", UI = AliasMap.Switcher, Text = T("  Show Player/Bot Counter"), GetFunc = function() return _G.LexusConfig.BoxESPShowCounter end, SetFunc = function(c,v) return BoxESPSet("bShowCounter", "BoxESPShowCounter", c, v) end },
+            { Key = "ModMenu_BoxESP_Skeleton", UI = AliasMap.Switcher, Text = T("   Show Skeleton"), GetFunc = function() return _G.LexusConfig.BoxESPShowSkeleton end, SetFunc = function(c,v) return BoxESPSet("bShowSkeleton", "BoxESPShowSkeleton", c, v) end },
+            
+            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = T("ESP Type 1 (360 Alert-HP-Name) "), GetFunc = function() return _G.LexusConfig.EspVip end, SetFunc = function(c,v) _G.LexusConfig.EspVip = v return true end },
+            { Key = "ModMenu_ESP2", UI = AliasMap.Switcher, Text = T("ESP Type 2 (Distance Meter) "), GetFunc = function() return _G.LexusConfig.EspDistance end, SetFunc = function(c,v) _G.LexusConfig.EspDistance = v return true end },
+            
+            { Key = "ModMenu_ESPVehicle_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Vehicle ESP "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVehicle end, SetFunc = function(c,v) _G.LexusConfig.EspVehicle = v return true end },
+            { Key = "ModMenu_ESPVeh_Dacia", UI = AliasMap.Switcher, Text = T(" Show Dacia "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Dacia end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Dacia = v return true end },
+            { Key = "ModMenu_ESPVeh_UAZ", UI = AliasMap.Switcher, Text = T("Show UAZ "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_UAZ end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_UAZ = v return true end },
+            { Key = "ModMenu_ESPVeh_Buggy", UI = AliasMap.Switcher, Text = T("Buggy ", "   Show Buggy "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Buggy end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Buggy = v return true end },
+            { Key = "ModMenu_ESPVeh_Coupe", UI = AliasMap.Switcher, Text = T("(Coupe RB) ", "   Show Coupe RB "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Coupe end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Coupe = v return true end },
+            { Key = "ModMenu_ESPVeh_Mirado", UI = AliasMap.Switcher, Text = T(" Show Mirado "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Mirado end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Mirado = v return true end },
+            { Key = "ModMenu_ESPVeh_Motor", UI = AliasMap.Switcher, Text = T(" Show Motorcycles "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Motor end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Motor = v return true end },
+            { Key = "ModMenu_ESPVeh_Other", UI = AliasMap.Switcher, Text = T("   Show Others (Boat/BRDM) "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Other end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Other = v return true end }
+        }
+
         local StackESP = {
-            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = T("ESP Loại 1 (Cảnh báo 360-Máu-Tên) -  mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "ESP Type 1 (360 Alert-HP-Name) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), GetFunc = function() return _G.LexusConfig.EspVip end, SetFunc = function(c,v) _G.LexusConfig.EspVip = v return true end },
-            { Key = "ModMenu_ESP2", UI = AliasMap.Switcher, Text = T("ESP Loại 2 (Khoảng cách mét) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "ESP Type 2 (Distance Meter) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), GetFunc = function() return _G.LexusConfig.EspDistance end, SetFunc = function(c,v) _G.LexusConfig.EspDistance = v return true end },
+            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = T("ESP Type 1 (360 Alert-HP-Name) "), GetFunc = function() return _G.LexusConfig.EspVip end, SetFunc = function(c,v) _G.LexusConfig.EspVip = v return true end },
+            { Key = "ModMenu_ESP2", UI = AliasMap.Switcher, Text = T("ESP Type 2 (Distance Meter) "), GetFunc = function() return _G.LexusConfig.EspDistance end, SetFunc = function(c,v) _G.LexusConfig.EspDistance = v return true end },
             
-            { Key = "ModMenu_ESP3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Loại 3 mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "▶ ESP Type 3 (Vertical HP & Name) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVipPro end, SetFunc = function(c,v) _G.LexusConfig.EspVipPro = v return true end },
-            { Key = "ModMenu_ESP3_Name", UI = AliasMap.Switcher, Text = T("    mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Player Name - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowName end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowName = v return true end },
-            { Key = "ModMenu_ESP3_HP", UI = AliasMap.Switcher, Text = T(" mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Vertical HP Bar - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowHP end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowHP = v return true end },
+            { Key = "ModMenu_ESP3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Type 3 (Vertical HP & Name) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVipPro end, SetFunc = function(c,v) _G.LexusConfig.EspVipPro = v return true end },
+            { Key = "ModMenu_ESP3_Name", UI = AliasMap.Switcher, Text = T(" Show Player Name "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowName end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowName = v return true end },
+            { Key = "ModMenu_ESP3_HP", UI = AliasMap.Switcher, Text = T(" Show Vertical HP Bar "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowHP end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowHP = v return true end },
             
-            { Key = "ModMenu_ESP4", UI = AliasMap.Switcher, Text = T("ESP Loại 4 (Radar 360) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "ESP Type 4 (Radar 360) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), GetFunc = function() return _G.LexusConfig.EspRadar end, SetFunc = function(c,v) _G.LexusConfig.EspRadar = v return true end },
-            { Key = "ModMenu_ESP5", UI = AliasMap.Switcher, Text = T("ESP Loại 5 (Khung Box) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "ESP Type 5 (Box ESP) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), GetFunc = function() return _G.LexusConfig.EspLoai5 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai5 = v return true end },
-            { Key = "ModMenu_ESP6", UI = AliasMap.Switcher, Text = T("ESP Loại 6 (Xương) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "ESP Type 6 (Skeleton) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), GetFunc = function() return _G.LexusConfig.EspLoai6 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai6 = v return true end },
-            { Key = "ModMenu_ESP7_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Loại 7 (Thông Tin Chi Tiết) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "▶ ESP Type 7 (Detail Info) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspLoai7 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai7 = v return true end },
-            { Key = "ModMenu_ESP7_SoLuong", UI = AliasMap.Switcher, Text = T("   Hiện Số Lượng Địch Xung Quanh -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Enemies Count Around - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_SoLuong end, SetFunc = function(c,v) _G.LexusConfig.Esp7_SoLuong = v return true end },
-            { Key = "ModMenu_ESP7_VuKhi", UI = AliasMap.Switcher, Text = T("   Hiện Vũ Khí Địch Cầm -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Enemy Weapon - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_VuKhi end, SetFunc = function(c,v) _G.LexusConfig.Esp7_VuKhi = v return true end },
-            { Key = "ModMenu_ESP7_TuThe", UI = AliasMap.Switcher, Text = T("   Hiện Tư Thế (Đứng/Ngồi/Nằm) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Posture (Stand/Crouch/Prone) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_TuThe end, SetFunc = function(c,v) _G.LexusConfig.Esp7_TuThe = v return true end },
-            { Key = "ModMenu_ESP8", UI = AliasMap.Switcher, Text = T("ESP Loại 8 (Thanh Máu Gắn Đầu) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "ESP Type 8 (Head HP Bar) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), GetFunc = function() return _G.LexusConfig.EspLoai8 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai8 = v return true end },
+            { Key = "ModMenu_ESP4", UI = AliasMap.Switcher, Text = T("ESP Type 4 (Radar 360) "), GetFunc = function() return _G.LexusConfig.EspRadar end, SetFunc = function(c,v) _G.LexusConfig.EspRadar = v return true end },
+            { Key = "ModMenu_ESP5", UI = AliasMap.Switcher, Text = T("ESP Type 5 (Box ESP) "), GetFunc = function() return _G.LexusConfig.EspLoai5 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai5 = v return true end },
+            { Key = "ModMenu_ESP6", UI = AliasMap.Switcher, Text = T("ESP Type 6 (Skeleton) "), GetFunc = function() return _G.LexusConfig.EspLoai6 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai6 = v return true end },
+            { Key = "ModMenu_ESP7_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Type 7 (Detail Info) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspLoai7 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai7 = v return true end },
+            { Key = "ModMenu_ESP7_SoLuong", UI = AliasMap.Switcher, Text = T(" Show Enemies Count Around "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_SoLuong end, SetFunc = function(c,v) _G.LexusConfig.Esp7_SoLuong = v return true end },
+            { Key = "ModMenu_ESP7_VuKhi", UI = AliasMap.Switcher, Text = T(" Show Enemy Weapon "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_VuKhi end, SetFunc = function(c,v) _G.LexusConfig.Esp7_VuKhi = v return true end },
+            { Key = "ModMenu_ESP7_TuThe", UI = AliasMap.Switcher, Text = T(" Show Posture (Stand/Crouch/Prone) "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_TuThe end, SetFunc = function(c,v) _G.LexusConfig.Esp7_TuThe = v return true end },
+            { Key = "ModMenu_ESP8", UI = AliasMap.Switcher, Text = T("ESP Type 8 (Head HP Bar) "), GetFunc = function() return _G.LexusConfig.EspLoai8 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai8 = v return true end },
             
             
             
-            { Key = "ModMenu_EspItem_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Vật Phẩm (Dưới 70m) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "▶ Item ESP (Under 70m) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspItem_Master end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Master = v return true end },
-            { Key = "ModMenu_EspItem_AR", UI = AliasMap.Switcher, Text = T("   Hiện Súng AR -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show AR Weapons - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_AR end, SetFunc = function(c,v) _G.LexusConfig.EspItem_AR = v return true end },
-            { Key = "ModMenu_EspItem_Sniper", UI = AliasMap.Switcher, Text = T("   Hiện Súng Ngắm -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Sniper Rifles - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Sniper end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Sniper = v return true end },
-            { Key = "ModMenu_EspItem_SMG", UI = AliasMap.Switcher, Text = T("   Hiện Súng SMG -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show SMGs - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_SMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_SMG = v return true end },
-            { Key = "ModMenu_EspItem_Shotgun", UI = AliasMap.Switcher, Text = T("   Hiện Shotgun -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Shotguns - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Shotgun end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Shotgun = v return true end },
-            { Key = "ModMenu_EspItem_LMG", UI = AliasMap.Switcher, Text = T("   Hiện Súng Máy LMG -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show LMGs - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_LMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_LMG = v return true end },
-            { Key = "ModMenu_EspItem_Pistol", UI = AliasMap.Switcher, Text = T("   Hiện Súng Lục / Pháo -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Pistols / Flares - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Pistol end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Pistol = v return true end },
-            { Key = "ModMenu_EspItem_Melee", UI = AliasMap.Switcher, Text = T("   Hiện Cận Chiến -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Melee Weapons - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Melee end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Melee = v return true end },
-            { Key = "ModMenu_EspItem_Special", UI = AliasMap.Switcher, Text = T("   Hiện Vũ Khí Đặc Biệt -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Special Weapons - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Special end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Special = v return true end },
-            { Key = "ModMenu_EspItem_Scope", UI = AliasMap.Switcher, Text = T("   Hiện Ống Ngắm -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Scopes - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Scope end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Scope = v return true end },
-            { Key = "ModMenu_EspItem_Grenade", UI = AliasMap.Switcher, Text = T("   Hiện Lựu Đạn -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Grenades - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Grenade end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Grenade = v return true end },
-            { Key = "ModMenu_EspItem_Med", UI = AliasMap.Switcher, Text = T("   Hiện Máu & Nước (Y Tế) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Medkits/Boosters - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Med end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Med = v return true end },
+            { Key = "ModMenu_EspItem_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Item ESP (Under 70m) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspItem_Master end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Master = v return true end },
+            { Key = "ModMenu_EspItem_AR", UI = AliasMap.Switcher, Text = T(" Show AR Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_AR end, SetFunc = function(c,v) _G.LexusConfig.EspItem_AR = v return true end },
+            { Key = "ModMenu_EspItem_Sniper", UI = AliasMap.Switcher, Text = T(" Show Sniper Rifles "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Sniper end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Sniper = v return true end },
+            { Key = "ModMenu_EspItem_SMG", UI = AliasMap.Switcher, Text = T(" Show SMGs "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_SMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_SMG = v return true end },
+            { Key = "ModMenu_EspItem_Shotgun", UI = AliasMap.Switcher, Text = T(" Show Shotguns "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Shotgun end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Shotgun = v return true end },
+            { Key = "ModMenu_EspItem_LMG", UI = AliasMap.Switcher, Text = T(" Show LMGs "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_LMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_LMG = v return true end },
+            { Key = "ModMenu_EspItem_Pistol", UI = AliasMap.Switcher, Text = T(" Show Pistols / Flares "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Pistol end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Pistol = v return true end },
+            { Key = "ModMenu_EspItem_Melee", UI = AliasMap.Switcher, Text = T(" Show Melee Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Melee end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Melee = v return true end },
+            { Key = "ModMenu_EspItem_Special", UI = AliasMap.Switcher, Text = T(" Show Special Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Special end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Special = v return true end },
+            { Key = "ModMenu_EspItem_Scope", UI = AliasMap.Switcher, Text = T(" Show Scopes "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Scope end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Scope = v return true end },
+            { Key = "ModMenu_EspItem_Grenade", UI = AliasMap.Switcher, Text = T(" Show Grenades "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Grenade end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Grenade = v return true end },
+            { Key = "ModMenu_EspItem_Med", UI = AliasMap.Switcher, Text = T(" Show Medkits/Boosters "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Med end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Med = v return true end },
             
-            { Key = "ModMenu_ESPBom_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Cảnh Báo & Định Vị Bom -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "▶ Grenade Warning & Tracker - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspBomMaster end, SetFunc = function(c,v) _G.LexusConfig.EspBomMaster = v return true end },
-            { Key = "ModMenu_ESPItemBom", UI = AliasMap.Switcher, Text = T("   Định Vị Vật Phẩm Bom Dưới Đất -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Grenades On Ground - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspItemBom end, SetFunc = function(c,v) _G.LexusConfig.EspItemBom = v return true end },
-            { Key = "ModMenu_ESPActiveBom", UI = AliasMap.Switcher, Text = T("   Cảnh Báo Địch Cầm & Ném Bom -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Active Grenade Warning - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspActiveBom end, SetFunc = function(c,v) _G.LexusConfig.EspActiveBom = v return true end },
+            { Key = "ModMenu_ESPBom_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Grenade Warning & Tracker "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspBomMaster end, SetFunc = function(c,v) _G.LexusConfig.EspBomMaster = v return true end },
+            { Key = "ModMenu_ESPItemBom", UI = AliasMap.Switcher, Text = T(" Show Grenades On Ground "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspItemBom end, SetFunc = function(c,v) _G.LexusConfig.EspItemBom = v return true end },
+            { Key = "ModMenu_ESPActiveBom", UI = AliasMap.Switcher, Text = T(" Active Grenade Warning "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspActiveBom end, SetFunc = function(c,v) _G.LexusConfig.EspActiveBom = v return true end },
             
-            -- [THÊM MỚI] MENU CẢNH BÁO ĐỊCH NGẮM
-            { Key = "ModMenu_EspAimWarning_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Cảnh Báo Địch Ngắm Bắn -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "▶ Enemy Aim Warning - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspAimWarning end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarning = v return true end },
-            { Key = "ModMenu_EspAimWarning_Vis", UI = AliasMap.Switcher, Text = T("   Check Tường (Chỉ báo khi lộ diện) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Visibility Check - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_EspAimWarning_Ex", GetFunc = function() return _G.LexusConfig.EspAimWarningVisCheck end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarningVisCheck = v return true end },
+            -- [جديد] قائمة تنبيه تصويب العدو
+            { Key = "ModMenu_EspAimWarning_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Enemy Aim Warning "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspAimWarning end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarning = v return true end },
+            { Key = "ModMenu_EspAimWarning_Vis", UI = AliasMap.Switcher, Text = T(" Visibility Check "), ExpandHandle = "ModMenu_EspAimWarning_Ex", GetFunc = function() return _G.LexusConfig.EspAimWarningVisCheck end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarningVisCheck = v return true end },
             
-            { Key = "ModMenu_ESPVehicle_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Định Vị Xe -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "▶ Vehicle ESP - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVehicle end, SetFunc = function(c,v) _G.LexusConfig.EspVehicle = v return true end },
-            { Key = "ModMenu_ESPVeh_Dacia", UI = AliasMap.Switcher, Text = T("   Hiện Xe Con (Dacia) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Dacia - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Dacia end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Dacia = v return true end },
-            { Key = "ModMenu_ESPVeh_UAZ", UI = AliasMap.Switcher, Text = T("   Hiện Xe Jeep (UAZ) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show UAZ - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_UAZ end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_UAZ = v return true end },
-            { Key = "ModMenu_ESPVeh_Buggy", UI = AliasMap.Switcher, Text = T("   Hiện Xe Buggy -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Buggy - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Buggy end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Buggy = v return true end },
-            { Key = "ModMenu_ESPVeh_Coupe", UI = AliasMap.Switcher, Text = T("   Hiện Xe Thể Thao (Coupe RB) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Coupe RB - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Coupe end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Coupe = v return true end },
-            { Key = "ModMenu_ESPVeh_Mirado", UI = AliasMap.Switcher, Text = T("   Hiện Xe Mirado -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Mirado - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Mirado end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Mirado = v return true end },
-            { Key = "ModMenu_ESPVeh_Motor", UI = AliasMap.Switcher, Text = T("   Hiện Xe Máy (Motor/Scooter) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Motorcycles - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Motor end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Motor = v return true end },
-            { Key = "ModMenu_ESPVeh_Other", UI = AliasMap.Switcher, Text = T("   Hiện Xe Khác (Thuyền/BRDM...) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Show Others (Boat/BRDM) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Other end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Other = v return true end },
-            
-            { Key = "ModMenu_ESPAntenna", UI = AliasMap.Switcher, Text = T("ESP Antenna (Cột) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "Antenna ESP - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), GetFunc = function() return _G.LexusConfig.EspAntenna end, SetFunc = function(c,v) _G.LexusConfig.EspAntenna = v return true end },
-            { Key = "ModMenu_ESPOutline_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Viền Địch (Bật HDR sẽ sáng) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "▶ Outline ESP (HDR supported) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspOutline end, SetFunc = function(c,v) _G.LexusConfig.EspOutline = v return true end },
-            { Key = "ModMenu_ESPOutline_Color", UI = AliasMap.Slider, Text = T("   Màu Viền (1:Đỏ 2:Lục 3:Lam 4:Vàng 5:Tím 6:Trắng) -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht) - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.OutlineColor or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OutlineColor = v return true end },
-            { Key = "ModMenu_ESPOutline_Thickness", UI = AliasMap.Slider, Text = T("   Độ Dày Viền -   mod ملف متوفر على رابط قناة @MOHSINXFILES   ", "   Outline Thickness - telegram mod owner ملف متوفر على رابط قناة @MOHSINXFILES   "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 20, min = 1, max = 20, GetFunc = function() return _G.LexusConfig.OutlineThickness end, SetFunc = function(c,v) _G.LexusConfig.OutlineThickness = v return true end }
+            { Key = "ModMenu_ESPAntenna", UI = AliasMap.Switcher, Text = T("Antenna ESP "), GetFunc = function() return _G.LexusConfig.EspAntenna end, SetFunc = function(c,v) _G.LexusConfig.EspAntenna = v return true end },
+            { Key = "ModMenu_ESPOutline_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Outline ESP (HDR supported) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspOutline end, SetFunc = function(c,v) _G.LexusConfig.EspOutline = v return true end },
+            { Key = "ModMenu_ESPOutline_Color", UI = AliasMap.Slider, Text = T(" Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht) "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.OutlineColor or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OutlineColor = v return true end },
+            { Key = "ModMenu_ESPOutline_Thickness", UI = AliasMap.Slider, Text = T(" Outline Thickness "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 20, min = 1, max = 20, GetFunc = function() return _G.LexusConfig.OutlineThickness end, SetFunc = function(c,v) _G.LexusConfig.OutlineThickness = v return true end }
         }
 
         local StackAimbot = {
-            { Key = "ModMenu_Aimbot_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Aimbot Xa Tùy Chỉnh", "▶ Custom Long Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbot end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbot = v return true end },
-            { Key = "ModMenu_Aimbot_Speed", UI = AliasMap.Slider, Text = T("   Tốc Độ Aimbot Xa", "   Long Range Speed"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.OuterSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterSpeed = v return true end },
-            { Key = "ModMenu_Aimbot_Recoil", UI = AliasMap.Slider, Text = T("   Bù Giật Ghìm Tâm", "   Recoil Compensation"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.OuterRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterRecoil = v return true end },
+            { Key = "ModMenu_Aimbot_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Custom Long Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbot end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbot = v return true end },
+            { Key = "ModMenu_Aimbot_Speed", UI = AliasMap.Slider, Text = T(" Long Range Speed"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.OuterSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterSpeed = v return true end },
+            { Key = "ModMenu_Aimbot_Recoil", UI = AliasMap.Slider, Text = T(" Recoil Compensation"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.OuterRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterRecoil = v return true end },
 
-            { Key = "ModMenu_AimbotClose_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Aimbot Gần Tùy Chỉnh", "▶ Custom Close Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbotClose end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbotClose = v return true end },
-            { Key = "ModMenu_AimbotClose_Speed", UI = AliasMap.Slider, Text = T("   Tốc Độ Aimbot Gần", "   Close Range Speed"), ExpandHandle = "ModMenu_AimbotClose_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.InnerSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.InnerSpeed = v return true end },
+            { Key = "ModMenu_AimbotClose_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Custom Close Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbotClose end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbotClose = v return true end },
+            { Key = "ModMenu_AimbotClose_Speed", UI = AliasMap.Slider, Text = T(" Close Range Speed"), ExpandHandle = "ModMenu_AimbotClose_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.InnerSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.InnerSpeed = v return true end },
 
-            { Key = "ModMenu_Magic_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ DỄ BỊ BAN MẠNG Magic Bullet Tùy Chỉnh", "▶ (RISK BAN) Custom Magic Bullet"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomMagicBullet end, SetFunc = function(c,v) _G.LexusConfig.CustomMagicBullet = v return true end },
-            { Key = "ModMenu_Magic_Head", UI = AliasMap.Slider, Text = T("   Sát Thương Đầu (0.0 - 5.0)", "   Head Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end },
-            { Key = "ModMenu_Magic_Body", UI = AliasMap.Slider, Text = T("   Sát Thương Thân (0.0 - 5.0)", "   Body Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end },
-            { Key = "ModMenu_Magic_Legs", UI = AliasMap.Slider, Text = T("   Sát Thương Chân (0.0 - 5.0)", "   Legs Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ (RISK BAN) Custom Magic Bullet"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomMagicBullet end, SetFunc = function(c,v) _G.LexusConfig.CustomMagicBullet = v return true end },
+            { Key = "ModMenu_Magic_Head", UI = AliasMap.Slider, Text = T(" Head Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Body", UI = AliasMap.Slider, Text = T(" Body Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Legs", UI = AliasMap.Slider, Text = T(" Legs Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end },
 
-            { Key = "ModMenu_HRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Giảm Giật Ngang (Drop súng nhặt lại để load)", "▶ Less Horizontal Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomHRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomHRecoil = v return true end },
-            { Key = "ModMenu_HRecoil_Val", UI = AliasMap.Slider, Text = T("   Chỉ Số Giật Ngang", "   Horizontal Recoil Value"), ExpandHandle = "ModMenu_HRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.HRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.HRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
+            { Key = "ModMenu_HRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Less Horizontal Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomHRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomHRecoil = v return true end },
+            { Key = "ModMenu_HRecoil_Val", UI = AliasMap.Slider, Text = T("  Horizontal Recoil Value"), ExpandHandle = "ModMenu_HRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.HRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.HRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
 
-            { Key = "ModMenu_VRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Giảm Giật Dọc (Drop súng nhặt lại để load)", "▶ Less Vertical Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomVRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomVRecoil = v return true end },
-            { Key = "ModMenu_VRecoil_Val", UI = AliasMap.Slider, Text = T("   Chỉ Số Giật Dọc", "   Vertical Recoil Value"), ExpandHandle = "ModMenu_VRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.VRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.VRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
+            { Key = "ModMenu_VRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Less Vertical Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomVRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomVRecoil = v return true end },
+            { Key = "ModMenu_VRecoil_Val", UI = AliasMap.Slider, Text = T(" Vertical Recoil Value"), ExpandHandle = "ModMenu_VRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.VRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.VRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
 
-            { Key = "ModMenu_LessShake", UI = AliasMap.Switcher, Text = T("Giảm Rung Nẩy Scope", "Less Scope Shake"), GetFunc = function() return _G.LexusConfig.LessShake end, SetFunc = function(c,v) _G.LexusConfig.LessShake = v return true end },
-            { Key = "ModMenu_Accuracy", UI = AliasMap.Switcher, Text = T("Đạn Thẳng Tắp", "100% Accuracy"), GetFunc = function() return _G.LexusConfig.Accuracy end, SetFunc = function(c,v) _G.LexusConfig.Accuracy = v return true end },
-            { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = T("Tâm Súng Nhỏ", "Small Crosshair"), GetFunc = function() return _G.LexusConfig.Crosshair end, SetFunc = function(c,v) _G.LexusConfig.Crosshair = v return true end },
-            { Key = "ModMenu_AutoHead", UI = AliasMap.Switcher, Text = T("Aimbot Head", "Aimbot Head"), GetFunc = function() return _G.LexusConfig.AutoHead end, SetFunc = function(c,v) _G.LexusConfig.AutoHead = v return true end },
-            { Key = "ModMenu_GodMode", UI = AliasMap.Switcher, Text = T("Hủy Diệt (Bắn Siêu Nhanh)", "God Mode (Fast Shoot)"), GetFunc = function() return _G.LexusConfig.GodMode end, SetFunc = function(c,v) _G.LexusConfig.GodMode = v return true end }
+            { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = T("Small Crosshair"), GetFunc = function() return _G.LexusConfig.Crosshair end, SetFunc = function(c,v) _G.LexusConfig.Crosshair = v return true end },
         }
 
         local StackAimbotV2 = {
-            { Key = "ModMenu_AT_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Bật Aimbot Roy & Custom", "▶ Enable Custom Aimbot V2"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchEnable end, SetFunc = function(c,v) _G.LexusConfig.AimTouchEnable = v return true end },
+            { Key = "ModMenu_AT_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Enable Custom Aimbot V2"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchEnable end, SetFunc = function(c,v) _G.LexusConfig.AimTouchEnable = v return true end },
             
             -- HIPFIRE (TÂM TRẮNG)
-            { Key = "ModMenu_AT_Hip_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ Aimbot Tâm Trắng", "   ▶ Hipfire Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchHipfire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipfire = v return true end },
-            { Key = "ModMenu_AT_Hip_IgKnock", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Địch Knock", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgKnock = v return true end },
-            { Key = "ModMenu_AT_Hip_IgBot", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Bot", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgBot = v return true end },
-            { Key = "ModMenu_AT_Hip_Vis", UI = AliasMap.Switcher, Text = T("      Check Tường (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipVisCheck = v return true end },
-            { Key = "ModMenu_AT_Hip_Prio", UI = AliasMap.Slider, Text = T("      Ưu Tiên (1:Tâm 2:Gần 3:HP)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipPrio = val return true end },
-            { Key = "ModMenu_AT_Hip_Bone", UI = AliasMap.Slider, Text = T("      Vị Trí (1:Đầu 2:Ngực 3:Bụng 4:Hông)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipBone = val return true end },
-            { Key = "ModMenu_AT_Hip_Cond", UI = AliasMap.Slider, Text = T("      Điều Kiện (1:Bắn mới Aim, 2:Luôn Aim)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchHipCond = val return true end },
-            { Key = "ModMenu_AT_Hip_Spd", UI = AliasMap.Slider, Text = T("      Độ Mượt / Tốc Độ (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipSpeed or 50 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipSpeed = v return true end },
-            { Key = "ModMenu_AT_Hip_FOV", UI = AliasMap.Slider, Text = T("      Vòng FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipFOV or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipFOV = v return true end },
-            { Key = "ModMenu_AT_Hip_Dist", UI = AliasMap.Slider, Text = T("      Khoảng Cách (1-500m)", "      Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchHipDist or 250) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipDist = v * 5 return true end },
+            { Key = "ModMenu_AT_Hip_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Hipfire Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchHipfire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipfire = v return true end },
+            { Key = "ModMenu_AT_Hip_IgKnock", UI = AliasMap.Switcher, Text = T(" Ignore Knocked"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgKnock = v return true end },
+            { Key = "ModMenu_AT_Hip_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgBot = v return true end },
+            { Key = "ModMenu_AT_Hip_Vis", UI = AliasMap.Switcher, Text = T(" Visibility Check"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipVisCheck = v return true end },
+            { Key = "ModMenu_AT_Hip_Prio", UI = AliasMap.Slider, Text = T(" Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipPrio = val return true end },
+            { Key = "ModMenu_AT_Hip_Bone", UI = AliasMap.Slider, Text = T("  Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipBone = val return true end },
+            { Key = "ModMenu_AT_Hip_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchHipCond = val return true end },
+            { Key = "ModMenu_AT_Hip_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipSpeed or 50 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipSpeed = v return true end },
+            { Key = "ModMenu_AT_Hip_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipFOV or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipFOV = v return true end },
+            { Key = "ModMenu_AT_Hip_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchHipDist or 250) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipDist = v * 5 return true end },
 
             -- AIMBOT SHOTGUN
-            { Key = "ModMenu_AT_SG_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ Aimbot Shotgun", "   ▶ Shotgun Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchSG end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSG = v return true end },
-            { Key = "ModMenu_AT_SG_AutoFire", UI = AliasMap.Switcher, Text = T("      Tự Động Bắn", "      Auto Fire"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGAutoFire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGAutoFire = v return true end },
-            { Key = "ModMenu_AT_SG_IgKnock", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Địch Knock", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgKnock = v return true end },
-            { Key = "ModMenu_AT_SG_IgBot", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Bot", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgBot = v return true end },
-            { Key = "ModMenu_AT_SG_Vis", UI = AliasMap.Switcher, Text = T("      Check Tường (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGVisCheck = v return true end },
-            { Key = "ModMenu_AT_SG_Prio", UI = AliasMap.Slider, Text = T("      Ưu Tiên (1:Tâm 2:Gần 3:HP)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGPrio = val return true end },
-            { Key = "ModMenu_AT_SG_Bone", UI = AliasMap.Slider, Text = T("      Vị Trí (1:Đầu 2:Ngực 3:Bụng 4:Hông)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGBone = val return true end },
-            { Key = "ModMenu_AT_SG_Cond", UI = AliasMap.Slider, Text = T("      Điều Kiện (1:Bắn mới Aim, 2:Luôn Aim)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSGCond = val return true end },
-            { Key = "ModMenu_AT_SG_Spd", UI = AliasMap.Slider, Text = T("      Độ Mượt / Tốc Độ (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGSpeed or 80 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGSpeed = v return true end },
-            { Key = "ModMenu_AT_SG_FOV", UI = AliasMap.Slider, Text = T("      Vòng FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGFOV or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGFOV = v return true end },
-            { Key = "ModMenu_AT_SG_Dist", UI = AliasMap.Slider, Text = T("      Khoảng Cách (1-100m)", "      Distance Limit (1-100m)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGDist or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGDist = v return true end },
+            { Key = "ModMenu_AT_SG_Ex", UI = AliasMap.TitleSwitcher, Text = T(" ▶ Shotgun Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchSG end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSG = v return true end },
+            { Key = "ModMenu_AT_SG_AutoFire", UI = AliasMap.Switcher, Text = T(" Auto Fire"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGAutoFire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGAutoFire = v return true end },
+            { Key = "ModMenu_AT_SG_IgKnock", UI = AliasMap.Switcher, Text = T(" Ignore Knocked"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgKnock = v return true end },
+            { Key = "ModMenu_AT_SG_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgBot = v return true end },
+            { Key = "ModMenu_AT_SG_Vis", UI = AliasMap.Switcher, Text = T("  Visibility Check"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGVisCheck = v return true end },
+            { Key = "ModMenu_AT_SG_Prio", UI = AliasMap.Slider, Text = T("  Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGPrio = val return true end },
+            { Key = "ModMenu_AT_SG_Bone", UI = AliasMap.Slider, Text = T(" Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGBone = val return true end },
+            { Key = "ModMenu_AT_SG_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSGCond = val return true end },
+            { Key = "ModMenu_AT_SG_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGSpeed or 80 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGSpeed = v return true end },
+            { Key = "ModMenu_AT_SG_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGFOV or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGFOV = v return true end },
+            { Key = "ModMenu_AT_SG_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-100m)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGDist or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGDist = v return true end },
             
             -- SCOPE ALL (SÚNG THƯỜNG KHI MỞ SCOPE)
-            { Key = "ModMenu_AT_ScopeAll_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ Aimbot Mở Scope", "   ▶ Scope Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeAll end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeAll = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_IgKnock", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Địch Knock", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgKnock = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_IgBot", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Bot", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgBot = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Vis", UI = AliasMap.Switcher, Text = T("      Check Tường (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeVisCheck = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Prio", UI = AliasMap.Slider, Text = T("      Ưu Tiên (1:Tâm 2:Gần 3:HP)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopePrio = val return true end },
-            { Key = "ModMenu_AT_ScopeAll_Bone", UI = AliasMap.Slider, Text = T("      Vị Trí (1:Đầu 2:Ngực 3:Bụng 4:Hông)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopeBone = val return true end },
-            { Key = "ModMenu_AT_ScopeAll_Cond", UI = AliasMap.Slider, Text = T("      Điều Kiện (1:Bắn mới Aim, 2:Luôn Aim)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchScopeCond = val return true end },
-            { Key = "ModMenu_AT_ScopeAll_Spd", UI = AliasMap.Slider, Text = T("      Độ Mượt / Tốc Độ (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeSpeed or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeSpeed = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_FOV", UI = AliasMap.Slider, Text = T("      Vòng FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeFOV = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Dist", UI = AliasMap.Slider, Text = T("      Khoảng Cách (1-500m)", "      Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchScopeDist or 300) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeDist = v * 5 return true end },
-            { Key = "ModMenu_AT_ScopeAll_Pred", UI = AliasMap.Slider, Text = T("      Dự Đoán Hướng Chạy", "      Prediction Value"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopePred = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Recoil", UI = AliasMap.Slider, Text = T("      Bù Giật Tự Động", "      Auto Recoil Comp."), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeRecoil = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Ex", UI = AliasMap.TitleSwitcher, Text = T(" ▶ Scope Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeAll end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeAll = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_IgKnock", UI = AliasMap.Switcher, Text = T(" Ignore Knocked"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgKnock = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"),ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgBot = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Vis", UI = AliasMap.Switcher, Text = T("Visibility Check"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeVisCheck = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Prio", UI = AliasMap.Slider, Text = T(" Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopePrio = val return true end },
+            { Key = "ModMenu_AT_ScopeAll_Bone", UI = AliasMap.Slider, Text = T(" Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopeBone = val return true end },
+            { Key = "ModMenu_AT_ScopeAll_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchScopeCond = val return true end },
+            { Key = "ModMenu_AT_ScopeAll_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeSpeed or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeSpeed = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeFOV = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchScopeDist or 300) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeDist = v * 5 return true end },
+            { Key = "ModMenu_AT_ScopeAll_Pred", UI = AliasMap.Slider, Text = T("   Prediction Value"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopePred = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Recoil", UI = AliasMap.Slider, Text = T("  Auto Recoil Comp."), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeRecoil = v return true end },
 
             -- SCOPE SNIPER (SÚNG NGẮM/TỈA)
-            { Key = "ModMenu_AT_Sniper_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ Aimbot Mở Scope (Súng Ngắm/Tỉa)", "   ▶ Sniper Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeSniper end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeSniper = v return true end },
-            { Key = "ModMenu_AT_Sniper_IgKnock", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Địch Knock", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgKnock = v return true end },
-            { Key = "ModMenu_AT_Sniper_IgBot", UI = AliasMap.Switcher, Text = T("      Bỏ Qua Bot", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgBot = v return true end },
-            { Key = "ModMenu_AT_Sniper_Vis", UI = AliasMap.Switcher, Text = T("      Check Tường (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperVisCheck = v return true end },
-            { Key = "ModMenu_AT_Sniper_Prio", UI = AliasMap.Slider, Text = T("      Ưu Tiên (1:Tâm 2:Gần 3:HP)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperPrio = val return true end },
-            { Key = "ModMenu_AT_Sniper_Bone", UI = AliasMap.Slider, Text = T("      Vị Trí (1:Đầu 2:Ngực 3:Bụng 4:Hông)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperBone = val return true end },
-            { Key = "ModMenu_AT_Sniper_Cond", UI = AliasMap.Slider, Text = T("      Điều Kiện (1:Bắn mới Aim, 2:Luôn Aim)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperCond or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSniperCond = val return true end },
-            { Key = "ModMenu_AT_Sniper_Spd", UI = AliasMap.Slider, Text = T("      Độ Mượt / Tốc Độ (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperSpeed or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperSpeed = v return true end },
-            { Key = "ModMenu_AT_Sniper_FOV", UI = AliasMap.Slider, Text = T("      Vòng FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperFOV = v return true end },
-            { Key = "ModMenu_AT_Sniper_Dist", UI = AliasMap.Slider, Text = T("      Khoảng Cách (1-500m)", "      Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchSniperDist or 400) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperDist = v * 5 return true end },
-            { Key = "ModMenu_AT_Sniper_Pred", UI = AliasMap.Slider, Text = T("      Dự Đoán Hướng Chạy (0-100)", "      Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperPred = v return true end },
+            { Key = "ModMenu_AT_Sniper_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Sniper Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeSniper end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeSniper = v return true end },
+            { Key = "ModMenu_AT_Sniper_IgKnock", UI = AliasMap.Switcher, Text = T("  Ignore Knocked"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgKnock = v return true end },
+            { Key = "ModMenu_AT_Sniper_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgBot = v return true end },
+            { Key = "ModMenu_AT_Sniper_Vis", UI = AliasMap.Switcher, Text = T(" Visibility Check"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperVisCheck = v return true end },
+            { Key = "ModMenu_AT_Sniper_Prio", UI = AliasMap.Slider, Text = T(" Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperPrio = val return true end },
+            { Key = "ModMenu_AT_Sniper_Bone", UI = AliasMap.Slider, Text = T("  Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperBone = val return true end },
+            { Key = "ModMenu_AT_Sniper_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperCond or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSniperCond = val return true end },
+            { Key = "ModMenu_AT_Sniper_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperSpeed or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperSpeed = v return true end },
+            { Key = "ModMenu_AT_Sniper_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperFOV = v return true end },
+            { Key = "ModMenu_AT_Sniper_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchSniperDist or 400) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperDist = v * 5 return true end },
+            { Key = "ModMenu_AT_Sniper_Pred", UI = AliasMap.Slider, Text = T(" Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperPred = v return true end },
 
             -- AIMBOT SÚNG CỐI (MORTAR)
-            { Key = "ModMenu_AT_Mortar_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ Aimbot Súng Cối (Mortar)", "   ▶ Mortar Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchMortar end, SetFunc = function(c,v) _G.LexusConfig.AimTouchMortar = v return true end },
-            { Key = "ModMenu_AT_Mortar_FOV", UI = AliasMap.Slider, Text = T("      Vòng FOV (1-360)", "      FOV Radius (1-360)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 1, MaxValue = 360, min = 1, max = 360, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarFOV or 360 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarFOV = v return true end },
-            { Key = "ModMenu_AT_Mortar_Pred", UI = AliasMap.Slider, Text = T("      Dự Đoán Hướng Chạy (0-100)", "      Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarPred = v return true end }
+            { Key = "ModMenu_AT_Mortar_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Mortar Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchMortar end, SetFunc = function(c,v) _G.LexusConfig.AimTouchMortar = v return true end },
+            { Key = "ModMenu_AT_Mortar_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-360)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 1, MaxValue = 360, min = 1, max = 360, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarFOV or 360 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarFOV = v return true end },
+            { Key = "ModMenu_AT_Mortar_Pred", UI = AliasMap.Slider, Text = T(" Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarPred = v return true end }
         }
 
         local StackSkin = {
             
-            { Key = "ModMenu_ModEmote", UI = AliasMap.Switcher, Text = T("Mở Khóa Full Hành Động VIP (Emotes)", "Unlock All VIP Emotes"), GetFunc = function() return _G.LexusConfig.ModEmote end, SetFunc = function(c,v) _G.LexusConfig.ModEmote = v return true end },
-            { Key = "ModMenu_ModSkin", UI = AliasMap.Switcher, Text = T("Hệ Thống Mod Skin VIP (Mở túi đồ chọn)", "VIP Mod Skin System (Open inventory)"), GetFunc = function() return _G.LexusConfig.ModSkin end, SetFunc = function(c,v) _G.LexusConfig.ModSkin = v return true end },
-            { Key = "ModMenu_SkinDeadBox", UI = AliasMap.Switcher, Text = T("Skin Hòm Xác (Ăn theo skin Súng/Xe)", "Deadbox Skin (Sync with Weapon)"), GetFunc = function() return _G.LexusConfig.SkinDeadBox end, SetFunc = function(c,v) _G.LexusConfig.SkinDeadBox = v return true end },
-            { Key = "ModMenu_AddUC", UI = AliasMap.Switcher, Text = T("إضافة شدات UC (تفعيل)", "Add UC (Enable)"), GetFunc = function() return _G.LexusConfig.AddUC end, SetFunc = function(c,v) _G.LexusConfig.AddUC = v return true end },
-            { Key = "ModMenu_SkinAttachment", UI = AliasMap.Switcher, Text = T("Skin Phụ Kiện Súng (Nòng, Tay cầm...)", "Weapon Attachment Skin"), GetFunc = function() return _G.LexusConfig.SkinAttachment end, SetFunc = function(c,v) _G.LexusConfig.SkinAttachment = v return true end },
-            { Key = "ModMenu_KillMessage", UI = AliasMap.Switcher, Text = T("Kill Messenger VIP", "VIP Kill Messenger"), GetFunc = function() return _G.LexusConfig.KillMessage end, SetFunc = function(c,v) _G.LexusConfig.KillMessage = v return true end },
-            { Key = "ModMenu_KillCountUI", UI = AliasMap.Switcher, Text = T("Bộ Đếm Kill (Hiển thị số Kill vũ khí)", "Kill Counter UI"), GetFunc = function() return _G.LexusConfig.KillCountUI end, SetFunc = function(c,v) _G.LexusConfig.KillCountUI = v return true end },
-            { Key = "ModMenu_SkinOpenLink", UI = AliasMap.Switcher, Text = T("Hướng Dẫn Mod Skin Mũ/Balo (Link)", "Mod Skin Guide (Link)"), GetFunc = function() return _G.LexusConfig.SkinOpenLink end, SetFunc = function(c,v) _G.LexusConfig.SkinOpenLink = v; if v == true then pcall(function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end end) end return true end },
+            { Key = "ModMenu_ModEmote", UI = AliasMap.Switcher, Text = T("Unlock All VIP Emotes"), GetFunc = function() return _G.LexusConfig.ModEmote end, SetFunc = function(c,v) _G.LexusConfig.ModEmote = v return true end },
+            { Key = "ModMenu_ModSkin", UI = AliasMap.Switcher, Text = T("VIP Mod Skin System (Open inventory)"), GetFunc = function() return _G.LexusConfig.ModSkin end, SetFunc = function(c,v) _G.LexusConfig.ModSkin = v return true end },
+            { Key = "ModMenu_SkinDeadBox", UI = AliasMap.Switcher, Text = T("Deadbox Skin (Sync with Weapon)"), GetFunc = function() return _G.LexusConfig.SkinDeadBox end, SetFunc = function(c,v) _G.LexusConfig.SkinDeadBox = v return true end },
+            { Key = "ModMenu_SkinAttachment", UI = AliasMap.Switcher, Text = T("Weapon Attachment Skin"), GetFunc = function() return _G.LexusConfig.SkinAttachment end, SetFunc = function(c,v) _G.LexusConfig.SkinAttachment = v return true end },
+            { Key = "ModMenu_KillMessage", UI = AliasMap.Switcher, Text = T("VIP Kill Messenger"), GetFunc = function() return _G.LexusConfig.KillMessage end, SetFunc = function(c,v) _G.LexusConfig.KillMessage = v return true end },
+            { Key = "ModMenu_KillCountUI", UI = AliasMap.Switcher, Text = T("Kill Counter UI"), GetFunc = function() return _G.LexusConfig.KillCountUI end, SetFunc = function(c,v) _G.LexusConfig.KillCountUI = v return true end },
+            { Key = "ModMenu_SkinOpenLink", UI = AliasMap.Switcher, Text = T("Mod Skin Guide (Link)"), GetFunc = function() return _G.LexusConfig.SkinOpenLink end, SetFunc = function(c,v) _G.LexusConfig.SkinOpenLink = v; if v == true then pcall(function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end end) end return true end },
+            { Key = "ModMenu_X3FakeVisual", UI = AliasMap.Switcher, Text = T("100 لیول ID [ CHACHA G ] (visual)", "  Fake CHACHA: Currency + Collect Lv100 [ CHACHA PALSU ] (visual)"), GetFunc = function() return _G.LexusConfig.X3FakeVisual == true end, SetFunc = function(c,v) _G.LexusConfig.X3FakeVisual = v and true or false; if v == true then pcall(InitFakeGachaSystem); pcall(function() if _G.X3 and _G.X3.LobbyVisualsTick then _G.X3.LobbyVisualsTick() end end) end return true end },
         }
 
         local StackCombat = {
-            { Key = "ModMenu_FakeHWID", UI = AliasMap.Switcher, Text = T("Đổi HWID Ảo (Chống Ghim ID Thiết Bị)", "Fake HWID (Anti-Ban)"), GetFunc = function() return _G.LexusConfig.FakeHWID end, SetFunc = function(c,v) _G.LexusConfig.FakeHWID = v return true end },
-            { Key = "ModMenu_Ipad_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Ipad View", "▶ Ipad View"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.IpadView end, SetFunc = function(c,v) _G.LexusConfig.IpadView = v return true end },
-            { Key = "ModMenu_Ipad_FOV", UI = AliasMap.Slider, Text = T("   Góc Nhìn FOV", "   FOV Value"), ExpandHandle = "ModMenu_Ipad_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return (_G.LexusState.CustomTextData.IpadViewFOV or 120) - 90 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.IpadViewFOV = 90 + v return true end },
+            { Key = "ModMenu_FakeHWID", UI = AliasMap.Switcher, Text = T("Fake HWID (Anti-Ban)"), GetFunc = function() return _G.LexusConfig.FakeHWID end, SetFunc = function(c,v) _G.LexusConfig.FakeHWID = v return true end },
+            { Key = "ModMenu_Ipad_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Ipad View"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.IpadView end, SetFunc = function(c,v) _G.LexusConfig.IpadView = v return true end },
+            { Key = "ModMenu_Ipad_FOV", UI = AliasMap.Slider, Text = T(" FOV Value"), ExpandHandle = "ModMenu_Ipad_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return (_G.LexusState.CustomTextData.IpadViewFOV or 120) - 90 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.IpadViewFOV = 90 + v return true end },
 
-            { Key = "ModMenu_BugMan_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Kéo Dãn Màn Hình (Nhân Vật Mập)", "▶ Screen Stretch (Fat Body)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.BugManEnable end, SetFunc = function(c,v) _G.LexusConfig.BugManEnable = v return true end },
-            { Key = "ModMenu_BugMan_Ratio", UI = AliasMap.Slider, Text = T("   Độ Kéo Dãn", "   Stretch Ratio"), ExpandHandle = "ModMenu_BugMan_Ex", MinValue = 110, MaxValue = 200, min = 110, max = 200, GetFunc = function() return _G.LexusState.CustomTextData.BugManRatio or 133 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.BugManRatio = v return true end },
-
-            { Key = "ModMenu_165FPS", UI = AliasMap.Switcher, Text = T("Mở Khóa 165 FPS", "Unlock 165 FPS"), GetFunc = function() return _G.LexusConfig.UnlockFPS end, SetFunc = function(c,v) _G.LexusConfig.UnlockFPS = v; if v then _G.LexusState.GraphicsUnlocked = false end return true end },
+            { Key = "ModMenu_165FPS", UI = AliasMap.Switcher, Text = T("Unlock 165 FPS"), GetFunc = function() return _G.LexusConfig.UnlockFPS end, SetFunc = function(c,v) _G.LexusConfig.UnlockFPS = v; if v then _G.LexusState.GraphicsUnlocked = false end return true end },
             
-            { Key = "ModMenu_WallXuyenTuong", UI = AliasMap.Switcher, Text = T("Wall Xuyên Tường V1 (Chỉ nhìn xuyên)", "Wallhack V1 (See through)"), GetFunc = function() return _G.LexusConfig.WallXuyenTuong end, SetFunc = function(c,v) _G.LexusConfig.WallXuyenTuong = v return true end },
-            { Key = "ModMenu_ColorBodyV2", UI = AliasMap.Switcher, Text = T("Tô Màu Địch V2 (Chams Cơ Bản)", "Chams V2 (Basic Color)"), GetFunc = function() return _G.LexusConfig.ColorBodyV2 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV2 = v return true end },
-            { Key = "ModMenu_ColorBodyNew", UI = AliasMap.Switcher, Text = T("WALL MÀU NEW (Xanh/Đỏ Sáng Engine)", "NEW ENGINE CHAMS (Red/Green)"), GetFunc = function() return _G.LexusConfig.ColorBodyNew end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyNew = v return true end },
-            { Key = "ModMenu_ColorBodyV3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ WALL V2 + MÀU V3 (Tùy Chỉnh Màu)", "▶ WALL V2 + CHAMS V3 (Custom)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.ColorBodyV3 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV3 = v return true end },
-            { Key = "ModMenu_V3_Hidden", UI = AliasMap.Slider, Text = T("   Màu Sau Tường (1:Đỏ 2:Lục 3:Lam 4:Vàng 5:Tím 6:Trắng)", "   Hidden Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Hidden or 1 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Hidden = v return true end },
-            { Key = "ModMenu_V3_Vis", UI = AliasMap.Slider, Text = T("   Màu Lộ Diện (1:Đỏ 2:Lục 3:Lam 4:Vàng 5:Tím 6:Trắng)", "   Visible Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Visible or 2 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Visible = v return true end },
-            { Key = "ModMenu_V3_Thick", UI = AliasMap.Slider, Text = T("   Độ Dày Viền HDR Lộ Diện", "   HDR Outline Thickness"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 20, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Thickness or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Thickness = v return true end },
-            
-            { Key = "ModMenu_WallVehicle", UI = AliasMap.Switcher, Text = T("Wall Phương Tiện", "Vehicle Wallhack"), GetFunc = function() return _G.LexusConfig.WallVehicle end, SetFunc = function(c,v) _G.LexusConfig.WallVehicle = v return true end },
+            { Key = "ModMenu_WallXuyenTuong", UI = AliasMap.Switcher, Text = T("Wallhack V1 (See through)"), GetFunc = function() return _G.LexusConfig.WallXuyenTuong end, SetFunc = function(c,v) _G.LexusConfig.WallXuyenTuong = v return true end },
+            { Key = "ModMenu_ColorBodyV2", UI = AliasMap.Switcher, Text = T("Chams V2 (Basic Color)"), GetFunc = function() return _G.LexusConfig.ColorBodyV2 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV2 = v return true end },
+            { Key = "ModMenu_ColorBodyNew", UI = AliasMap.Switcher, Text = T("NEW ENGINE CHAMS (Red/Green)"), GetFunc = function() return _G.LexusConfig.ColorBodyNew end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyNew = v return true end },
+            { Key = "ModMenu_ColorBodyV3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ WALL V2 + CHAMS V3 (Custom)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.ColorBodyV3 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV3 = v return true end },
+            { Key = "ModMenu_V3_Hidden", UI = AliasMap.Slider, Text = T(" Hidden Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Hidden or 1 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Hidden = v return true end },
+            { Key = "ModMenu_V3_Vis", UI = AliasMap.Slider, Text = T("   Visible Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Visible or 2 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Visible = v return true end },
+            { Key = "ModMenu_V3_Thick", UI = AliasMap.Slider, Text = T(" HDR Outline Thickness"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 20, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Thickness or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Thickness = v return true end },
 
-            { Key = "ModMenu_WhiteBody", UI = AliasMap.Switcher, Text = T("Người Trắng", "White Body"), GetFunc = function() return _G.LexusConfig.WhiteBody end, SetFunc = function(c,v) _G.LexusConfig.WhiteBody = v return true end },
-            { Key = "ModMenu_BlackSky", UI = AliasMap.Switcher, Text = T("Trời Tối (Black Sky)", "Black Sky"), GetFunc = function() return _G.LexusConfig.BlackSky end, SetFunc = function(c,v) _G.LexusConfig.BlackSky = v return true end },
-            { Key = "ModMenu_RemoveFog", UI = AliasMap.Switcher, Text = T("Xóa Sương Mù", "Remove Fog"), GetFunc = function() return _G.LexusConfig.RemoveFog end, SetFunc = function(c,v) _G.LexusConfig.RemoveFog = v return true end },
-            { Key = "ModMenu_RemoveGrass", UI = AliasMap.Switcher, Text = T("Xóa Cỏ", "Remove Grass"), GetFunc = function() return _G.LexusConfig.RemoveGrass end, SetFunc = function(c,v) _G.LexusConfig.RemoveGrass = v return true end },
-            { Key = "ModMenu_RemoveTrees", UI = AliasMap.Switcher, Text = T("Xóa Cây", "Remove Trees"), GetFunc = function() return _G.LexusConfig.RemoveTrees end, SetFunc = function(c,v) _G.LexusConfig.RemoveTrees = v return true end },
-            { Key = "ModMenu_WallClimb", UI = AliasMap.Switcher, Text = T("Leo Tường", "Wall Climb"), GetFunc = function() return _G.LexusConfig.WallClimb end, SetFunc = function(c,v) _G.LexusConfig.WallClimb = v return true end },
-            { Key = "ModMenu_FastCar_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Xe Nhanh Bay", "▶ Fast Car / Flying Car"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.FastCar end, SetFunc = function(c,v) _G.LexusConfig.FastCar = v return true end },
-            { Key = "ModMenu_FastCar_Speed", UI = AliasMap.Slider, Text = T("   Tốc Độ Xe Mức (1-100)", "   Car Speed Limit (1-100)"), ExpandHandle = "ModMenu_FastCar_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.FastCarSpeed or 3000) / 60) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.FastCarSpeed = v * 60 return true end },
+            { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = T("Small Crosshair"), GetFunc = function() return _G.LexusConfig.Crosshair end, SetFunc = function(c,v) _G.LexusConfig.Crosshair = v return true end },
+            { Key = "ModMenu_WhiteBody", UI = AliasMap.Switcher, Text = T( "White Body"), GetFunc = function() return _G.LexusConfig.WhiteBody end, SetFunc = function(c,v) _G.LexusConfig.WhiteBody = v return true end },
+            { Key = "ModMenu_BlackSky", UI = AliasMap.Switcher, Text = T("Black Sky"), GetFunc = function() return _G.LexusConfig.BlackSky end, SetFunc = function(c,v) _G.LexusConfig.BlackSky = v return true end },
+            { Key = "ModMenu_RemoveFog", UI = AliasMap.Switcher, Text = T("Remove Fog"), GetFunc = function() return _G.LexusConfig.RemoveFog end, SetFunc = function(c,v) _G.LexusConfig.RemoveFog = v return true end },
+            { Key = "ModMenu_RemoveGrass", UI = AliasMap.Switcher, Text = T( "Remove Grass"), GetFunc = function() return _G.LexusConfig.RemoveGrass end, SetFunc = function(c,v) _G.LexusConfig.RemoveGrass = v return true end },
+            { Key = "ModMenu_RemoveTrees", UI = AliasMap.Switcher, Text = T("Remove Trees"), GetFunc = function() return _G.LexusConfig.RemoveTrees end, SetFunc = function(c,v) _G.LexusConfig.RemoveTrees = v return true end },
 
-            { Key = "ModMenu_WeaponGlow_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Glow Viền Súng (Phát sáng HDR)", "▶ Weapon Glow (HDR)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.WeaponGlow end, SetFunc = function(c,v) _G.LexusConfig.WeaponGlow = v return true end },
-            { Key = "ModMenu_WeaponGlowColor", UI = AliasMap.Slider, Text = T("   Màu Súng (1:Đỏ 2:Lục 3:Lam 4:Vàng 5:Rainbow)", "   Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Rnb)"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 5, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowColor or 5 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowColor = v return true end },
-            { Key = "ModMenu_WeaponGlowThick", UI = AliasMap.Slider, Text = T("   Độ Dày Viền Súng", "   Glow Thickness"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 15, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowThickness or 3 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowThickness = v return true end }
+            { Key = "ModMenu_WeaponGlow_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Weapon Glow (HDR)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.WeaponGlow end, SetFunc = function(c,v) _G.LexusConfig.WeaponGlow = v return true end },
+            { Key = "ModMenu_WeaponGlowColor", UI = AliasMap.Slider, Text = T(" Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Rnb)"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 5, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowColor or 5 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowColor = v return true end },
+            { Key = "ModMenu_WeaponGlowThick", UI = AliasMap.Slider, Text = T(" Glow Thickness"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 15, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowThickness or 3 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowThickness = v return true end }
         }
 
-        local StackESPV2 = {
-            { Key = "ModMenu_ESP9_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP VIP (RedBox & Marker Thượng Đỉnh)", "▶ ESP VIP (RedBox & Marker)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspLoai9 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai9 = v return true end },
-            { Key = "ModMenu_ESP9_Count", UI = AliasMap.Switcher, Text = T("   Hiện Bảng Đếm Người", "   Show Player Count"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_Count end, SetFunc = function(c,v) _G.LexusConfig.Esp9_Count = v return true end },
-            { Key = "ModMenu_ESP9_Name", UI = AliasMap.Switcher, Text = T("   Hiện Tên Người Chơi", "   Show Player Name"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_Name end, SetFunc = function(c,v) _G.LexusConfig.Esp9_Name = v return true end },
-            { Key = "ModMenu_ESP9_Dist", UI = AliasMap.Switcher, Text = T("   Hiện Khoảng Cách", "   Show Distance"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_Distance end, SetFunc = function(c,v) _G.LexusConfig.Esp9_Distance = v return true end },
-            { Key = "ModMenu_ESP9_HP", UI = AliasMap.Switcher, Text = T("   Hiện Thanh Máu", "   Show Health Bar"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_HP end, SetFunc = function(c,v) _G.LexusConfig.Esp9_HP = v return true end },
-            { Key = "ModMenu_ESP9_Team", UI = AliasMap.Switcher, Text = T("   Hiện Khung Màu Team", "   Show Team Color Box"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_Team end, SetFunc = function(c,v) _G.LexusConfig.Esp9_Team = v return true end },
-            { Key = "ModMenu_ESP9_Weapon", UI = AliasMap.Switcher, Text = T("   Hiện Icon Súng", "   Show Weapon Icon"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_Weapon end, SetFunc = function(c,v) _G.LexusConfig.Esp9_Weapon = v return true end },
-            { Key = "ModMenu_ESP9_Line", UI = AliasMap.Switcher, Text = T("   Hiện Dây Nối (Snapline)", "   Show Snapline"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_Line end, SetFunc = function(c,v) _G.LexusConfig.Esp9_Line = v return true end },
-            { Key = "ModMenu_ESP9_Skeleton", UI = AliasMap.Switcher, Text = T("   Hiện Khung Xương ( máy yếu không nên bật rất lag )", "   Show Skeleton ( It's not recommended for weak computers as it will cause significant lag )"), ExpandHandle = "ModMenu_ESP9_Ex", GetFunc = function() return _G.LexusConfig.Esp9_Skeleton end, SetFunc = function(c,v) _G.LexusConfig.Esp9_Skeleton = v return true end }
-        }
+        local StackESPV2 = {} --تم الحذف
 
         SettingPageDefine.ModMenu = {
             Key = "ModMenu",
             Text = 999000, 
             UIKey = "Setting_Page_Privacy", 
             Category = {
-                { Key = "Cat_ESP", Text = 999001, Stack = StackESP },
-                { Key = "Cat_ESPV2", Text = 999006, Stack = StackESPV2 },
-                { Key = "Cat_Aimbot", Text = 999002, Stack = StackAimbot },
+                { Key = "Cat_BoxESP", Text = 999007, Stack = StackBoxESP },
                 { Key = "Cat_AimbotV2", Text = 999003, Stack = StackAimbotV2 },
                 { Key = "Cat_Combat", Text = 999004, Stack = StackCombat },
                 { Key = "Cat_Skin", Text = 999005, Stack = StackSkin }
@@ -1797,33 +1947,33 @@ local function ShowLexusVIPMenu()
         if not Msg or not Msg.Show then return end
 
         local function Step_ScamAlert()
-            local title = _G.LexusLang == "EN" and "SCAM ALERT" or "CẢNH BÁO SCAM MOD"
+            local title = _G.LexusLang == "EN" and "SCAM ALERT" or "Papa Ko Btao SCAM MOD"
             local content = _G.LexusLang == "EN" 
-                and "Join my Telegram to avoid scammers selling free mods. Zalo 0 TELE ملف متوفر على رابط قناة @MOHSINXFILES " 
-                or "Tham Gia Telegram Tôi Để Tránh Các Thành Phần Bán Mod Free. Zalo 0 TELE ملف متوفر على رابط قناة @MOHSINXFILES \nĐỊT MẸ NHỮNG CON CHÓ ĂN CẮP MOD BỐ DŨNG XONG MÚA NÀY NỌ NHỤC CHẾT MẸ HAHAHA TAO CHỈ CÓ DUY NHẤT 1 TÀI KHOẢN TELE 1 TÀI KHOẢN ZALO NHÉ CẨN THẬN NHÉ"
-            local btn1 = _G.LexusLang == "EN" and "JOIN" or "THAM GIA"
-            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "ĐÓNG"
+                and "Telegram channel @CHACHA - @MOHSINXFILES to communicate with the developer @CHACHA" 
+                or "Telegram @CHACHA - @MOHSINXFILES @CHACHA"
+            local btn1 = _G.LexusLang == "EN" and "JOIN" or "Aa Jao"
+            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "Poyon Oil"
 
-            Msg.Show(1, title, content, function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end end, function() end, btn1, btn2)
+            Msg.Show(1, title, content, function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/CHACHA") end end, function() end, btn1, btn2)
             _G.LexusState.MenuStep = 99
             _G.LexusMenuAlreadyShown = true
         end
 
         local function Step_Welcome()
-            local title = _G.LexusLang == "EN" and "WELCOME TO VIP MOD" or "CHÀO MỪNG MÀY"
+            local title = _G.LexusLang == "EN" and "WELCOME TO CHACHA MOD" or "Sb Theek Hain Na"
             local content = _G.LexusLang == "EN" 
-                and "Hi, MOHSINXFILES here. The VIP MENU is now inside Game Settings!\nIMPORTANT: Enable fewer features to avoid lag. Play safe!" 
-                or "Này Tao Là Dũng Đây. Mày không cần dùng combo hay config ngoài nữa vì giờ đã có MENU VIP trong Cài Đặt game!\nNHƯNG MÀY HÃY NGHE TAO NÓI NÀY, BẬT ÍT CHỨC NĂNG THÔI LAG LẮM HIỂU KHÔNG TAO SỢ MÁY MÀY CHỊU ĐÉO NỔI THÔI, VỚI LẠI BẮN ĐỪNG LỘ BẮN KỸ TÍ LÀ SAFE"
-            local btn1 = _G.LexusLang == "EN" and "OPEN GAME MENU" or "MỞ MENU TRONG GAME"
-            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "ĐÓNG"
+                and "Hi, Dung here. The CHACHA MENU is now inside Game Settings!\nIMPORTANT: Enable fewer features to avoid lag. Play safe!" 
+                or "Kam Features Istrmal Kren CHACHA Setting Main Jao\nTayyar Ho?"
+            local btn1 = _G.LexusLang == "EN" and "OPEN GAME MENU" or "Bismillah"
+            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "Bye"
 
             Msg.Show(1, title, content, 
             function() 
                 _G.InitModMenuTab()
                 if _G.LexusLang == "EN" then
-                    Notify("VIP MOD MENU ADDED!\nOpen Settings (Gear icon) -> VIP MOD MENU to toggle features.")
+                    Notify("CHACHA MOD MENU ADDED!\nOpen Settings (Gear icon) -> CHACHA MOD MENU to toggle features.")
                 else
-                    Notify("ĐÃ THÊM 'VIP MOD MENU' VÀO PHẦN CÀI ĐẶT CỦA GAME!\nHãy mở Cài Đặt (Răng Cưa) -> VIP MOD MENU để bật/tắt.")
+                    Notify("Theek CHACHA Salam\nCusomize (Setting Gear Icon) -> CHACHA MOD MENU Ehtiyat Zaruri Hai")
                 end
                 Step_ScamAlert()
             end, 
@@ -1831,15 +1981,15 @@ local function ShowLexusVIPMenu()
         end
 
         local function Step_SelectLanguage()
-            Msg.Show(2, "SELECT LANGUAGE / CHỌN NGÔN NGỮ", "Please select your preferred language.\nVui lòng chọn ngôn ngữ bạn muốn sử dụng.",
+            Msg.Show(2, "SELECT LANGUAGE / Zuban Konsi", "Please select your preferred language.\nEnglish Krna.",
             function()
-                _G.LexusLang = "VN"
+                _G.LexusLang = "EN"
                 Step_Welcome()
             end,
             function()
                 _G.LexusLang = "EN"
                 Step_Welcome()
-            end, "TIẾNG VIỆT", "ENGLISH")
+            end, "ENGLISH")
         end
 
         _G.LexusState.MenuStep = 1
@@ -2460,7 +2610,7 @@ local function UndoColorBodyV3(enemy, markData)
     end)
 end
 -- ==========================================
--- CHỨC NĂNG WALL MÀU NEW (ĐƯỢC ĐỒNG BỘ VÀO HỆ THỐNG VIP TỐI ƯU)
+-- CHỨC NĂNG WALL MÀU NEW (ĐƯỢC ĐỒNG BỘ VÀO HỆ THỐNG CHACHA TỐI ƯU)
 -- ==========================================
 local function ApplyColorBodyNew(enemy, markData)
     pcall(function()
@@ -3197,20 +3347,20 @@ local ItemDatabase = {
     [602001] = { name = "Stun Grenade", cat = "Grenade", color = C_Grenade }, [602002] = { name = "Smoke Grenade", cat = "Grenade", color = C_Grenade },
     [602003] = { name = "Molotov", cat = "Grenade", color = C_Grenade }, [602004] = { name = "Frag Grenade", cat = "Grenade", color = C_Grenade },
     
-    -- Vật phẩm Y tế (Máu, Nước, Phục Hồi)
-    [601001] = { name = "Nước Tăng Lực", cat = "Med", color = C_Med }, [601002] = { name = "Tiêm Adrenaline", cat = "Med", color = C_Med },
-    [601003] = { name = "Thuốc Giảm Đau", cat = "Med", color = C_Med }, [601004] = { name = "Băng Gạc", cat = "Med", color = C_Med },
-    [601005] = { name = "Bộ Sơ Cứu", cat = "Med", color = C_Med }, [601006] = { name = "Bộ Cứu Thương", cat = "Med", color = C_Med },
-    [601009] = { name = "Băng Gạc Nhanh", cat = "Med", color = C_Med }, [601010] = { name = "Sơ Cứu Nhanh", cat = "Med", color = C_Med },
-    [601011] = { name = "Băng Gạc QĐ", cat = "Med", color = C_Med }, [601012] = { name = "Nước Đậm Đặc", cat = "Med", color = C_Med },
-    [601020] = { name = "Băng Gạc", cat = "Med", color = C_Med }, [601021] = { name = "Bộ Sơ Cứu", cat = "Med", color = C_Med },
-    [601022] = { name = "Bộ Cứu Thương", cat = "Med", color = C_Med }, [601023] = { name = "Tiêm Adrenaline", cat = "Med", color = C_Med },
-    [601061] = { name = "Bộ Cứu Thương", cat = "Med", color = C_Med }, [601077] = { name = "Sơ Cứu Chiến Thuật", cat = "Med", color = C_Med },
-    [601078] = { name = "Sơ Cứu Toàn Năng", cat = "Med", color = C_Med }, [601079] = { name = "Cứu Thương Toàn Năng", cat = "Med", color = C_Med },
-    [601080] = { name = "Băng Gạc QĐ", cat = "Med", color = C_Med }, [601081] = { name = "Nước Đậm Đặc", cat = "Med", color = C_Med },
-    [601084] = { name = "Sơ Cứu Nhanh", cat = "Med", color = C_Med }, [601085] = { name = "Cứu Thương Nhanh", cat = "Med", color = C_Med },
-    [601095] = { name = "Máy AED (Hồi Sinh)", cat = "Med", color = C_Med }, [601096] = { name = "Chuẩn Bị Chiến Đấu", cat = "Med", color = C_Med },
-    [602054] = { name = "Tiếp Tế Y Tế", cat = "Med", color = C_Med }, [602069] = { name = "Cứu Trợ Khẩn Cấp", cat = "Med", color = C_Med }
+    -- مستلزمات طبية (دم، ماء، تعافي)
+    [601001] = { name = "مشروب طاقة", cat = "Med", color = C_Med }, [601002] = { name = "أدرينالين", cat = "Med", color = C_Med },
+    [601003] = { name = "مسكن ألم", cat = "Med", color = C_Med }, [601004] = { name = "شاش طبّي", cat = "Med", color = C_Med },
+    [601005] = { name = "حقيبة إسعاف", cat = "Med", color = C_Med }, [601006] = { name = "حقيبة إسعافات", cat = "Med", color = C_Med },
+    [601009] = { name = "شاش سريع", cat = "Med", color = C_Med }, [601010] = { name = "إسعاف سريع", cat = "Med", color = C_Med },
+    [601011] = { name = "شاش عسكري", cat = "Med", color = C_Med }, [601012] = { name = "مياه مركزة", cat = "Med", color = C_Med },
+    [601020] = { name = "شاش طبّي", cat = "Med", color = C_Med }, [601021] = { name = "حقيبة إسعاف", cat = "Med", color = C_Med },
+    [601022] = { name = "حقيبة إسعافات", cat = "Med", color = C_Med }, [601023] = { name = "أدرينالين", cat = "Med", color = C_Med },
+    [601061] = { name = "حقيبة إسعافات", cat = "Med", color = C_Med }, [601077] = { name = "إسعاف تكتيكي", cat = "Med", color = C_Med },
+    [601078] = { name = "إسعاف شامل", cat = "Med", color = C_Med }, [601079] = { name = "إسعافات شاملة", cat = "Med", color = C_Med },
+    [601080] = { name = "شاش عسكري", cat = "Med", color = C_Med }, [601081] = { name = "مياه مركزة", cat = "Med", color = C_Med },
+    [601084] = { name = "إسعاف سريع", cat = "Med", color = C_Med }, [601085] = { name = "إسعافات سريعة", cat = "Med", color = C_Med },
+    [601095] = { name = "جهاز AED (إنعاش)", cat = "Med", color = C_Med }, [601096] = { name = "تحضير قتالي", cat = "Med", color = C_Med },
+    [602054] = { name = "تموين طبي", cat = "Med", color = C_Med }, [602069] = { name = "غوث طارئ", cat = "Med", color = C_Med }
 }
 
 _G.CachedItems = {}
@@ -3399,7 +3549,7 @@ local function CreateEnemyCounterWidget()
         require("game_frontend_hud").AddToContainer(UIContainers.Top, btn, 10500)
         
         if btn.RichText_Content then
-            btn.RichText_Content:SetText("Enemies: 0  |  Nearest: 0m")
+            btn.RichText_Content:SetText("الأعداء: 0  |  الأقرب: 0م")
             local fontInfo = btn.RichText_Content.Font
             if fontInfo then fontInfo.Size = 16 btn.RichText_Content:SetFont(fontInfo) end
         end
@@ -3418,7 +3568,7 @@ local function CreateEnemyCounterWidget()
     return EnemyCounterWidget
 end
 
--- TẠO UI: CẢNH BÁO ĐỊCH NGẮM (ĐỘC LẬP)
+-- TẠO UI: Papa Ko Btao ĐỊCH NGẮM (ĐỘC LẬP)
 local function CreateWarningTargetWidget()
     if WarningTargetWidget then
         if slua.isValid(WarningTargetWidget) then return WarningTargetWidget else WarningTargetWidget = nil end
@@ -3538,7 +3688,7 @@ local function _M_DrawCounter()
                                         
                                         -- Địch hướng nòng súng sai lệch < 15 độ
                                         if dYaw < 15 and dPitch < 20 then
-                                            -- Áp dụng logic Check Tường (VisCheck)
+                                            -- Áp dụng logic فحص الجدار (VisCheck)
                                             if _G.LexusConfig.EspAimWarningVisCheck then
                                                 if slua.isValid(pc) and type(pc.LineOfSightTo) == "function" then
                                                     if pc:LineOfSightTo(tPawn) then
@@ -3561,7 +3711,7 @@ local function _M_DrawCounter()
 
             -- Cập nhật nội dung UI đếm địch (Khung 1)
             if widgetCounter and widgetCounter.RichText_Content then
-                widgetCounter.RichText_Content:SetText(string.format("Địch Xung Quanh: %d  |  Gần Nhất: %dm", count, count > 0 and nearest or 0))
+                widgetCounter.RichText_Content:SetText(string.format("الأعداء حولك: %d  |  الأقرب: %dm", count, count > 0 and nearest or 0))
             end
 
             -- Ẩn/Hiện UI Cảnh báo độc lập (Khung 2)
@@ -3602,6 +3752,52 @@ local RedBoxOverlay = {
     _CachedTextBot = "",
     _CachedPosVec = nil
 }
+
+function RedBoxOverlay.GetCounterTexts()
+    local p = RedBoxOverlay.PlayerCount or 0
+    local b = RedBoxOverlay.BotCount or 0
+    local style = math.floor(tonumber(_G.LexusConfig.CounterStyle) or 1)
+    if style == 2 then
+        return string.format("P: %d", p), string.format("B: %d", b)
+    elseif style == 3 then
+        return string.format("PLAYERS [%d]", p), string.format("BOTS [%d]", b)
+    elseif style == 4 then
+        return string.format("[P:%02d]", p), string.format("[B:%02d]", b)
+    elseif style == 5 then
+        return string.format("PLAYER %d", p), string.format("BOT %d", b)
+    elseif style == 6 then
+        return string.format("P • %d", p), string.format("B • %d", b)
+    elseif style == 7 then
+        return string.format("< P %d >", p), string.format("< B %d >", b)
+    elseif style == 8 then
+        return string.format("LIVE P:%d", p), string.format("LIVE B:%d", b)
+    elseif style == 9 then
+        return string.format("ENEMY: %d", p), string.format("AI: %d", b)
+    elseif style == 10 then
+        return string.format("PERCENT P=%d", p), string.format("PERCENT B=%d", b)
+    elseif style == 11 then
+        return string.format("P{%d}", p), string.format("B{%d}", b)
+    elseif style == 12 then
+        return string.format("PLAYER 〘%d〙", p), string.format("BOT 〘%d〙", b)
+    end
+    return string.format("Player: %d", p), string.format("Bot: %d", b)
+end
+
+function RedBoxOverlay.RefreshCounterTexts()
+    local playerText, botText = RedBoxOverlay.GetCounterTexts()
+    if RedBoxOverlay.TextBlockPlayer and slua.isValid(RedBoxOverlay.TextBlockPlayer) then
+        pcall(function()
+            RedBoxOverlay.TextBlockPlayer:SetText(playerText)
+            RedBoxOverlay._CachedTextPlayer = playerText
+        end)
+    end
+    if RedBoxOverlay.TextBlockBot and slua.isValid(RedBoxOverlay.TextBlockBot) then
+        pcall(function()
+            RedBoxOverlay.TextBlockBot:SetText(botText)
+            RedBoxOverlay._CachedTextBot = botText
+        end)
+    end
+end
 
 function RedBoxOverlay.Create()
     if RedBoxOverlay.MainContainer and slua.isValid(RedBoxOverlay.MainContainer) then return true end
@@ -3654,7 +3850,8 @@ function RedBoxOverlay.Create()
     pcall(function() txtPlayer = CGame:NewObjectFromPath("/Script/UMG.TextBlock", Container) end)
     if txtPlayer and slua.isValid(txtPlayer) then
         pcall(function()
-            local strText = string.format("Player: %d", RedBoxOverlay.PlayerCount)
+            local playerText = RedBoxOverlay.GetCounterTexts()
+            local strText = playerText
             txtPlayer:SetText(strText)
             RedBoxOverlay._CachedTextPlayer = strText
 
@@ -3687,7 +3884,8 @@ function RedBoxOverlay.Create()
     pcall(function() txtBot = CGame:NewObjectFromPath("/Script/UMG.TextBlock", Container) end)
     if txtBot and slua.isValid(txtBot) then
         pcall(function()
-            local strText = string.format("Bot: %d", RedBoxOverlay.BotCount)
+            local _, botText = RedBoxOverlay.GetCounterTexts()
+            local strText = botText
             txtBot:SetText(strText)
             RedBoxOverlay._CachedTextBot = strText
 
@@ -3740,7 +3938,7 @@ function RedBoxOverlay.SetCounts(players, bots)
     
     if RedBoxOverlay.TextBlockPlayer and slua.isValid(RedBoxOverlay.TextBlockPlayer) then
         pcall(function()
-            local strP = string.format("Player: %d", RedBoxOverlay.PlayerCount)
+            local strP = RedBoxOverlay.GetCounterTexts()
             if RedBoxOverlay._CachedTextPlayer ~= strP then
                 RedBoxOverlay.TextBlockPlayer:SetText(strP)
                 RedBoxOverlay._CachedTextPlayer = strP
@@ -3749,7 +3947,7 @@ function RedBoxOverlay.SetCounts(players, bots)
     end
     if RedBoxOverlay.TextBlockBot and slua.isValid(RedBoxOverlay.TextBlockBot) then
         pcall(function()
-            local strB = string.format("Bot: %d", RedBoxOverlay.BotCount)
+            local _, strB = RedBoxOverlay.GetCounterTexts()
             if RedBoxOverlay._CachedTextBot ~= strB then
                 RedBoxOverlay.TextBlockBot:SetText(strB)
                 RedBoxOverlay._CachedTextBot = strB
@@ -4725,6 +4923,59 @@ function PlayerMapMarker.CopyWeaponIconBrushFromNative(ourWeaponIcon, nativeWeap
         end
     end)
     return bCopied
+end
+
+function PlayerMapMarker.FindPlayerFlagIcon(WidgetObj, Depth, MaxDepth)
+    if not WidgetObj or not slua.isValid(WidgetObj) then return nil end
+    Depth = Depth or 0
+    MaxDepth = MaxDepth or 8
+    local names = {"Image_Flag", "Image_PlayerFlag", "Image_CountryFlag", "Image_NationFlag", "Image_PlayerCountry", "Image_Country", "Image_Nationality", "Image_Region", "FlagIcon", "CountryIcon", "NationIcon", "PlayerFlag", "CountryFlag", "NationFlag", "Flag"}
+    for _, name in ipairs(names) do
+        local found = nil
+        pcall(function()
+            local candidate = WidgetObj[name]
+            if candidate and slua.isValid(candidate) then found = candidate end
+        end)
+        if found then return found end
+    end
+    if Depth >= MaxDepth then return nil end
+    local count = 0
+    pcall(function() if WidgetObj.GetChildrenCount then count = WidgetObj:GetChildrenCount() end end)
+    for i = 0, math.max(count - 1, 0) do
+        local child = nil
+        pcall(function() child = WidgetObj:GetChildAt(i) end)
+        local result = PlayerMapMarker.FindPlayerFlagIcon(child, Depth + 1, MaxDepth)
+        if result then return result end
+    end
+    return nil
+end
+
+function PlayerMapMarker.SetPlayerFlagVisibility(WidgetData, Character)
+    if not WidgetData or not WidgetData.Container then return end
+    local Container = WidgetData.Container
+    local flag = WidgetData._PlayerFlagIcon
+    if not flag or not slua.isValid(flag) then
+        flag = PlayerMapMarker.FindPlayerFlagIcon(Container, 0, 8)
+        WidgetData._PlayerFlagIcon = flag
+    end
+    if not flag or not slua.isValid(flag) then return end
+    pcall(function()
+        if not _G.LexusConfig.Esp9_Flag then
+            flag:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed)
+            return
+        end
+        -- نطلب من القالب الأصلي تحديث بيانات اللاعب والعلم قبل إظهاره.
+        if Container.SetPlayerInfo and Character then Container:SetPlayerInfo(Character) end
+        if Container.SetData and Character then Container:SetData(Character) end
+        for _, methodName in ipairs({"SetFlag", "SetPlayerFlag", "SetCountryFlag", "SetNationFlag", "UpdateFlag", "UpdateCountryFlag", "RefreshFlag"}) do
+            pcall(function()
+                local method = Container[methodName]
+                if method and Character then method(Container, Character) end
+            end)
+        end
+        flag:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        if flag.SetRenderOpacity then flag:SetRenderOpacity(1.0) end
+    end)
 end
 
 function PlayerMapMarker.AddWeaponIconToESP(WidgetData, Character)
@@ -6140,6 +6391,7 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
                             end
                             PlayerMapMarker.UpdateESPHealth(Widget, pct)
                             PlayerMapMarker.AddWeaponIconToESP(Widget, Character)
+                            PlayerMapMarker.SetPlayerFlagVisibility(Widget, Character)
                             
                             if PlayerMapMarker.bUseSnapLines then
                                 PlayerMapMarker.UpdateSnapLine(KeyStr, CanvasPos, bOnScreen, fromX, fromY)
@@ -6183,6 +6435,7 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
                         end
                         PlayerMapMarker.UpdateESPHealth(ESPData.Widget, pct)
                         PlayerMapMarker.AddWeaponIconToESP(ESPData.Widget, Character)
+                        PlayerMapMarker.SetPlayerFlagVisibility(ESPData.Widget, Character)
                         
                         if PlayerMapMarker.bUseSnapLines then
                             PlayerMapMarker.UpdateSnapLine(KeyStr, CanvasPos, bOnScreen, fromX, fromY)
@@ -6534,7 +6787,7 @@ local function MainLoop()
     local Cached_MyHUD = pc and pc.MyHUD or nil
 
     if _G.LexusConfig.UnlockFPS then InitializeGraphicsUnlock() end
-    InitializeNativeESP()
+    -- InitializeNativeESP() -- disabled by requested ESP-off configuration
     ShowLexusVIPMenu()
     
     -- [GỌI LOGIC ESP ITEM VÀ VEHICLE VÀO VÒNG LẶP]
@@ -7476,10 +7729,10 @@ local function MainLoop()
                                         if enemy.PoseState then pose = enemy.PoseState
                                         elseif type(enemy.GetPoseState) == "function" then pose = enemy:GetPoseState() end
                                         
-                                        if pose == 0 or pose == "Stand" then stateText = "Đứng"
-                                        elseif pose == 1 or pose == "Crouch" then stateText = "Ngồi"
-                                        elseif pose == 2 or pose == "Prone" then stateText = "Nằm"
-                                        else stateText = "Đứng" end
+                                        if pose == 0 or pose == "Stand" then stateText = "واقف"
+                                        elseif pose == 1 or pose == "Crouch" then stateText = "قاعد"
+                                        elseif pose == 2 or pose == "Prone" then stateText = "رابض"
+                                        else stateText = "واقف" end
                                     end
                                     
                                     -- 2. Xử lý Vũ Khí
@@ -7491,16 +7744,16 @@ local function MainLoop()
                                             elseif type(enemy.GetCurrentWeapon) == "function" then eWeapon = enemy:GetCurrentWeapon()
                                             elseif enemy.WeaponManagerComponent then eWeapon = enemy.WeaponManagerComponent.CurrentWeaponReplicated end
                                             
-                                            local weaponName = "Tay Không"
+                                            local weaponName = "بدون سلاح"
                                             if Valid(eWeapon) then if type(eWeapon.GetWeaponName) == "function" then weaponName = eWeapon:GetWeaponName() end end
                                             markData.AK_CACHED_WEP_NAME = tostring(weaponName)
                                             markData.AK_LAST_WEP_TIME = curTime
                                         end
 
                                         if stateText ~= "" then
-                                            stateText = stateText .. " - " .. (markData.AK_CACHED_WEP_NAME or "Tay Không")
+                                            stateText = stateText .. " - " .. (markData.AK_CACHED_WEP_NAME or "بدون سلاح")
                                         else
-                                            stateText = (markData.AK_CACHED_WEP_NAME or "Tay Không")
+                                            stateText = (markData.AK_CACHED_WEP_NAME or "بدون سلاح")
                                         end
                                     end
 
@@ -8004,9 +8257,9 @@ local function MainLoop()
                                             elseif string.find(nameLower, "scooter") then displayName = "Scooter"
                                             elseif string.find(nameLower, "coupe") then displayName = "Coupe RB"
                                             elseif string.find(nameLower, "brdm") then displayName = "BRDM"
-                                            elseif string.find(nameLower, "boat") or string.find(nameLower, "aquarail") then displayName = "Thuyền"
-                                            elseif string.find(nameLower, "glider") then displayName = "Tàu lượn"
-                                            else displayName = "Xe (" .. string.sub(vehName, 1, 8) .. ")" end
+                                            elseif string.find(nameLower, "boat") or string.find(nameLower, "aquarail") then displayName = "قارب"
+                                            elseif string.find(nameLower, "glider") then displayName = "طيار شراعي"
+                                            else displayName = "عربية (" .. string.sub(vehName, 1, 8) .. ")" end
 
                                             table.insert(activeVehicles, {act = veh, name = displayName, hasDriver = hasDriver})
                                         end
@@ -8060,12 +8313,12 @@ local function ExpiredTick()
         pcall(function()
             local Msg = require("client.slua.logic.common.logic_common_msg_box")
             if Msg and Msg.Show then
-                Msg.Show(1, "CHACHA AA GYA", "MASTI na Kr\nCHACHU.\nInbox@MOHSINXFILES", 
+                Msg.Show(1, "المود انتهت مدته", "نسخة المود بتاعتك خلصت!\nمن فضلك راسل الأدمن عشان التجديد.\nراسل تيليجرام @MOHSINXFILES القناة @CHACHA عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت", 
                 function() 
                     local Web = require("client.slua.logic.url.logic_webview_sdk")
                     if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end 
                 end, 
-                function() end, "INBOX CHỦ MOD", "ĐÓNG")
+                function() end, "راسل صاحب المود", "إغلاق")
                 _G.LexusNotifiedPopup = true 
             end
         end)
@@ -8082,7 +8335,7 @@ end
 local function FastTick() 
     if isExpired then 
         if not _G.LexusNotifiedExpire then
-            Notify("TELEGRAM@MOHSINXFILES")
+            Notify("المود خلص! من فضلك راسل الأدمن عشان التجديد!\nراسل تيليجرام @MOHSINXFILES القناة @CHACHA عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت")
             _G.LexusNotifiedExpire = true
             ExpiredTick() 
         end
@@ -8090,7 +8343,18 @@ local function FastTick()
     end
 
     if myToken ~= _G.LexusState.LoopToken then return end
-    pcall(MainLoop) 
+    pcall(MainLoop)
+    -- تحديث BoxESP من حلقة اللعبة الحالية بدل مؤقت مستقل.
+    pcall(function()
+        local box = _G.BoxESP
+        if box and box.UpdateESP and _G.LexusConfig.BoxESPEnabled ~= false then
+            local now = os.clock()
+            if not _G._BoxESPNextUpdate or now >= _G._BoxESPNextUpdate then
+                _G._BoxESPNextUpdate = now + (box._AdaptiveInterval or 0.033)
+                box.UpdateESP()
+            end
+        end
+    end)
     local okTicker, ticker = pcall(require, "common.time_ticker") 
     if okTicker and ticker and ticker.AddTimerOnce then 
         ticker.AddTimerOnce(0.01, FastTick) 
@@ -8099,7 +8363,7 @@ end
 
 if not isExpired then
     FastTick() 
-    Notify("Bạn Đang Chơi Mod Vvip 4 Của Tôi Nếu Chưa Có Key Inbox Tele ملف متوفر على رابط قناة @MOHSINXFILES  Zalo 0 Để Mua Nếu Ai Đó Đã Bán Cho Bạn Thứ Này Ngoài Tôi Thì Xin Chúc Mừng Bạn Đã Bị Lừa")
+    Notify("MOHSINXFILES Telegram Pe Aa Jao")
 else
     FastTick() 
 end
@@ -8365,7 +8629,6 @@ local MATCH_CONFIG = {
 
 -- Bảng ID các siêu xe (Thêm tự do nếu có ID mới)
 local ITEMS = {
-
     -- ==============================================================================
     -- HỆ THỐNG GỐC CỦA V7.5 (KHÔNG ĐƯỢC XÓA DÒNG NÀY)
     -- ==============================================================================
@@ -8376,6 +8639,8 @@ local ITEMS = {
     -- ==============================================================================
     -- 1. SÚNG NÂNG CẤP (CHỈ LẤY CẤP ĐỘ CAO NHẤT CỦA TỪNG KHẨU SÚNG)
     -- ==============================================================================
+    -- [اطار]
+    2002952, --اطار
     -- [ M416 ]
     1101004163, -- Hoàng Gia Lộng Lẫy - M416 (Cấp 8)
     1101004201, -- Bạch Lân Nhả Ngọc - M416 (Cấp 8)
@@ -8390,8 +8655,14 @@ local ITEMS = {
     1101004086, -- Bò Sát Gầm Gừ - M416 (Cấp 7)
     1101004098, -- Tiếng Gọi Hoang Dã - M416 (Cấp 7)
     1101004138, -- Lõi Công Nghệ - M416 (Cấp 7)
-1101002029,
-1101002081,
+    
+    -- [ M16 ]
+    1101002029, -- m16
+    1101002056, -- m16
+    1101002068, -- m16
+    1101002081, -- m16
+    1101002103, -- m16
+
     -- [ AKM ]
     1101001174, -- Bạo Chúa Bộ Lạc - AKM (Cấp 8)
     1101001213, -- Đô Đốc Hải Long Tinh - AKM (Cấp 8)
@@ -8441,6 +8712,7 @@ local ITEMS = {
     1101008163, -- Cổ Vật Hắc Ám - M762 (Cấp 7)
     1101008026, -- Pony Bé Nhỏ - M762 (Cấp 5)
     1101008036, -- Đóa Sen Phẫn Nộ - M762 (Cấp 5)
+    1101008170, -- M762 (Lv7)
 
     -- [ AUG ]
     1101006062, -- Tinh Linh Băng Giá - AUG (Cấp 8)
@@ -8483,10 +8755,7 @@ local ITEMS = {
     1101102007, -- Kamehameha - ACE32 (Cấp 7)
     1101102017, -- Ngọc Bích - ACE32 (Cấp 7)
     1101102032, -- Cáo Tinh Nghịch - ACE32 (Cấp 5)
-    1101102056,
-    1101008170,
-    
-          
+    1101102056, -- 𝗡𝗮𝘁𝘂𝗿𝗲𝘀𝗽𝗶𝗿𝗶𝘁 𝗚𝗿𝗼𝘄𝘁𝗵 – 𝗔𝗖𝗘𝟯𝟮 
 
     -- [ SMG (UZI, UMP45, Vector, Thompson, Bizon, MP5K, P90) ]
     1102001120, -- Băng Giá - UZI (Cấp 8)
@@ -8667,9 +8936,65 @@ local ITEMS = {
     1961147, -- McLaren P1 (Trời Sao)
     1961148, -- McLaren P1 (Hồng Rực Rỡ)
     1961149, -- McLaren P1 (Vàng Núi Lửa)
-    1907054, -- Xe Đua Đội McLaren F1 (Điện Tử)
-    1907058, -- Xe Đua Đội McLaren F1
-    1907059, -- Xe Đua Đội McLaren F1 (Chiến Thắng)
+    1907007, -- Buggy
+    1907008, -- Buggy
+    1907010, -- Buggy
+    1907011, -- Buggy
+    1907012, -- Buggy
+    1907013, -- Buggy
+    1907014, -- Buggy
+    1907016, -- Buggy
+    1907018, -- Buggy
+    1907019, -- Buggy
+    1907021, -- Buggy
+    1907022, -- Buggy
+    1907023, -- Buggy
+    1907025, -- Buggy
+    1907026, -- Buggy
+    1907027, -- Buggy
+    1907028, -- Buggy
+    1907029, -- Buggy
+    1907030, -- Buggy
+    1907032, -- Buggy
+    1907033, -- Buggy
+    1907034, -- Buggy
+    1907035, -- Buggy
+    1907036, -- Buggy
+    1907037, -- Buggy
+    1907038, -- Buggy
+    1907040, -- Buggy
+    1907041, -- Buggy
+    1907043, -- Buggy
+    1907044, -- Buggy
+    1907045, -- Buggy
+    1907046, -- Buggy
+    1907047, -- Buggy
+    1907048, -- Buggy
+    1907049, -- Buggy
+    1907050, -- Buggy
+    1907051, -- Buggy
+    1907052, -- Buggy
+    1907053, -- Buggy
+    1907054, -- Buggy
+    1907055, -- Buggy
+    1907056, -- Buggy
+    1907058, -- Buggy
+    1907059, -- Buggy
+    1907060, -- Buggy
+    1907061, -- Buggy
+    1907062, -- Buggy
+    1907063, -- Buggy
+    1907064, -- Buggy
+    1907065, -- Buggy
+    1907066, -- Buggy
+    1907067, -- Buggy
+    1907068, -- Buggy
+    1907069, -- Buggy
+    1907070, -- Buggy
+    1907071, -- Buggy
+    1907072, -- Buggy
+    1907073, -- Buggy
+    1907074, -- Buggy
 
     -- [ Koenigsegg ]
     1961016, -- Koenigsegg Jesko (Xám Bạc)
@@ -9683,7 +10008,6 @@ local ITEMS = {
     1404340, -- Trang phục Alan Walker 2021
     1403038, -- Alan Walker Mask
     1403064, -- Khẩu trang Alan Walker
-    1404423,
 
     -- [ Đồ TDM Phổ Biến (Khăn bịt mặt, Áo Lính, Áo Khoác Đen...) ]
     402001, -- Khăn rằn sinh tồn
@@ -9731,35 +10055,7 @@ local ITEMS = {
     1404428, -- Giày Người Chinh Phục Pagani
     1404508, -- Áo Hoodie Mr.Beast
     1400324, -- áo b
-    403170,
-1400053,
-1405132,
-1400426,
-1404191,
-1400101,
-1404049,
-1400569,
-1404000,
-1400324,
-1410085,
-1410480,
-1402218,
-1404050,
-404004,
-1404044,
-1400050,
-1400122,
-1404002,
-1400650,
-1404191,
-
     1400325, -- áo a
-    1404050,1404423,474031,1400426,1908094,
-    1400563,  
-    4151146,
-    1411147,
-    1407995,
-    40604011,
     452001, 452002, 452003, -- Găng Tay (Gloves)
     
         -- [ HÀNH ĐỘNG ]
@@ -9802,120 +10098,10 @@ local ITEMS = {
     12219004, -- Hành động Ngân hồn Rực lửa
     12219009, -- Hành động Mê hoặc Rực lửa
     12219216, -- Hành động Tế tư Héo úa
-        [40601001] = 40601012,
-    [40602001] = 40602012,
-    [40603001] = 40603012,
-    [40604001] = 40604012,
-    [40605001] = 40605012,
-    [40606001] = 40606012,
-    [40601002] = 40601011,
-    [40602002] = 40602011,
-    [40603002] = 40603011,
-    [40604002] = 40604011,
-    [40605002] = 40605011,
-    [40606002] = 40606011,
-    [40601004] = 40601016,
-    [40602004] = 40602016,
-    [40603004] = 40603016,
-    [40604004] = 40604016,
-    [40605004] = 40605016,
-    [40606004] = 40606016,
-    [40601003] = 40601017,
-    [40602003] = 40602017,
-    [40603003] = 40603017,
-    [40604003] = 40604017,
-    [40605003] = 40605017,
-    [40606003] = 40606017,
-    [40601006] = 40601014,
-    [40602006] = 40602014,
-    [40603006] = 40603014,
-    [40604006] = 40604014,
-    [40605006] = 40605014,
-    [40606006] = 40606014,
-    [40601005] = 40601010,
-    [40602005] = 40602010,
-    [40603005] = 40603010,
-    [40604005] = 40604010,
-    [40605005] = 40605010,
-    [40606005] = 40606010,
-40601012,
-40602012,
-40603012,
-40604012,
-40605012,
-40606012,
-40601011,
-40602011,
-40603011,
-40604011,
-40605011,
-40606011,
-40601016,
-40602016,
-40603016,
-40604016,
-40605016,
-40606016,
-40601017,
-40602017,
-40603017,
-40604017,
-40605017,
-40606017,
-40601014,
-40602014,
-40603014,
-40604014,
-40605014,
-40606014,
-40601010,
-40602010,
-40603010,
-40604010,
-40605010,
-40606010,
-
     
-        1908094, 1908095, 1908032, 1908036, 1908066, 1908067, 1908075, 1908076, 1908077, 1908078, 1908084, 1908085,
-    1908086, 1908088, 1908089, 1908188, 1908189, 1901091, 1901073, 1901074, 1901075, 1901076, 1901047, 1901102,
-    1901085, 1902022, 1902030, 1966018, 1960002, 1960003, 1903193, 1903201, 1903075, 1903071, 1903072, 1903073, 1903230, 1903231, 1908117, 1903232, 1908118, 1908119, 19116002, 19116003, 19116004, 1961070, 1961071, 1961072, 1961073, 1903220, 1903221, 1903222, 1903223, 1961065, 1961066, 1961067, 1903219, 1903218, 1903079, 1903080, 1908109, 1908108, 1961032, 1961038, 1961039, 1961040, 1961049, 1903191, 1903192, 1961035, 1961034, 1961033, 1908070, 1908068, 1908069, 1961057, 1961054, 1961053, 1903200, 1961137, 1961138, 1961139, 1961043, 1961045, 1961046, 1961047, 1961151, 1961152, 1961153, 1953010, 1953011, 1953012, 1903213, 1903212, 1915017, 1915018, 
-    1903074, 1903076, 1961062, 1961063, 1961064, 1961147, 1961148, 1961149, 1961015, 1961145, 1961144, 1961056,
-    1961055, 1961052, 1961007, 1961010, 1961012, 1961013, 1961014, 1961016, 1961017, 1961018, 1961020, 1961021,
-    1961024, 1961025, 1961029, 1961030, 1961031, 1961041, 1961042, 1961044, 1961048, 1961050, 1961051, 1907054,
-    1907058, 1907059, 1907063, 1915008, 1915012, 1915021, 1915022, 1915005, 1915006, 1915007, 1915009, 1953008,
-    1953016, 1953004, 1904015, 1916004, 1916005, 1916006, 1919011, 61950001, 61950002, 
-
-452001,452002,452003,
-    202408001, 202408003, 202408005, 202408009, 202408010, 202408011, 202408012, 202408013, 202408014, 202408015,
-    202408016, 202408017, 202408018, 202408019, 202408021, 202408022, 202408023, 202408024, 202408025, 202408026,
-    202408027, 202408028, 202408029, 202408030, 202408031, 202408032, 202408033, 202408034, 202408035, 202408036,
-    202408037, 202408038, 202408039, 202408040, 202408041, 202408042, 202408043, 202408044, 202408045, 202408046,
-    202408047, 202408048, 202408049, 202408050, 202408051, 202408052, 202408053, 202408054, 202408055, 202408056,
-    202408057, 202408058, 202408059, 202408060, 202408061, 202408062, 202408063, 202408064, 202408065, 202408066,
-    202408067, 202408068, 202408069, 202408070, 202408071, 202408072, 202408073, 202408074, 202408075, 202408076,
-    202408077, 202408078, 202408079, 202408080, 202408081, 202408082, 202408083, 202408084, 202408085, 202408086,
-    202408087, 202408088, 202408089, 202408090, 202408091, 202408092, 202408093, 202408094, 202408095, 202408096,
-    202408097, 202408098, 202408099, 202408100, 202408101, 202408102, 202501001, 202501002, 202501003, 202501004,
-    202501005, 202501006, 202501007, 202501008, 202501009, 202501010, 202501011,
-22010009 ,22010010,22010011,22010012,22010013,22010015,22010017,22010018,22010019,22010020,22010021,22010022,22010024,22010026,22010027,22010028,22010029,22010030,22010033,22010035,22010036,22010037,22010038,22010039,22010040,22010042,22010044,22010045,22010048,22010049,22010051,22010052,22010054,22010055,22010057,22010058,22010059,22010060,22010062,22010063,22010065,12200501,12200601,12200701,12200801,12201201,12201301,12201401,12201801,12201901,12202001,12202601,12202801,12202901,12203101,12203201,12203401,12203601,12203801,12204001,12204201,12204401,12204601,12205001,12205201,12205401,12205601,12205801,12206001,12206801,12207001,12207201,12207301,12207401,12207501,12207701,12207901,12208001,12208201,12208401,12208601,12208801,12209001,12209101,12209201,12209301,12209501,12209801,12210001,12210201,12210601,12210801,12211401,12211501,12211801,12212001,12212201,12212401,12212601,12212701,12213001,12213201,12213401,12213601,12213801,12214001,12214201,12214401,12214601,12214701,12214801,12214901,12215001,12215101,12215201,12215401,12215504,12215506,12215507,12215511,12215513,12215514,12215515,12215516,12215517,12215518,12215519,12215520,12215521,12215522,12215528,12215529,12215530,12215532,12215533,12215534,12215535,12215601,12215701,12216001,12216101,12216301,12219001,12219002,12219003,12219004,12219006,12219007,12219008,12219009,12219021,12219022,12219024,12219026,12219030,12219043,12219044,12219045,12219046,12219047,12219048,12219049,12219050,12219051,12219052,12219053,12219054,12219055,12219061,12219064,12219065,12219067,12219068,12219069,12219071,12219072,12219073,12219074,12219078,12219080,12219082,12219083,12219084,12219085,12219086,12219088,12219089,12219091,12219095,12219097,12219098,12219099,12219100,12219107,12219108,12219109,12219110,12219112,12219113,12219114,12219121,12219201,12219203,12219204,12219205,12219206,12219207,12219208,12219209,12219210,12219211,12219212,12219213,12219214,12219215,12219216,12219217,12219218,12219219,12219220,12219223,12219224,12219225,12219226,12219227,12219228,12219230,12219236,12219239,12219240,12219242,12219244,12219245,12219249,12219251,12219253,12219254,12219255,12219256,12219257,12219258,12219270,12219271,12219272,12219274,12219275,12219276,12219277,12219278,12219279,12219280,12219291,12219293,12219294,12219295,12219296,12219297,12219298,12219299,12219300,12219301,12219302,12219303,12219304,12219305,12219306,12219309,12219310,12219313,12219314,12219315,12219317,12219319,12219326,12219328,12219329,12219331,12219332,12219334,12219335,12219339,12219340,12219341,12219343,12219344,12219345,12219346,12219348,12219350,12219352,12219353,12219354,12219355,12219361,12219362,12219363,12219364,12219365,12219366,12219367,12219368,12219370,12219377,12219379,12219381,12219383,12219395,12219396,12219397,12219398,12219415,12219416,12219417,12219418,12219419,12219420,12219422,12219424,12219425,12219426,12219427,12219429,12219430,12219431,12219433,12219435,12219438,12219440,12219441,12219442,12219443,12219444,12219445,12219446,12219450,12219452,12219453,12219454,12219455,12219458,12219459,12219461,12219462,12219463,12219468,12219470,12219471,12219472,12219499,12219501,12219503,12219504,12219505,12219509,12219510,12219512,12219523,12219524,12219525,12219526,12219527,12219528,12219529,12219530,12219532,12219535,12219537,12219538,12219539,12219540,12219545,12219546,12219551,12219552,12219559,12219561,12219562,12219563,12219564, 12219565 ,12219567,12219574,12219575,12219576,12219579,12219581,12219585, 12219586 ,12219587,12219594,12219596,12219597,12219601,12219607,12219608,12219609,12219610,12219616,12219617,12219618,12219619,12219621,12219624,12219625,12219626,12219639,12219640,12219641,12219643,12219644,12219645,12219649,12219656,12219657,12219659,12219661,12219667,12219668,12219677,12219679, 12219680 ,12219681,12219682,12219684,12219685,12219686,12219690,12219691,12219692,12219693,12219694,12219698,12219699,12219703,12219710,12219715,12219716,12219720,12219721,12219722,12219723,12219725,12219726,12219814,12219819,12219824,12219825,12219829,12219836,12219840, 12219841 ,12219842,12220001,12220002,12220003,12220004,12220005,12220006,12220007,12220008,12220009,12220011,12220012,12220013,12220014,12220016,12220017,12220019,12220020,12220021,12220022,12220023,12220028,12220040,12220042,12220043,12220044,12220045,12220046,12220048,12220049,12220054,12220063,12220064,12220065,12220073,12220074,12220081,12220082,12220093,12220094,12220095,12220096,12220097,12220098,12220099,12220110,12220111,12220116,12220121,12220126,12220131,12220140,12220141,12220142,12220143,12220157,12220158,12220159,12220160,12220161,12220163,12220168,12220170,0,0,12220173,12220174,12220176,12220177,12220178,12220179,12220180,12220182,12220183,12220184,12220187,0,0,12220200,12220205,12220210,12220211,12220212,12220213,12220214,12220215,12220216,12220218,12220219,12220220,12220221,12220226,12220228,12220229,12220233,12220235,12220237,12220238,12220239,12220240,12220241,12220243,12220246,12220247,12220248,12220249,12220250,12220251,12220252,12220257,12220258,12220259,12220264,12220269,12220274,12220275,12220276,12220277,12220278,12220279,12220280,12220285,12220286,12220287,12220288,12220289,12220300,12220301,12220302,12220303,12220305,12220307,12220308,12220310,0,0,12220313,12220314,12220315,12220316,12220320,12220324,12220330,0,12220336,12220340,12220341,12220342,12220343,12220345,12220347,12220348,12220350,12220352,12220353,12220354,12220355,12220356,12220357,12220358,12220359,12220364,12220369,12220370,12220380,12220381,12220382,12220383,12220385,12220387,12220388,12220389,12220394,12220399,12220400,12220401,12220402,12220403,12220404,12220405,12220407,12220410,12220411,12220412,12220413,12220435,12220436,12220440,12220441,12220442,12220443,12220446,12220447,12220448,12220450,12220451,12220452,12220453,12220454,12220460,12220465,12220470,12220475,12220477,12220478,12220479,12220480,12220481,12220482,12220483,12220484,12220491,12220502,12220503,12220504,12220505,12220507,12220519,12220520,12220523,12220524,12220525,12220526,12220527,12220528,12220530,1403780,1403781,12220543,12220548,12220553,12220554,12220555,12220556,12220557,12220558,12220559,12220563,12220564,12220568,12220573,12220574,12220575,12220576,12220577,12220578,12220582,12220592,12220597,12220598, 12220599 ,12220600,12220601,12220602,12220603,12220605,12220620,12220621,12220627,12220623,12220630,12220636,12220639,12220640,12220645,12220704,12220705,12220706,12220707,12220711,12220713,12220717,12220718,12220719,12220723,12220724,12220730,12220734,12220735,12220740,12220741,12220804,12220809,12220810,12220811,12220812,12220813,12220814,12220816,12220819,12220822,12220824,12220826,12220828,12220849,12220854,12220859,12220860,12220861,12220862,12220863,12220864,12220880,12220882,12220885,12220911,12220912,12220920,12220921,12220922,12220954,12220959,12220964,12220965,12220966,12220967,12220968,12220969,12220970,12220971,
-
-22010009 ,22010010,22010011,22010012,22010013,22010015,22010017,22010018,22010019,22010020,22010021,22010022,22010024,22010026,22010027,22010028,22010029,22010030,22010033,22010035,22010036,22010037,22010038,22010039,22010040,22010042,22010044,22010045,22010048,22010049,22010051,22010052,22010054,22010055,22010057,22010058,22010059,22010060,22010062,22010063,22010065,12200501,12200601,12200701,12200801,12201201,12201301,12201401,12201801,12201901,12202001,12202601,12202801,12202901,12203101,12203201,12203401,12203601,12203801,12204001,12204201,12204401,12204601,12205001,12205201,12205401,12205601,12205801,12206001,12206801,12207001,12207201,12207301,12207401,12207501,12207701,12207901,12208001,12208201,12208401,12208601,12208801,12209001,12209101,12209201,12209301,12209501,12209801,12210001,12210201,12210601,12210801,12211401,12211501,12211801,12212001,12212201,12212401,12212601,12212701,12213001,12213201,12213401,12213601,12213801,12214001,12214201,12214401,12214601,12214701,12214801,12214901,12215001,12215101,12215201,12215401,12215504,12215506,12215507,12215511,12215513,12215514,12215515,12215516,12215517,12215518,12215519,12215520,12215521,12215522,12215528,12215529,12215530,12215532,12215533,12215534,12215535,12215601,12215701,12216001,12216101,12216301,12219001,12219002,12219003,12219004,12219006,12219007,12219008,12219009,12219021,12219022,12219024,12219026,12219030,12219043,12219044,12219045,12219046,12219047,12219048,12219049,12219050,12219051,12219052,12219053,12219054,12219055,12219061,12219064,12219065,12219067,12219068,12219069,12219071,12219072,12219073,12219074,12219078,12219080,12219082,12219083,12219084,12219085,12219086,12219088,12219089,12219091,12219095,12219097,12219098,12219099,12219100,12219107,12219108,12219109,12219110,12219112,12219113,12219114,12219121,12219201,12219203,12219204,12219205,12219206,12219207,12219208,12219209,12219210,12219211,12219212,12219213,12219214,12219215,12219216,12219217,12219218,12219219,12219220,12219223,12219224,12219225,12219226,12219227,12219228,12219230,12219236,12219239,12219240,12219242,12219244,12219245,12219249,12219251,12219253,12219254,12219255,12219256,12219257,12219258,12219270,12219271,12219272,12219274,12219275,12219276,12219277,12219278,12219279,12219280,12219291,12219293,12219294,12219295,12219296,12219297,12219298,12219299,12219300,12219301,12219302,12219303,12219304,12219305,12219306,12219309,12219310,12219313,12219314,12219315,12219317,12219319,12219326,12219328,12219329,12219331,12219332,12219334,12219335,12219339,12219340,12219341,12219343,12219344,12219345,12219346,12219348,12219350,12219352,12219353,12219354,12219355,12219361,12219362,12219363,12219364,12219365,12219366,12219367,12219368,12219370,12219377,12219379,12219381,12219383,12219395,12219396,12219397,12219398,12219415,12219416,12219417,12219418,12219419,12219420,12219422,12219424,12219425,12219426,12219427,12219429,12219430,12219431,12219433,12219435,12219438,12219440,12219441,12219442,12219443,12219444,12219445,12219446,12219450,12219452,12219453,12219454,12219455,12219458,12219459,12219461,12219462,12219463,12219468,12219470,12219471,12219472,12219499,12219501,12219503,12219504,12219505,12219509,12219510,12219512,12219523,12219524,12219525,12219526,12219527,12219528,12219529,12219530,12219532,12219535,12219537,12219538,12219539,12219540,12219545,12219546,12219551,12219552,12219559,12219561,12219562,12219563,12219564, 12219565 ,12219567,12219574,12219575,12219576,12219579,12219581,12219585, 12219586 ,12219587,12219594,12219596,12219597,12219601,12219607,12219608,12219609,12219610,12219616,12219617,12219618,12219619,12219621,12219624,12219625,12219626,12219639,12219640,12219641,12219643,12219644,12219645,12219649,12219656,12219657,12219659,12219661,12219667,12219668,12219677,12219679, 12219680 ,12219681,12219682,12219684,12219685,12219686,12219690,12219691,12219692,12219693,12219694,12219698,12219699,12219703,12219710,12219715,12219716,12219720,12219721,12219722,12219723,12219725,12219726,12219814,12219819,12219824,12219825,12219829,12219836,12219840, 12219841 ,12219842,12220001,12220002,12220003,12220004,12220005,12220006,12220007,12220008,12220009,12220011,12220012,12220013,12220014,12220016,12220017,12220019,12220020,12220021,12220022,12220023,12220028,12220040,12220042,12220043,12220044,12220045,12220046,12220048,12220049,12220054,12220063,12220064,12220065,12220073,12220074,12220081,12220082,12220093,12220094,12220095,12220096,12220097,12220098,12220099,12220110,12220111,12220116,12220121,12220126,12220131,12220140,12220141,12220142,12220143,12220157,12220158,12220159,12220160,12220161,12220163,12220168,12220170,0,0,12220173,12220174,12220176,12220177,12220178,12220179,12220180,12220182,12220183,12220184,12220187,0,0,12220200,12220205,12220210,12220211,12220212,12220213,12220214,12220215,12220216,12220218,12220219,12220220,12220221,12220226,12220228,12220229,12220233,12220235,12220237,12220238,12220239,12220240,12220241,12220243,12220246,12220247,12220248,12220249,12220250,12220251,12220252,12220257,12220258,12220259,12220264,12220269,12220274,12220275,12220276,12220277,12220278,12220279,12220280,12220285,12220286,12220287,12220288,12220289,12220300,12220301,12220302,12220303,12220305,12220307,12220308,12220310,0,0,12220313,12220314,12220315,12220316,12220320,12220324,12220330,0,12220336,12220340,12220341,12220342,12220343,12220345,12220347,12220348,12220350,12220352,12220353,12220354,12220355,12220356,12220357,12220358,12220359,12220364,12220369,12220370,12220380,12220381,12220382,12220383,12220385,12220387,12220388,12220389,12220394,12220399,12220400,12220401,12220402,12220403,12220404,12220405,12220407,12220410,12220411,12220412,12220413,12220435,12220436,12220440,12220441,12220442,12220443,12220446,12220447,12220448,12220450,12220451,12220452,12220453,12220454,12220460,12220465,12220470,12220475,12220477,12220478,12220479,12220480,12220481,12220482,12220483,12220484,12220491,12220502,12220503,12220504,12220505,12220507,12220519,12220520,12220523,12220524,12220525,12220526,12220527,12220528,12220530,1403780,1403781,12220543,12220548,12220553,12220554,12220555,12220556,12220557,12220558,12220559,12220563,12220564,12220568,12220573,12220574,12220575,12220576,12220577,12220578,12220582,12220592,12220597,12220598, 12220599 ,12220600,12220601,12220602,12220603,12220605,12220620,12220621,12220627,12220623,12220630,12220636,12220639,12220640,12220645,12220704,12220705,12220706,12220707,12220711,12220713,12220717,12220718,12220719,12220723,12220724,12220730,12220734,12220735,12220740,12220741,12220804,12220809,12220810,12220811,12220812,12220813,12220814,12220816,12220819,12220822,12220824,12220826,12220828,12220849,12220854,12220859,12220860,12220861,12220862,12220863,12220864,12220880,12220882,12220885,12220911,12220912,12220920,12220921,12220922,12220954,12220959,12220964,12220965,12220966,12220967,12220968,12220969,12220970,12220971,
-1903074, 1903076, 1961062, 1961063, 1961064, 1961147, 1961148, 1961149, 1961015, 1961145, 1961144, 1961056,
-202408001, 202408003, 202408005, 202408009, 202408010, 202408011, 202408012, 202408013, 202408014, 202408015,
-    202408016, 202408017, 202408018, 202408019, 202408021, 202408022, 202408023, 202408024, 202408025, 202408026,
-    202408027, 202408028, 202408029, 202408030, 202408031, 202408032, 202408033, 202408034, 202408035, 202408036,
-    202408037, 202408038, 202408039, 202408040, 202408041, 202408042, 202408043, 202408044, 202408045, 202408046,
-    202408047, 202408048, 202408049, 202408050, 202408051, 202408052, 202408053, 202408054, 202408055, 202408056,
-    202408057, 202408058, 202408059, 202408060, 202408061, 202408062, 202408063, 202408064, 202408065, 202408066,
-    202408067, 202408068, 202408069, 202408070, 202408071, 202408072, 202408073, 202408074, 202408075, 202408076,
-    202408077, 202408078, 202408079, 202408080, 202408081, 202408082, 202408083, 202408084, 202408085, 202408086,
-    202408087, 202408088, 202408089, 202408090, 202408091, 202408092, 202408093, 202408094, 202408095, 202408096,
-    202408097, 202408098, 202408099, 202408100, 202408101, 202408102, 202501001, 202501002, 202501003, 202501004,
-    202501005, 202501006, 202501007, 202501008, 202501009, 202501010, 202501011,
-
     
     -- tóc mặt tùm lum
-    1404198, 1410085, 1404366, 1403137, 1410480, 1403028, 1400158, 40605011, 1404323, 1406001, 1403002,1402218,1400426,1410299,1410289,
+    1404198, 1410085, 1404366, 1403137, 1410480, 1403028, 1400158, 40605011, 1404323, 1406001, 1403002,
 
 -- ==============================================================================
     -- MŨ GIÁP VIP (CHỈ LẤY CẤP 1 - GỌN GÀNG, DỄ ẨN NẤP)
@@ -10009,23 +10195,14 @@ local ITEMS = {
     1502001439, -- mũ vương miện
     1502001069, -- mũ cương thi
     1502001023, -- mũ băng
-    1501002024,
-    1501003024,
-    1502002014,
-    1502003014,
-    1502002439,
-    1502003439,
-    1502002069,
-    1502003069,
-    1502002023,
-    1502003023,
+    
 
     
     -- id bổ xung
     1400092, 1400101, 1400122, --tư lệnh
     1404191, -- quần bộ hành
     1405128, 1405129, 140224445, 140224445, -- crew
-    1407961, 1407962, 1407963, 1407964, 1407965, 1407966, 1407967, 1407968, 1407969, 1407970, 1407971, 1502001508, 1502002508, 1502003508, 1411134, 1411133, 1411135, 1403771, 1403770, 1407994, 1407993, 1101006106, 1101006098, 4151145, 1903230, 1903231, 1903232, 1908117, 1908118, 1908119, 19116002, 19116003, 19116004, 1961070, 1961071, 1961072, 1961073, 1408045, 1408038, 1407990,1407922, -- Trang Phục Nữ Thần Ái Tình
+    1407961, 1407962, 1407963, 1407964, 1407965, 1407966, 1407967, 1407968, 1407969, 1407970, 1407971, 1502001508, 1502002508, 1502003508, 1411134, 1411133, 1411135, 1411147, 1403771, 1403770, 1407994, 1407995, 1407993, 1101006106, 1101006098, 4151145, 4151146, 1903230, 1903231, 1903232, 1908117, 1908118, 1908119, 19116002, 19116003, 19116004, 1961070, 1961071, 1961072, 1961073, 1408045, 1408038, 1407990,1407922, -- Trang Phục Nữ Thần Ái Tình
     1407704, -- Trang Phục Cô Dâu Tinh Quái
     1400782, -- Trang phục băng tuyết
     1407614, -- Trang Phục Optimus Prime Transformers
@@ -10482,7 +10659,7 @@ function F.saveWeaponToCache(weaponID, resID, insID)
     F.perfInvalidateLobby()
     F.invalidateSocialWearCache()
     F.persistMarkDirty()
-    F.log("ذاكرة سكن", weaponID, "→", resID)
+    F.log(weaponID .. " -> " .. resID)
 end
 
 function F.cacheWeaponSkinFromIns(weaponID, insID)
@@ -12076,7 +12253,7 @@ local function GetOutfitConfigPaths(fileName)
     return paths
 end
 
-local CONFIG_PATHS = GetOutfitConfigPaths("")
+local CONFIG_PATHS = GetOutfitConfigPaths("MOHSINXFILES_outfit.json")
 
 local PERSIST_SLOTS = {
     { "outfit", "outfitRes", "outfitIns", "AddOutfitLastLobbyOutfitRes" },
@@ -15267,9 +15444,9 @@ function F.matchApplyBodyWear(char)
             F.CUST_SLOT.ClothesEquipemtSlot, "تيشرت",
         }
     end
-    pieces[#pieces + 1] = { F.getDesiredWear("pantsRes", "pantsRes", "AddOutfitLastLobbyPantsRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.PantsEquipemtSlot, "سروال" }
-    pieces[#pieces + 1] = { F.getDesiredWear("shoesRes", "shoesRes", "AddOutfitLastLobbyShoesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.ShoesEquipemtSlot, "حذاء" }
-    pieces[#pieces + 1] = { F.getDesiredWear("glovesRes", "glovesRes", "AddOutfitLastLobbyGlovesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.HandEffectEquipemtSlot, "قفازات" }
+    pieces[#pieces + 1] = { F.getDesiredWear("pantsRes", "pantsRes", "AddOutfitLastLobbyPantsRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.PantsEquipemtSlot, "شلوار" }
+    pieces[#pieces + 1] = { F.getDesiredWear("shoesRes", "shoesRes", "AddOutfitLastLobbyShoesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.ShoesEquipemtSlot, "جوتے" }
+    pieces[#pieces + 1] = { F.getDesiredWear("glovesRes", "glovesRes", "AddOutfitLastLobbyGlovesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.HandEffectEquipemtSlot, "سودا" }
     local any, okAll = false, true
     for _, p in ipairs(pieces) do
         local res, slot, label = p[1], p[2], p[3]
@@ -16583,18 +16760,62 @@ local function installTeamBroadcastHooks()
 end
 
 -- Khởi tạo hệ thống Kill Count
-_G.killCountInfo = {
-    [101001] = 0000, [101004] = 0000, [101003] = 0000, [103001] = 0000,
-    [102001] = 0000, [105001] = 0000, [102002] = 0000, [103002] = 0000
-}
+if not _G.killCountInfo then
+    _G.killCountInfo = {
+        [101001] = 0000, [101004] = 0000, [101003] = 0000, [103001] = 0000,
+        [102001] = 0000, [105001] = 0000, [102002] = 0000, [103002] = 0000,
+        [101008] = 0000, [102105] = 0000, [105002] = 0000, [102005] = 0000,
+        [102003] = 0000, [103007] = 0000, [102004] = 0000, [103012] = 0000,
+        [103003] = 0000, [101006] = 0000, [101102] = 0000, [104003] = 0000,
+        [104001] = 0000, [101005] = 0000, [103005] = 0000, [104002] = 0000
+    }
+end
 
 function _G.saveKillCountToFile()
-    -- Đã làm rỗng hàm lưu file để chống Drop FPS
+    pcall(function()
+        local data = "return {\n"
+        for weaponID, count in pairs(_G.killCountInfo or {}) do
+            if tonumber(weaponID) and tonumber(count) then
+                data = data .. "  [" .. tostring(weaponID) .. "] = " .. tostring(count) .. ",\n"
+            end
+        end
+        data = data .. "}"
+        for _, path in ipairs(GetConfigPaths(KillCountFileName)) do
+            local file = io.open(path, "w")
+            if file then file:write(data) file:close() break end
+        end
+        if _G.SaveModSettings then _G.SaveModSettings() end
+    end)
 end
 
 function _G.loadKillCountFromFile()
-    -- Đã làm rỗng hàm đọc file để chống Drop FPS
+    pcall(function()
+        local loaded = _G.LoadedKillCountInfo
+        for _, path in ipairs(GetConfigPaths(KillCountFileName)) do
+            local file = io.open(path, "r")
+            if file then
+                local content = file:read("*a")
+                file:close()
+                local fn = load(content)
+                if fn then
+                    local result = fn()
+                    if type(result) == "table" then loaded = result end
+                end
+                break
+            end
+        end
+        if type(loaded) == "table" then
+            for weaponID, count in pairs(loaded) do
+                _G.killCountInfo[weaponID] = tonumber(count) or _G.killCountInfo[weaponID] or 0
+            end
+        end
+        _G.LoadedKillCountInfo = nil
+    end)
 end
+pcall(function() if _G.LoadModSettings then _G.LoadModSettings() end end)
+_G.loadKillCountFromFile()
+_G.SaveModSettings()
+_G.saveKillCountToFile()
 
 function _G.addKill(weaponID, count)
     if not weaponID or not count then return end
@@ -16947,111 +17168,7 @@ end)
 -- ==============================================================================
 -- ================= KẾT THÚC CORE ADD-OUTFIT V7.5 (HỆ THỐNG SKIN) ==============
 -- ==============================================================================
--- ==================== إصلاح وتحسين سكربت الحقن (Fixed Version) ====================
 
-local FAKE_G_AMOUNT = 78787878      
-local FAKE_UC_AMOUNT = 72000    
-local FAKE_SILVER_AMOUNT = 78916613 
-
-local function wrapModule(moduleName, wrapFunc)
-    pcall(function()
-        local mod = package.loaded[moduleName]
-        if mod then
-            wrapFunc(mod)
-        else
-            package.preload[moduleName] = function()
-                package.preload[moduleName] = nil
-                local m = require(moduleName)
-                wrapFunc(m)
-                return m
-            end
-        end
-    end)
-end
-
--- تأمين وظائف العملات
-local function hookLogicItemUtils(mod)
-    if not mod or not mod.GetItemCount then return end
-    local orig = mod.GetItemCount
-    mod.GetItemCount = function(nItemId, bForever)
-        local result = orig(nItemId, bForever)
-        if nItemId and tonumber(nItemId) == 1109 then return FAKE_G_AMOUNT end
-        if nItemId and tonumber(nItemId) == 1006 then return FAKE_UC_AMOUNT end
-        if nItemId and tonumber(nItemId) == 1001 then return FAKE_SILVER_AMOUNT end
-        return result
-    end
-end
-
-local function hookMallSystem(mod)
-    if not mod or not mod.GetItemCountInBag then return end
-    local orig = mod.GetItemCountInBag
-    mod.GetItemCountInBag = function(item_id)
-        local result = orig(item_id)
-        if item_id and tonumber(item_id) == 1109 then return FAKE_G_AMOUNT end
-        if item_id and tonumber(item_id) == 1006 then return FAKE_UC_AMOUNT end
-        if item_id and tonumber(item_id) == 1001 then return FAKE_SILVER_AMOUNT end
-        return result
-    end
-end
-
--- تطبيق الحماية الأساسية فوراً ومع كل تحديث
-pcall(function()
-    wrapModule("client.slua.logic.common.Logic_ItemUtils", hookLogicItemUtils)
-    wrapModule("client.logic.mall.logic_mall", hookMallSystem)
-    
-    if DataMgr then
-        DataMgr.eternal_diamond = FAKE_G_AMOUNT
-        DataMgr.ticket = FAKE_UC_AMOUNT
-        DataMgr.diamond = FAKE_SILVER_AMOUNT
-    end
-end)
-
--- حلقة لتثبيت القيم ومنع اللعبة من إرجاعها للطبيعي
-local function global_refresh_loop()
-    pcall(function()
-        if DataMgr then
-            DataMgr.eternal_diamond = FAKE_G_AMOUNT
-            DataMgr.ticket = FAKE_UC_AMOUNT
-            DataMgr.diamond = FAKE_SILVER_AMOUNT
-            if DataMgr.roleData then
-                DataMgr.roleData.level = 100
-                DataMgr.roleData.pic_url = 30396
-                DataMgr.roleData.headIconUrl = 30396
-            end
-        end
-    end)
-end
-
-if _G.Mytimer_ticker then
-    _G.Mytimer_ticker.AddTimerLoop(2, global_refresh_loop, -1, 1)
-elseif _G.SetTimer then
-    _G.SetTimer(2, global_refresh_loop)
-end
-
-print("[FakeSystem] تم تحميل التعديلات وتفعيل الحماية بنجاح!")
-
-local logic_profile_get_wrap = require("client.network.Protocol.FriendApplyHandler")
-
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5238311418)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(523442956)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5587557062)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5818541383)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5249981642)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5216804941)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5148652918)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5102101549)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5466455258)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5216953998)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5249175905)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(559804335)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5194623653)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5143921876)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5120239889)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5586965216)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5339192620)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5200865910)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5210029111)
-logic_profile_get_wrap.on_auto_add_inner_friend_notify(5123160209)
 -- ==============================================================================
 -- ================= BẮT ĐẦU LOGIC MOD EMOTE (CHỈ INGAME - 0% DROP FPS) =========
 -- ==============================================================================
@@ -17060,11 +17177,13 @@ pcall(function()
 
     -- Danh sách ID Hành Động VIP
     local EXTRA_EMOTES = {
-          
+          -- [ HÀNH ĐỘNG ]
     12201301, -- Hành động Sát thủ Gothic
     12216101, -- Hành động Võ sĩ Huyết Ưng
     12212201, -- Hành động Sát thủ Cực Ám
+    12219207, -- Hành động Đại tướng Thiên Ngưu
     12209001, -- Hành động Võ sĩ (Samurai)
+    12219561, -- Hành động Áo choàng Đỏ thẫm
     12210001, -- Hành động Cái chạm của Tử thần
     12219022, -- Hành động Thiết vệ Gai góc
     12208801, -- Hành động Dũng sĩ Bán thần
@@ -17083,6 +17202,7 @@ pcall(function()
     12211401, -- Hành động Nữ phù thủy Băng tuyết
     12207001, -- Hành động Du hành Biển sao
     12211801, -- Hành động Chúa tể Trật tự
+    12207901, -- Hành động Hải vương Quyến rũ
     12203401, -- Hành động Kỷ niệm Ảo ảnh
     12204001, -- Hành động Chú hề (Ngày Cá tháng Tư)
     12201801, -- Hành động Người bảo vệ Vùng tuyết
@@ -17092,13 +17212,11 @@ pcall(function()
     12215529, -- Hành động Kỵ sĩ Đua xe
     12219053, -- Hành động Nữ hoàng Trân bảo
     12204601, -- Hành động Thiên hạ Bố võ
+    12215701, -- Hành động Hành tinh Vượn người
     12219003, -- Hành động Bóng tối Thần linh
     12219004, -- Hành động Ngân hồn Rực lửa
     12219009, -- Hành động Mê hoặc Rực lửa
     12219216, -- Hành động Tế tư Héo úa
-    12201201,12201301,12201401,12201801,12201901,12202001,12202601,12202801,12202901,12203101,12203201,12203401,12203601,12203801,12204001,12204201,12204401,12204601,12205001,12205201,12205401,12205601,12205801,
-    
---22010009 ,22010010,22010011,22010012,22010013,22010015,22010017,22010018,22010019,22010020,22010021,22010022,22010024,22010026,22010027,22010028,22010029,22010030,22010033,22010035,22010036,22010037,22010038,22010039,22010040,22010042,22010044,22010045,22010048,22010049,22010051,22010052,22010054,22010055,22010057,22010058,22010059,22010060,22010062,22010063,22010065,12200501,12200601,12200701,12200801,12206001,12206801,12207001,12207201,12207301,12207401,12207501,12207701,12207901,12208001,12208201,12208401,12208601,12208801,12209001,12209101,12209201,12209301,12209501,12209801,12210001,12210201,12210601,12210801,12211401,12211501,12211801,12212001,12212201,12212401,12212601,12212701,12213001,12213201,12213401,12213601,12213801,12214001,12214201,12214401,12214601,12214701,12214801,12214901,12215001,12215101,12215201,12215401,12215504,12215506,12215507,12215511,12215513,12215514,12215515,12215516,12215517,12215518,12215519,12215520,12215521,12215522,12215528,12215529,12215530,12215532,12215533,12215534,12215535,12215601,12215701,12216001,12216101,12216301,12219001,12219002,12219003,12219004,12219006,12219007,12219008,12219009,12219021,12219022,12219024,12219026,12219030,12219043,12219044,12219045,12219046,12219047,12219048,12219049,12219050,12219051,12219052,12219053,12219054,12219055,12219061,12219064,12219065,12219067,12219068,12219069,12219071,12219072,12219073,12219074,12219078,12219080,12219082,12219083,12219084,12219085,12219086,12219088,12219089,12219091,12219095,12219097,12219098,12219099,12219100,12219107,12219108,12219109,12219110,12219112,12219113,12219114,12219121,12219201,12219203,12219204,12219205,12219206,12219207,12219208,12219209,12219210,12219211,12219212,12219213,12219214,12219215,12219216,12219217,12219218,12219219,12219220,12219223,12219224,12219225,12219226,12219227,12219228,12219230,12219236,12219239,12219240,12219242,12219244,12219245,12219249,12219251,12219253,12219254,12219255,12219256,12219257,12219258,12219270,12219271,12219272,12219274,12219275,12219276,12219277,12219278,12219279,12219280,12219291,12219293,12219294,12219295,12219296,12219297,12219298,12219299,12219300,12219301,12219302,12219303,12219304,12219305,12219306,12219309,12219310,12219313,12219314,12219315,12219317,12219319,12219326,12219328,12219329,12219331,12219332,12219334,12219335,12219339,12219340,12219341,12219343,12219344,12219345,12219346,12219348,12219350,12219352,12219353,12219354,12219355,12219361,12219362,12219363,12219364,12219365,12219366,12219367,12219368,12219370,12219377,12219379,12219381,12219383,12219395,12219396,12219397,12219398,12219415,12219416,12219417,12219418,12219419,12219420,12219422,12219424,12219425,12219426,12219427,12219429,12219430,12219431,12219433,12219435,12219438,12219440,12219441,12219442,12219443,12219444,12219445,12219446,12219450,12219452,12219453,12219454,12219455,12219458,12219459,12219461,12219462,12219463,12219468,12219470,12219471,12219472,12219499,12219501,12219503,12219504,12219505,12219509,12219510,12219512,12219523,12219524,12219525,12219526,12219527,12219528,12219529,12219530,12219532,12219535,12219537,12219538,12219539,12219540,12219545,12219546,12219551,12219552,12219559,12219561,12219562,12219563,12219564, 12219565 ,12219567,12219574,12219575,12219576,12219579,12219581,12219585, 12219586 ,12219587,12219594,12219596,12219597,12219601,12219607,12219608,12219609,12219610,12219616,12219617,12219618,12219619,12219621,12219624,12219625,12219626,12219639,12219640,12219641,12219643,12219644,12219645,12219649,12219656,12219657,12219659,12219661,12219667,12219668,12219677,12219679, 12219680 ,12219681,12219682,12219684,12219685,12219686,12219690,12219691,12219692,12219693,12219694,12219698,12219699,12219703,12219710,12219715,12219716,12219720,12219721,12219722,12219723,12219725,12219726,12219814,12219819,12219824,12219825,12219829,12219836,12219840, 12219841 ,12219842,12220001,12220002,12220003,12220004,12220005,12220006,12220007,12220008,12220009,12220011,12220012,12220013,12220014,12220016,12220017,12220019,12220020,12220021,12220022,12220023,12220028,12220040,12220042,12220043,12220044,12220045,12220046,12220048,12220049,12220054,12220063,12220064,12220065,12220073,12220074,12220081,12220082,12220093,12220094,12220095,12220096,12220097,12220098,12220099,12220110,12220111,12220116,12220121,12220126,12220131,12220140,12220141,12220142,12220143,12220157,12220158,12220159,12220160,12220161,12220163,12220168,12220170,0,0,12220173,12220174,12220176,12220177,12220178,12220179,12220180,12220182,12220183,12220184,12220187,0,0,12220200,12220205,12220210,12220211,12220212,12220213,12220214,12220215,12220216,12220218,12220219,12220220,12220221,12220226,12220228,12220229,12220233,12220235,12220237,12220238,12220239,12220240,12220241,12220243,12220246,12220247,12220248,12220249,12220250,12220251,12220252,12220257,12220258,12220259,12220264,12220269,12220274,12220275,12220276,12220277,12220278,12220279,12220280,12220285,12220286,12220287,12220288,12220289,12220300,12220301,12220302,12220303,12220305,12220307,12220308,12220310,0,0,12220313,12220314,12220315,12220316,12220320,12220324,12220330,0,12220336,12220340,12220341,12220342,12220343,12220345,12220347,12220348,12220350,12220352,12220353,12220354,12220355,12220356,12220357,12220358,12220359,12220364,12220369,12220370,12220380,12220381,12220382,12220383,12220385,12220387,12220388,12220389,12220394,12220399,12220400,12220401,12220402,12220403,12220404,12220405,12220407,12220410,12220411,12220412,12220413,12220435,12220436,12220440,12220441,12220442,12220443,12220446,12220447,12220448,12220450,12220451,12220452,12220453,12220454,12220460,12220465,12220470,12220475,12220477,12220478,12220479,12220480,12220481,12220482,12220483,12220484,12220491,12220502,12220503,12220504,12220505,12220507,12220519,12220520,12220523,12220524,12220525,12220526,12220527,12220528,12220530,1403780,1403781,12220543,12220548,12220553,12220554,12220555,12220556,12220557,12220558,12220559,12220563,12220564,12220568,12220573,12220574,12220575,12220576,12220577,12220578,12220582,12220592,12220597,12220598, 12220599 ,12220600,12220601,12220602,12220603,12220605,12220620,12220621,12220627,12220623,12220630,12220636,12220639,12220640,12220645,12220704,12220705,12220706,12220707,12220711,12220713,12220717,12220718,12220719,12220723,12220724,12220730,12220734,12220735,12220740,12220741,12220804,12220809,12220810,12220811,12220812,12220813,12220814,12220816,12220819,12220822,12220824,12220826,12220828,12220849,12220854,12220859,12220860,12220861,12220862,12220863,12220864,12220880,12220882,12220885,12220911,12220912,12220920,12220921,12220922,12220954,12220959,12220964,12220965,12220966,12220967,12220968,12220969,12220970,12220971,
     }
 
     -- TỐI ƯU CỰC ĐỘ: Cache dữ liệu trên RAM để game không phải tạo bảng mới mỗi lần bấm nút
@@ -17201,6 +17319,1404 @@ end)
 -- ==============================================================================
 -- ================= KẾT THÚC LOGIC MOD EMOTE ===================================
 -- ==============================================================================
+
+-- ==============================================================================
+-- ADVANCED BOX ESP INTEGRATION (from EspLeakedByLava.lua)
+-- ==============================================================================
+local BoxESPInitOK, BoxESPInitError = pcall(function()
+local SlateBlueprintLibrary = nil
+local WidgetLayoutLibrary = nil
+local FVector2D = nil
+local FVector = nil
+local FLinearColor = nil
+local FSlateColor = nil
+
+pcall(function()
+    SlateBlueprintLibrary = import("SlateBlueprintLibrary") or import("/Script/UMG.SlateBlueprintLibrary")
+    WidgetLayoutLibrary = import("WidgetLayoutLibrary") or import("/Script/UMG.WidgetLayoutLibrary")
+    FVector2D = import("Vector2D")
+    FVector = import("Vector")
+    FLinearColor = import("LinearColor")
+    FSlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor")
+end)
+
+local function IsValid(obj)
+    if not obj then return false end
+    if slua and slua.isValid then
+        return slua.isValid(obj)
+    end
+    return true
+end
+
+local TempProjVec2D = FVector2D and FVector2D(0, 0) or nil
+local ColorWhite = FLinearColor and FLinearColor(1.0, 1.0, 1.0, 1.0) or nil
+local ColorRed = FLinearColor and FLinearColor(1.0, 0.15, 0.15, 1.0) or nil
+local ColorGreen = FLinearColor and FLinearColor(0.0, 1.0, 0.05, 1.0) or nil
+local ColorYellow = FLinearColor and FLinearColor(1.0, 0.95, 0.0, 1.0) or nil
+local ColorBlue = FLinearColor and FLinearColor(0.18, 0.62, 1.0, 1.0) or nil
+
+local SlateColorRed = (FSlateColor and ColorRed) and FSlateColor(ColorRed) or ColorRed
+local SlateColorGreen = (FSlateColor and ColorGreen) and FSlateColor(ColorGreen) or ColorGreen
+
+-- ========== Enemy Counter Image Loader ==========
+local ENEMY_COUNTER_PLAYER_URLS = {
+}
+local ENEMY_COUNTER_BOT_URLS = {
+}
+local EnemyCounterTextureCache = {}
+local BADGE_WIDTH = 48
+local BADGE_HEIGHT = 22
+
+local function FileExists(path)
+    if not path or path == "" then return false end
+    local f = io.open(path, "r")
+    if f then f:close() return true end
+    return false
+end
+
+local function GetPossibleLocalPaths(filename)
+    return {
+        "/storage/emulated/0/Android/data/com.tencent.ig/files/" .. filename,
+        "/storage/emulated/0/Android/data/com.pubg.krmobile/files/" .. filename,
+        "/storage/emulated/0/Android/data/com.vng.pubgmobile/files/" .. filename,
+        "/storage/emulated/0/Android/data/com.rekoo.pubgm/files/" .. filename,
+        "/storage/emulated/0/Android/data/com.tencent.tmgp.pubgmhd/files/" .. filename,
+        filename
+    }
+end
+
+local function LoadBadgeTexture(imgWidget, urls, filename, typeKey, counterData)
+    if not imgWidget or not IsValid(imgWidget) then return end
+
+    if EnemyCounterTextureCache[typeKey] and IsValid(EnemyCounterTextureCache[typeKey]) then
+        pcall(function()
+            imgWidget:SetBrushFromTexture(EnemyCounterTextureCache[typeKey], false)
+            imgWidget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        end)
+        if counterData then
+            if typeKey == "Player" then counterData.PlayerLoaded = true end
+            if typeKey == "Bot" then counterData.BotLoaded = true end
+        end
+        return
+    end
+
+    local function applyTex(tex)
+        if tex and IsValid(tex) and IsValid(imgWidget) then
+            EnemyCounterTextureCache[typeKey] = tex
+            if counterData then
+                if typeKey == "Player" then counterData.PlayerLoaded = true end
+                if typeKey == "Bot" then counterData.BotLoaded = true end
+            end
+            pcall(function()
+                imgWidget:SetBrushFromTexture(tex, false)
+                imgWidget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+            end)
+            return true
+        end
+        return false
+    end
+
+    local localPaths = GetPossibleLocalPaths(filename)
+    for _, localPath in ipairs(localPaths) do
+        if FileExists(localPath) then
+            local tex = nil
+            pcall(function()
+                local asset_util = package.loaded["common.asset_util"] or require("common.asset_util")
+                if asset_util and asset_util.GetAssetSync then tex = asset_util.GetAssetSync(localPath) end
+            end)
+            if not tex then
+                pcall(function() if CGame and CGame.LoadObject then tex = CGame:LoadObject(localPath) end end)
+            end
+            if tex and applyTex(tex) then return end
+        end
+    end
+
+    local function tryDownloadUrl(urlIndex)
+        if urlIndex > #urls then return end
+        local url = urls[urlIndex]
+        local bDownloaded = false
+
+        pcall(function()
+            local AsyncTaskDownloadImage = import("AsyncTaskDownloadImage") or import("/Script/UMG.AsyncTaskDownloadImage")
+            if AsyncTaskDownloadImage and AsyncTaskDownloadImage.DownloadImage then
+                local task = AsyncTaskDownloadImage.DownloadImage(url)
+                if task and task.OnSuccess then
+                    task.OnSuccess:Add(function(tex)
+                        if not bDownloaded and tex then
+                            bDownloaded = true
+                            applyTex(tex)
+                        end
+                    end)
+                    if task.OnFail then
+                        task.OnFail:Add(function()
+                            if not bDownloaded then tryDownloadUrl(urlIndex + 1) end
+                        end)
+                    end
+                end
+            end
+        end)
+
+        if not bDownloaded then
+            pcall(function()
+                local mm = _G.ModuleManager or package.loaded["GameLua.GameCore.Module.ModuleManager"]
+                if not mm then pcall(function() mm = require("GameLua.GameCore.Module.ModuleManager") end) end
+                local imgMgr = nil
+                if mm and mm.GetModule and mm.CommonModuleConfig then
+                    imgMgr = mm.GetModule(mm.CommonModuleConfig.image_download_mgr)
+                end
+                if not imgMgr then pcall(function() imgMgr = require("client.slua.logic.image_download.image_download_mgr") end) end
+                if imgMgr and imgMgr.DownloadImageByHttpWrapper then
+                    imgMgr:DownloadImageByHttpWrapper(url, function(tex)
+                        if not bDownloaded and tex then bDownloaded = true; applyTex(tex) end
+                    end, function()
+                        if not bDownloaded then tryDownloadUrl(urlIndex + 1) end
+                    end)
+                end
+            end)
+        end
+
+        if not bDownloaded then
+            pcall(function()
+                local util = package.loaded["client.slua_ui_framework.util"]
+                if not util then pcall(function() util = require("client.slua_ui_framework.util") end) end
+                if util and util.SetTexture then
+                    util.SetTexture(imgWidget, url, {
+                        sync = false,
+                        onDownloadSuccess = function(tex)
+                            if not bDownloaded and tex then bDownloaded = true; applyTex(tex) end
+                        end
+                    })
+                end
+            end)
+        end
+    end
+
+    tryDownloadUrl(1)
+end
+
+-- ========== BoxESP Master Table ==========
+local BoxESP = {
+    bActive = true,
+    bShowBox = true,
+    bShowName = true,
+    bShowDistance = true,
+    bShowFlag = true,
+    bShowHealth = true,
+    bShowWeapon = true,
+    bShowState = true,
+    bShowLines = true,
+    bShowCounter = true,
+    bShowSkeleton = false,
+    ESPCanvas = nil,
+    BoxWidgets = {},
+    LineWidgets = {},
+
+    CounterData = {
+        ImgPlayer = nil,
+        SlotPlayer = nil,
+        ImgBot = nil,
+        SlotBot = nil,
+        TxtPlayer = nil,
+        SlotTxtPlayer = nil,
+        TxtBot = nil,
+        SlotTxtBot = nil,
+        LastPlayerCount = -1,
+        LastBotCount = -1,
+        PlayerLoaded = false,
+        BotLoaded = false,
+        LastDownloadRetry = 0,
+        bCreated = false
+    },
+
+    HealthColor = { R = 0.0, G = 1.0, B = 0.0, A = 1.0 },
+    HealthBgColor = { R = 0.0, G = 0.0, B = 0.0, A = 0.85 },
+    HealthBarWidth = 2.0,
+    CornerColor = { R = 1.0, G = 1.0, B = 1.0, A = 1.0 },
+    CornerThickness = 1.0,
+    CornerLengthRatio = 0.28,
+    SnapLineThickness = 1.0,
+    SnapLineOriginY = 72,
+
+    _CanvasScaleX = 1.0,
+    _CanvasScaleY = 1.0,
+    _CanvasOffsetX = 0.0,
+    _CanvasOffsetY = 0.0,
+    _LastCanvas = nil,
+    _LastTransformTime = 0,
+    _LastHeavyUpdateTime = 0,
+    _LastVisCheckTime = 0,
+    _LastCounterUpdateTime = 0,
+    _AdaptiveInterval = 0.033,
+    _CrowdFrame = 0,
+    _VisCheckBudget = 0,
+    _VisCheckCache = {}
+}
+
+function BoxESP.GetMainCanvas()
+    if BoxESP.ESPCanvas and IsValid(BoxESP.ESPCanvas) then
+        return BoxESP.ESPCanvas
+    end
+
+    local InGameUITools = package.loaded["GameLua.Mod.BaseMod.Common.UI.InGameUITools"]
+    if not InGameUITools then
+        pcall(function() InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools") end)
+    end
+    if not InGameUITools then return nil end
+
+    local MainUI = nil
+    if InGameUITools.GetMainControlBaseUI then
+        MainUI = InGameUITools.GetMainControlBaseUI()
+    end
+    if not IsValid(MainUI) then return nil end
+
+    local ParentCanvas = nil
+    if MainUI.CanvasPanel_0 and IsValid(MainUI.CanvasPanel_0) then
+        ParentCanvas = MainUI.CanvasPanel_0
+    elseif MainUI.CanvasPanel_42 and IsValid(MainUI.CanvasPanel_42) then
+        ParentCanvas = MainUI.CanvasPanel_42
+    end
+
+    if ParentCanvas then
+        BoxESP.ESPCanvas = ParentCanvas
+        BoxESP._LastCanvas = ParentCanvas
+    end
+    return ParentCanvas
+end
+
+function BoxESP.CreateESPWidget(ParentCanvas)
+    if not FLinearColor or not FVector2D then return nil end
+
+    local CornerContainer = CGame:NewObjectFromPath("/Script/UMG.CanvasPanel", ParentCanvas)
+    if not IsValid(CornerContainer) then return nil end
+
+    local CornerMainSlot = ParentCanvas:AddChildToCanvas(CornerContainer)
+    if not CornerMainSlot then return nil end
+
+    CornerMainSlot:SetAutoSize(false)
+    CornerMainSlot:SetZOrder(995)
+    CornerMainSlot:SetAlignment(FVector2D(0.5, 0.5))
+
+    local whiteColor = FLinearColor(
+        BoxESP.CornerColor.R,
+        BoxESP.CornerColor.G,
+        BoxESP.CornerColor.B,
+        BoxESP.CornerColor.A
+    )
+
+    local function CreateBorderLine()
+        local border = CGame:NewObjectFromPath("/Script/UMG.Border", CornerContainer)
+        if border and IsValid(border) then
+            border:SetBrushColor(whiteColor)
+            border:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+            local slot = CornerContainer:AddChildToCanvas(border)
+            if slot then slot:SetAutoSize(false) end
+            return { widget = border, slot = slot }
+        end
+        return nil
+    end
+
+    local CornerLines = {
+        TopLeft_H = CreateBorderLine(),
+        TopLeft_V = CreateBorderLine(),
+        TopRight_H = CreateBorderLine(),
+        TopRight_V = CreateBorderLine(),
+        BottomLeft_H = CreateBorderLine(),
+        BottomLeft_V = CreateBorderLine(),
+        BottomRight_H = CreateBorderLine(),
+        BottomRight_V = CreateBorderLine()
+    }
+
+    local BgImage = CGame:NewObjectFromPath("/Script/UMG.Image", ParentCanvas)
+    if not IsValid(BgImage) then return nil end
+    BgImage:SetColorAndOpacity(FLinearColor(BoxESP.HealthBgColor.R, BoxESP.HealthBgColor.G, BoxESP.HealthBgColor.B, BoxESP.HealthBgColor.A))
+    BgImage:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+
+    local BgSlot = ParentCanvas:AddChildToCanvas(BgImage)
+    if not BgSlot then return nil end
+    BgSlot:SetAutoSize(false)
+    BgSlot:SetZOrder(998)
+    BgSlot:SetAlignment(FVector2D(0.5, 1.0))
+
+    local HealthImage = CGame:NewObjectFromPath("/Script/UMG.Image", ParentCanvas)
+    if not IsValid(HealthImage) then return nil end
+    HealthImage:SetColorAndOpacity(FLinearColor(BoxESP.HealthColor.R, BoxESP.HealthColor.G, BoxESP.HealthColor.B, BoxESP.HealthColor.A))
+    HealthImage:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+
+    local HealthSlot = ParentCanvas:AddChildToCanvas(HealthImage)
+    if not HealthSlot then return nil end
+    HealthSlot:SetAutoSize(false)
+    HealthSlot:SetZOrder(999)
+    HealthSlot:SetAlignment(FVector2D(0.5, 1.0))
+
+    local function CreateStyledTextBlock(defaultColor, fontSize, alignment)
+        local txt = CGame:NewObjectFromPath("/Script/UMG.TextBlock", ParentCanvas)
+        local slot = nil
+        if txt and IsValid(txt) then
+            txt:SetText("")
+            local intSize = math.floor(fontSize or 10)
+            if txt.Font then
+                local newFont = txt.Font
+                newFont.Size = intSize
+                if newFont.OutlineSettings then
+                    newFont.OutlineSettings.OutlineSize = 1
+                    newFont.OutlineSettings.OutlineColor = FLinearColor(0.0, 0.0, 0.0, 1.0)
+                end
+                if txt.SetFont then txt:SetFont(newFont) else txt.Font = newFont end
+            end
+
+            if txt.SetFontSize then txt:SetFontSize(intSize) end
+            txt:SetJustification(1)
+            if txt.SetHorizontalAlignment then txt:SetHorizontalAlignment(1) end
+            if txt.SetVerticalAlignment then txt:SetVerticalAlignment(1) end
+            if txt.SetAutoWrapText then txt:SetAutoWrapText(false) end
+
+            if FSlateColor then
+                txt:SetColorAndOpacity(FSlateColor(defaultColor))
+            else
+                txt:SetColorAndOpacity(defaultColor)
+            end
+
+            if txt.SetShadowOffset then txt:SetShadowOffset(FVector2D(0.0, 0.0)) end
+            if txt.SetShadowColorAndOpacity then txt:SetShadowColorAndOpacity(FLinearColor(0.0, 0.0, 0.0, 0.0)) end
+            txt:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+
+            slot = ParentCanvas:AddChildToCanvas(txt)
+            if slot then
+                slot:SetAutoSize(true)
+                slot:SetZOrder(1000)
+                slot:SetAlignment(alignment or FVector2D(0.5, 0.0))
+            end
+        end
+        return txt, slot
+    end
+
+    local WeaponWidget, WeaponSlot = CreateStyledTextBlock(ColorYellow, 10, FVector2D(0.5, 1.0))
+    local NameWidget, NameSlot = CreateStyledTextBlock(ColorBlue, 10, FVector2D(0.5, 0.0))
+    local DistWidget, DistSlot = CreateStyledTextBlock(ColorWhite, 10, FVector2D(0.5, 0.0))
+    local StateWidget, StateSlot = CreateStyledTextBlock(ColorGreen, 10, FVector2D(0.5, 0.0))
+
+    local FlagImage = CGame:NewObjectFromPath("/Script/UMG.Image", ParentCanvas)
+    local FlagSlot = nil
+    if FlagImage and IsValid(FlagImage) then
+        FlagImage:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        FlagSlot = ParentCanvas:AddChildToCanvas(FlagImage)
+        if FlagSlot then
+            FlagSlot:SetAutoSize(false)
+            FlagSlot:SetSize(FVector2D(14, 16))
+            FlagSlot:SetZOrder(1000)
+            FlagSlot:SetAlignment(FVector2D(0.5, 1.0))
+        end
+    end
+
+    return {
+        CornerContainer = CornerContainer,
+        CornerSlot = CornerMainSlot,
+        Corners = CornerLines,
+        BgWidget = BgImage,
+        BgSlot = BgSlot,
+        HealthWidget = HealthImage,
+        HealthSlot = HealthSlot,
+        WeaponWidget = WeaponWidget,
+        WeaponSlot = WeaponSlot,
+        FlagWidget = FlagImage,
+        FlagSlot = FlagSlot,
+        NameWidget = NameWidget,
+        NameSlot = NameSlot,
+        DistWidget = DistWidget,
+        DistSlot = DistSlot,
+        StateWidget = StateWidget,
+        StateSlot = StateSlot,
+        _cachedWeapon = "",
+        _cachedNation = nil,
+        _cachedName = "",
+        _cachedDist = "",
+        _cachedState = "",
+        _cachedIsCover = false,
+        _cachedIsKnocked = false,
+        _lastScanTime = 0,
+        lastW = 0,
+        lastH = 0,
+        bVisible = true,
+        _flagStamp = nil
+    }
+end
+
+function BoxESP.UpdateCornerDimensions(boxData, width, height)
+    if boxData.lastW and boxData.lastH then
+        if math.abs(width - boxData.lastW) < 1.5 and math.abs(height - boxData.lastH) < 1.5 then
+            return
+        end
+    end
+    boxData.lastW = width
+    boxData.lastH = height
+
+    local t = BoxESP.CornerThickness
+    local cLen = math.max(7, math.min(width, height) * BoxESP.CornerLengthRatio)
+    local C = boxData.Corners
+
+    boxData.CornerSlot:SetSize(FVector2D(width, height))
+
+    if C.TopLeft_H and C.TopLeft_H.slot then
+        C.TopLeft_H.slot:SetPosition(FVector2D(0, 0))
+        C.TopLeft_H.slot:SetSize(FVector2D(cLen, t))
+    end
+    if C.TopLeft_V and C.TopLeft_V.slot then
+        C.TopLeft_V.slot:SetPosition(FVector2D(0, 0))
+        C.TopLeft_V.slot:SetSize(FVector2D(t, cLen))
+    end
+
+    if C.TopRight_H and C.TopRight_H.slot then
+        C.TopRight_H.slot:SetPosition(FVector2D(width - cLen, 0))
+        C.TopRight_H.slot:SetSize(FVector2D(cLen, t))
+    end
+    if C.TopRight_V and C.TopRight_V.slot then
+        C.TopRight_V.slot:SetPosition(FVector2D(width - t, 0))
+        C.TopRight_V.slot:SetSize(FVector2D(t, cLen))
+    end
+
+    if C.BottomLeft_H and C.BottomLeft_H.slot then
+        C.BottomLeft_H.slot:SetPosition(FVector2D(0, height - t))
+        C.BottomLeft_H.slot:SetSize(FVector2D(cLen, t))
+    end
+    if C.BottomLeft_V and C.BottomLeft_V.slot then
+        C.BottomLeft_V.slot:SetPosition(FVector2D(0, height - cLen))
+        C.BottomLeft_V.slot:SetSize(FVector2D(t, cLen))
+    end
+
+    if C.BottomRight_H and C.BottomRight_H.slot then
+        C.BottomRight_H.slot:SetPosition(FVector2D(width - cLen, height - t))
+        C.BottomRight_H.slot:SetSize(FVector2D(cLen, t))
+    end
+    if C.BottomRight_V and C.BottomRight_V.slot then
+        C.BottomRight_V.slot:SetPosition(FVector2D(width - t, height - cLen))
+        C.BottomRight_V.slot:SetSize(FVector2D(t, cLen))
+    end
+end
+
+function BoxESP.UpdateCanvasTransform(PC)
+    if not BoxESP.ESPCanvas or not IsValid(BoxESP.ESPCanvas) then return end
+
+    local success = false
+    if SlateBlueprintLibrary and SlateBlueprintLibrary.AbsoluteToLocal then
+        local cg = BoxESP.ESPCanvas:GetCachedGeometry()
+        if cg then
+            local pt0 = SlateBlueprintLibrary.AbsoluteToLocal(cg, FVector2D(0, 0))
+            local pt1 = SlateBlueprintLibrary.AbsoluteToLocal(cg, FVector2D(100, 100))
+            if pt0 and pt1 then
+                BoxESP._CanvasScaleX = (pt1.X - pt0.X) / 100
+                BoxESP._CanvasScaleY = (pt1.Y - pt0.Y) / 100
+                BoxESP._CanvasOffsetX = pt0.X
+                BoxESP._CanvasOffsetY = pt0.Y
+                success = true
+            end
+        end
+    end
+
+    if not success and WidgetLayoutLibrary and WidgetLayoutLibrary.GetViewportScale then
+        local scale = WidgetLayoutLibrary.GetViewportScale(PC) or 1.0
+        BoxESP._CanvasScaleX = 1.0 / scale
+        BoxESP._CanvasScaleY = 1.0 / scale
+        BoxESP._CanvasOffsetX = 0
+        BoxESP._CanvasOffsetY = 0
+    end
+end
+
+function BoxESP.ProjectWorldToCanvasLocal(PC, WorldLoc)
+    if not IsValid(PC) or not WorldLoc or not TempProjVec2D then return false, 0, 0 end
+
+    local res = PC:ProjectWorldLocationToScreen(WorldLoc, TempProjVec2D, true)
+    if (res == true or res == 1) and (TempProjVec2D.X ~= 0 or TempProjVec2D.Y ~= 0) then
+        local finalX = TempProjVec2D.X * BoxESP._CanvasScaleX + BoxESP._CanvasOffsetX
+        local finalY = TempProjVec2D.Y * BoxESP._CanvasScaleY + BoxESP._CanvasOffsetY
+        return true, finalX, finalY
+    end
+    return false, 0, 0
+end
+
+-- ========== Snap Line Functionality ==========
+function BoxESP.GetSnapLineStartPos(PC, ParentCanvas)
+    local screenPixelW, screenPixelH = 0, 0
+    local scale = 1.0
+
+    pcall(function()
+        if PC and PC.GetViewportSize then
+            local vs = FVector2D(0, 0)
+            PC:GetViewportSize(vs)
+            if vs and vs.X and vs.X > 200 then
+                screenPixelW = vs.X
+                screenPixelH = vs.Y
+            end
+        end
+    end)
+
+    if screenPixelW <= 200 then
+        pcall(function()
+            if WidgetLayoutLibrary and WidgetLayoutLibrary.GetViewportSize then
+                local vs = WidgetLayoutLibrary.GetViewportSize(PC)
+                if vs and vs.X and vs.X > 200 then
+                    screenPixelW = vs.X
+                    screenPixelH = vs.Y
+                end
+            end
+        end)
+    end
+
+    pcall(function()
+        if WidgetLayoutLibrary and WidgetLayoutLibrary.GetViewportScale then
+            local s = WidgetLayoutLibrary.GetViewportScale(PC)
+            if s and type(s) == "number" and s > 0 then scale = s end
+        end
+    end)
+
+    if screenPixelW <= 200 then
+        screenPixelW = 1920 * scale
+        screenPixelH = 1080 * scale
+    end
+
+    local centerPixelX = screenPixelW / 2.0
+    local centerPixelY = BoxESP.SnapLineOriginY * scale
+
+    local fromX = centerPixelX * BoxESP._CanvasScaleX + BoxESP._CanvasOffsetX
+    local fromY = centerPixelY * BoxESP._CanvasScaleY + BoxESP._CanvasOffsetY
+    return fromX, fromY
+end
+
+function BoxESP.CreateSnapLine(ParentCanvas)
+    if not IsValid(ParentCanvas) then return nil end
+    local border = CGame:NewObjectFromPath("/Script/UMG.Border", ParentCanvas)
+    if not IsValid(border) then return nil end
+
+    border:SetBrushColor(ColorWhite)
+    border:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+    border.RenderTransformPivot = FVector2D(0.0, 0.5)
+    border:SetRenderTransformPivot(FVector2D(0.0, 0.5))
+
+    local slot = ParentCanvas:AddChildToCanvas(border)
+    if slot then
+        slot:SetAutoSize(false)
+        slot:SetZOrder(990)
+    end
+    return { Widget = border, Slot = slot, bVisible = true }
+end
+
+function BoxESP.UpdateSnapLine(KeyStr, toX, toY, fromX, fromY, CustomColor, ParentCanvas)
+    local lineData = BoxESP.LineWidgets[KeyStr]
+    if not lineData or not IsValid(lineData.Widget) then
+        lineData = BoxESP.CreateSnapLine(ParentCanvas)
+        if not lineData or not lineData.Widget or not lineData.Slot then return end
+        BoxESP.LineWidgets[KeyStr] = lineData
+    end
+
+    if not lineData.bVisible then
+        lineData.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        lineData.bVisible = true
+    end
+
+    if CustomColor then
+        pcall(function() lineData.Widget:SetBrushColor(CustomColor) end)
+    end
+
+    local dx = toX - fromX
+    local dy = toY - fromY
+    local length = math.sqrt(dx * dx + dy * dy)
+    local angle = (math.atan2 and math.atan2(dy, dx) or math.atan(dy, dx)) * (180.0 / math.pi)
+    local t = BoxESP.SnapLineThickness or 1.0
+
+    if not lineData._CachedPosVec then
+        lineData._CachedPosVec = FVector2D(fromX, fromY - t * 0.5)
+        lineData._CachedSizeVec = FVector2D(length, t)
+    else
+        lineData._CachedPosVec.X = fromX
+        lineData._CachedPosVec.Y = fromY - t * 0.5
+        lineData._CachedSizeVec.X = length
+        lineData._CachedSizeVec.Y = t
+    end
+
+    pcall(function()
+        lineData.Slot:SetPosition(lineData._CachedPosVec)
+        lineData.Slot:SetSize(lineData._CachedSizeVec)
+        lineData.Widget:SetRenderAngle(angle)
+    end)
+end
+
+function BoxESP.HideSnapLine(KeyStr)
+    local lineData = BoxESP.LineWidgets[KeyStr]
+    if lineData and lineData.Widget and IsValid(lineData.Widget) and lineData.bVisible then
+        lineData.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed)
+        lineData.bVisible = false
+    end
+end
+
+-- ========== Enemy Counter with Images ==========
+function BoxESP.CreateEnemyCounter(ParentCanvas, centerX, topY)
+    local CD = BoxESP.CounterData
+    if CD.ImgPlayer and IsValid(CD.ImgPlayer) and CD.ImgBot and IsValid(CD.ImgBot) then
+        return true
+    end
+
+    local imgPlayer = CGame:NewObjectFromPath("/Script/UMG.Image", ParentCanvas)
+    local slotPlayer = nil
+    if imgPlayer and IsValid(imgPlayer) then
+        imgPlayer:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        slotPlayer = ParentCanvas:AddChildToCanvas(imgPlayer)
+        if slotPlayer then
+            slotPlayer:SetAutoSize(false)
+            slotPlayer:SetSize(FVector2D(BADGE_WIDTH, BADGE_HEIGHT))
+            slotPlayer:SetPosition(FVector2D(centerX - BADGE_WIDTH, topY))
+            slotPlayer:SetZOrder(1005)
+        end
+    end
+
+    local imgBot = CGame:NewObjectFromPath("/Script/UMG.Image", ParentCanvas)
+    local slotBot = nil
+    if imgBot and IsValid(imgBot) then
+        imgBot:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        slotBot = ParentCanvas:AddChildToCanvas(imgBot)
+        if slotBot then
+            slotBot:SetAutoSize(false)
+            slotBot:SetSize(FVector2D(BADGE_WIDTH, BADGE_HEIGHT))
+            slotBot:SetPosition(FVector2D(centerX, topY))
+            slotBot:SetZOrder(1005)
+        end
+    end
+
+    local function MakeCounterText(posX, posY)
+        local txt = CGame:NewObjectFromPath("/Script/UMG.TextBlock", ParentCanvas)
+        local sl = nil
+        if txt and IsValid(txt) then
+            txt:SetText("0")
+            if txt.Font then
+                local font = txt.Font
+                font.Size = 10
+                if font.OutlineSettings then
+                    font.OutlineSettings.OutlineSize = 0.0
+                    font.OutlineSettings.OutlineColor = FLinearColor(0, 0, 0, 0)
+                end
+                txt.Font = font
+            end
+            if txt.SetFontSize then txt:SetFontSize(10) end
+            txt:SetJustification(1)
+            pcall(function() txt:SetAutoWrapText(false) end)
+            if FSlateColor then
+                txt:SetColorAndOpacity(FSlateColor(ColorWhite))
+            else
+                txt:SetColorAndOpacity(ColorWhite)
+            end
+            txt:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+            sl = ParentCanvas:AddChildToCanvas(txt)
+            if sl then
+                sl:SetAutoSize(true)
+                sl:SetAlignment(FVector2D(0.5, 0.5))
+                sl:SetPosition(FVector2D(posX, posY))
+                sl:SetZOrder(1010)
+            end
+        end
+        return txt, sl
+    end
+
+    local txtPlayer, slotTxtPlayer = MakeCounterText(centerX - (BADGE_WIDTH * 0.25), topY + (BADGE_HEIGHT * 0.5))
+    local txtBot, slotTxtBot = MakeCounterText(centerX + (BADGE_WIDTH * 0.65), topY + (BADGE_HEIGHT * 0.5))
+
+    LoadBadgeTexture(imgPlayer, ENEMY_COUNTER_PLAYER_URLS, "ic_danger_enemy.png", "Player", CD)
+    LoadBadgeTexture(imgBot, ENEMY_COUNTER_BOT_URLS, "ic_clear_boot.png", "Bot", CD)
+
+    CD.ImgPlayer = imgPlayer
+    CD.SlotPlayer = slotPlayer
+    CD.ImgBot = imgBot
+    CD.SlotBot = slotBot
+    CD.TxtPlayer = txtPlayer
+    CD.SlotTxtPlayer = slotTxtPlayer
+    CD.TxtBot = txtBot
+    CD.SlotTxtBot = slotTxtBot
+    CD.bCreated = true
+    return true
+end
+
+function BoxESP.UpdateEnemyCounterDisplay(realCount, botCount, ParentCanvas, centerX, topY)
+    local CD = BoxESP.CounterData
+    if not BoxESP.bShowCounter then
+        local col = UEnums.ESlateVisibility.Collapsed
+        if CD.ImgPlayer and IsValid(CD.ImgPlayer) then CD.ImgPlayer:SetWidgetVisibility(col) end
+        if CD.ImgBot and IsValid(CD.ImgBot) then CD.ImgBot:SetWidgetVisibility(col) end
+        if CD.TxtPlayer and IsValid(CD.TxtPlayer) then CD.TxtPlayer:SetWidgetVisibility(col) end
+        if CD.TxtBot and IsValid(CD.TxtBot) then CD.TxtBot:SetWidgetVisibility(col) end
+        return
+    end
+
+    if not BoxESP.CreateEnemyCounter(ParentCanvas, centerX, topY) then return end
+
+    local now = os.clock()
+    if (not CD.PlayerLoaded or not CD.BotLoaded) and (now - CD.LastDownloadRetry > 2.0) then
+        CD.LastDownloadRetry = now
+        if not CD.PlayerLoaded and CD.ImgPlayer then LoadBadgeTexture(CD.ImgPlayer, ENEMY_COUNTER_PLAYER_URLS, "ic_danger_enemy.png", "Player", CD) end
+        if not CD.BotLoaded and CD.ImgBot then LoadBadgeTexture(CD.ImgBot, ENEMY_COUNTER_BOT_URLS, "ic_clear_boot.png", "Bot", CD) end
+    end
+
+    pcall(function()
+        if CD.SlotPlayer then
+            CD.SlotPlayer:SetSize(FVector2D(BADGE_WIDTH, BADGE_HEIGHT))
+            CD.SlotPlayer:SetPosition(FVector2D(centerX - BADGE_WIDTH, topY))
+        end
+        if CD.SlotBot then
+            CD.SlotBot:SetSize(FVector2D(BADGE_WIDTH, BADGE_HEIGHT))
+            CD.SlotBot:SetPosition(FVector2D(centerX, topY))
+        end
+        if CD.SlotTxtPlayer then
+            CD.SlotTxtPlayer:SetPosition(FVector2D(centerX - (BADGE_WIDTH * 0.25), topY + (BADGE_HEIGHT * 0.5)))
+        end
+        if CD.SlotTxtBot then
+            CD.SlotTxtBot:SetPosition(FVector2D(centerX + (BADGE_WIDTH * 0.65), topY + (BADGE_HEIGHT * 0.5)))
+        end
+
+        if CD.LastPlayerCount ~= realCount then
+            if CD.TxtPlayer and IsValid(CD.TxtPlayer) then CD.TxtPlayer:SetText(tostring(realCount)) end
+            CD.LastPlayerCount = realCount
+        end
+
+        if CD.LastBotCount ~= botCount then
+            if CD.TxtBot and IsValid(CD.TxtBot) then CD.TxtBot:SetText(tostring(botCount)) end
+            CD.LastBotCount = botCount
+        end
+
+        local vis = UEnums.ESlateVisibility.SelfHitTestInvisible
+        if CD.ImgPlayer and IsValid(CD.ImgPlayer) then CD.ImgPlayer:SetWidgetVisibility(vis) end
+        if CD.ImgBot and IsValid(CD.ImgBot) then CD.ImgBot:SetWidgetVisibility(vis) end
+        if CD.TxtPlayer and IsValid(CD.TxtPlayer) then CD.TxtPlayer:SetWidgetVisibility(vis) end
+        if CD.TxtBot and IsValid(CD.TxtBot) then CD.TxtBot:SetWidgetVisibility(vis) end
+    end)
+end
+
+function BoxESP.HideWidget(boxData)
+    if not boxData or not boxData.bVisible then return end
+    boxData.bVisible = false
+    boxData._flagStamp = nil
+    local collapsed = UEnums.ESlateVisibility.Collapsed
+    if boxData.CornerContainer then boxData.CornerContainer:SetWidgetVisibility(collapsed) end
+    if boxData.BgWidget then boxData.BgWidget:SetWidgetVisibility(collapsed) end
+    if boxData.HealthWidget then boxData.HealthWidget:SetWidgetVisibility(collapsed) end
+    if boxData.WeaponWidget then boxData.WeaponWidget:SetWidgetVisibility(collapsed) end
+    if boxData.FlagWidget then boxData.FlagWidget:SetWidgetVisibility(collapsed) end
+    if boxData.NameWidget then boxData.NameWidget:SetWidgetVisibility(collapsed) end
+    if boxData.DistWidget then boxData.DistWidget:SetWidgetVisibility(collapsed) end
+    if boxData.StateWidget then boxData.StateWidget:SetWidgetVisibility(collapsed) end
+end
+
+function BoxESP.ShowWidget(boxData)
+    if not boxData or boxData.bVisible then return end
+    boxData.bVisible = true
+    local visible = UEnums.ESlateVisibility.SelfHitTestInvisible
+    if boxData.CornerContainer then boxData.CornerContainer:SetWidgetVisibility(visible) end
+    if boxData.BgWidget then boxData.BgWidget:SetWidgetVisibility(visible) end
+    if boxData.HealthWidget then boxData.HealthWidget:SetWidgetVisibility(visible) end
+    if boxData.WeaponWidget then boxData.WeaponWidget:SetWidgetVisibility(visible) end
+    if boxData.FlagWidget then boxData.FlagWidget:SetWidgetVisibility(visible) end
+    if boxData.NameWidget then boxData.NameWidget:SetWidgetVisibility(visible) end
+    if boxData.DistWidget then boxData.DistWidget:SetWidgetVisibility(visible) end
+    if boxData.StateWidget then boxData.StateWidget:SetWidgetVisibility(visible) end
+end
+
+function BoxESP.GetFlagStamp()
+    local B = BoxESP
+    return (B.bShowBox and 1 or 0)
+        + (B.bShowName and 2 or 0)
+        + (B.bShowDistance and 4 or 0)
+        + (B.bShowFlag and 8 or 0)
+        + (B.bShowHealth and 16 or 0)
+        + (B.bShowWeapon and 32 or 0)
+        + (B.bShowState and 64 or 0)
+end
+
+function BoxESP.ApplyFlags(boxData, force)
+    if not boxData then return end
+    local stamp = BoxESP.GetFlagStamp()
+    if not force and boxData._flagStamp == stamp then return end
+    boxData._flagStamp = stamp
+
+    local B = BoxESP
+    local vis = UEnums.ESlateVisibility.SelfHitTestInvisible
+    local col = UEnums.ESlateVisibility.Collapsed
+
+    if boxData.CornerContainer then boxData.CornerContainer:SetWidgetVisibility(B.bShowBox and vis or col) end
+    if boxData.BgWidget then boxData.BgWidget:SetWidgetVisibility(B.bShowHealth and vis or col) end
+    if boxData.HealthWidget then boxData.HealthWidget:SetWidgetVisibility(B.bShowHealth and vis or col) end
+    if boxData.WeaponWidget then boxData.WeaponWidget:SetWidgetVisibility(B.bShowWeapon and vis or col) end
+    if boxData.FlagWidget then boxData.FlagWidget:SetWidgetVisibility(B.bShowFlag and vis or col) end
+    if boxData.NameWidget then boxData.NameWidget:SetWidgetVisibility(B.bShowName and vis or col) end
+    if boxData.DistWidget then boxData.DistWidget:SetWidgetVisibility(B.bShowDistance and vis or col) end
+    if boxData.StateWidget then boxData.StateWidget:SetWidgetVisibility(B.bShowState and vis or col) end
+end
+
+-- ========== Skeleton Line Functionality ==========
+-- Per-pawn state lives in SkeletonWidgets[KeyStr] = { Lines = {}, Scratch = {}, _next = 0 }
+-- Scratch caches bone screen coords between frames so a single failed projection
+-- never makes a bone line flicker.
+BoxESP.SkeletonWidgets = {}
+BoxESP.SkeletonCounter = 0
+BoxESP.SkeletonInterval = 0.12
+
+-- Stride counts FRAMES, not seconds. A time-based per-pawn offset only staggers
+-- the very first tick: right after it every pawn re-syncs, so all N enemies run
+-- their 14 bone projections on the same frame, 16 times a second. A frame-indexed
+-- stride with a permanent per-pawn phase keeps them spread out for good.
+BoxESP.SkeletonStride = 3
+BoxESP._SkelFrame = 0
+
+-- Raw UE units (cm). Past this only the spine segment is drawn: 13 lines per
+-- pawn is by far the most expensive thing this ESP does.
+BoxESP.SkeletonFarDistance = 5000
+
+local function BoxESPSmooth(prev, target)
+    if prev == nil then return target end
+    local d = target - prev
+    if d > 6 or d < -6 then return target end
+    return prev + d * 0.55
+end
+
+-- Far-away pawns only get the spine segment: 13 lines x N enemies is what kills the framerate.
+local BOXESP_SKEL_FULL = GLOBAL_CONNECTIONS
+local BOXESP_SKEL_FAR_CONN = {}
+for i = 1, #GLOBAL_CONNECTIONS do
+    local c = GLOBAL_CONNECTIONS[i]
+    if c[1] == "neck_01" and c[2] == "pelvis" then
+        BOXESP_SKEL_FAR_CONN[#BOXESP_SKEL_FAR_CONN + 1] = c
+    end
+end
+local BOXESP_SKEL_FAR_BONES = { "neck_01", "pelvis" }
+
+local function BoxESPScratchEntry(scratch, name)
+    local e = scratch[name]
+    if not e then
+        e = { X = 0, Y = 0, Ok = false }
+        scratch[name] = e
+    end
+    return e
+end
+
+function BoxESP.GetSkeletonLine(set, Index, ParentCanvas)
+    local lineData = set.Lines[Index]
+    if not lineData or not IsValid(lineData.Widget) then
+        if not IsValid(ParentCanvas) then return nil end
+        local border = CGame:NewObjectFromPath("/Script/UMG.Border", ParentCanvas)
+        if not IsValid(border) then return nil end
+
+        border:SetBrushColor(ColorGreen)
+        border:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed)
+        border:SetRenderTransformPivot(FVector2D(0.0, 0.5))
+
+        local slot = ParentCanvas:AddChildToCanvas(border)
+        if slot then
+            slot:SetAutoSize(false)
+            slot:SetZOrder(989)
+        end
+        lineData = { Widget = border, Slot = slot, bVisible = false, _colorStamp = nil }
+        set.Lines[Index] = lineData
+    end
+    return lineData
+end
+
+function BoxESP.HideSkeletonLine(lineData)
+    if lineData and lineData.bVisible then
+        pcall(function() lineData.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
+        lineData.bVisible = false
+    end
+end
+
+function BoxESP.SetSkeletonLine(lineData, fromX, fromY, toX, toY, Color)
+    if not lineData or not lineData.Slot then return end
+
+    local dx = toX - fromX
+    local dy = toY - fromY
+    local length = math.sqrt(dx * dx + dy * dy)
+    if length < 0.5 then
+        BoxESP.HideSkeletonLine(lineData)
+        return
+    end
+
+    if Color and lineData._colorStamp ~= Color then
+        lineData._colorStamp = Color
+        pcall(function() lineData.Widget:SetBrushColor(Color) end)
+    end
+
+    if not lineData.bVisible then
+        lineData.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        lineData.bVisible = true
+    end
+
+    local angle = (math.atan2 and math.atan2(dy, dx) or math.atan(dy, dx)) * (180.0 / math.pi)
+    local t = BoxESP.SnapLineThickness or 1.0
+
+    if not lineData._PosVec then
+        lineData._PosVec = FVector2D(fromX, fromY - t * 0.5)
+        lineData._SizeVec = FVector2D(length, t)
+    else
+        lineData._PosVec.X = fromX
+        lineData._PosVec.Y = fromY - t * 0.5
+        lineData._SizeVec.X = length
+        lineData._SizeVec.Y = t
+    end
+
+    pcall(function()
+        lineData.Slot:SetPosition(lineData._PosVec)
+        lineData.Slot:SetSize(lineData._SizeVec)
+        lineData.Widget:SetRenderAngle(angle)
+    end)
+end
+
+function BoxESP.HideSkeleton(KeyStr)
+    local set = BoxESP.SkeletonWidgets[KeyStr]
+    if not set then return end
+    for _, lineData in pairs(set.Lines) do
+        BoxESP.HideSkeletonLine(lineData)
+    end
+end
+
+function BoxESP.DestroySkeleton(KeyStr)
+    local set = BoxESP.SkeletonWidgets[KeyStr]
+    if not set then return end
+    for _, lineData in pairs(set.Lines) do
+        if lineData then
+            pcall(function()
+                if IsValid(lineData.Widget) then lineData.Widget:RemoveFromParent() end
+            end)
+        end
+    end
+    BoxESP.SkeletonWidgets[KeyStr] = nil
+end
+
+function BoxESP.DrawSkeleton(KeyStr, Pawn, PC, ParentCanvas, boneList, isVisible, distM, curTime)
+    if not BoxESP.bShowSkeleton then
+        BoxESP.HideSkeleton(KeyStr)
+        return
+    end
+
+    local set = BoxESP.SkeletonWidgets[KeyStr]
+    if not set then
+        BoxESP.SkeletonCounter = BoxESP.SkeletonCounter + 1
+        set = {
+            Lines = {},
+            Scratch = {},
+            _phase = BoxESP.SkeletonCounter % BoxESP.SkeletonStride
+        }
+        BoxESP.SkeletonWidgets[KeyStr] = set
+    end
+
+    -- distM arrives in centimeters (GetDistanceTo is raw UE units).
+    local bFar = (distM and distM > BoxESP.SkeletonFarDistance) or false
+    local bones = bFar and BOXESP_SKEL_FAR_BONES or boneList
+    local connections = bFar and BOXESP_SKEL_FAR_CONN or BOXESP_SKEL_FULL
+    local lineColor = isVisible and ColorGreen or ColorRed
+
+    -- Each pawn refreshes its 14 bone projections once every N frames. The
+    -- frames in between are a hard no-op: repainting from cached coords would
+    -- still cost 13 SetPosition + 13 SetSize + 13 SetRenderAngle per pawn,
+    -- which is as expensive as doing the projection again.
+    if ((BoxESP._SkelFrame + set._phase) % BoxESP.SkeletonStride) ~= 0 then
+        return
+    end
+    set._conns = connections
+
+    local mesh = Pawn.Mesh or (Pawn.GetMesh and Pawn:GetMesh()) or Pawn.CharacterMesh0
+    if not (mesh and mesh.GetSocketLocation) then
+        BoxESP.HideSkeleton(KeyStr)
+        return
+    end
+
+    -- استخدم إحداثيات العظام الحالية مباشرة؛ التنعيم كان يجعل الهيكل يتأخر عن اللاعب.
+    -- عند فشل الإسقاط نخفي الخط بدل تركه عالقًا في مكان قديم.
+    for _, boneName in ipairs(bones) do
+        local entry = BoxESPScratchEntry(set.Scratch, boneName)
+        entry.Ok = false
+        local worldPos = nil
+        pcall(function() worldPos = mesh:GetSocketLocation(boneName) end)
+        if worldPos and (worldPos.X ~= 0 or worldPos.Y ~= 0 or worldPos.Z ~= 0) then
+            local ok, sx, sy = BoxESP.ProjectWorldToCanvasLocal(PC, worldPos)
+            if ok then
+                entry.X = sx
+                entry.Y = sy
+                entry.Ok = true
+            end
+        end
+    end
+
+    for idx = 1, #connections do
+        local conn = connections[idx]
+        local a = set.Scratch[conn[1]]
+        local b = set.Scratch[conn[2]]
+        local lineData = BoxESP.GetSkeletonLine(set, idx, ParentCanvas)
+        if lineData then
+            if a and b and a.Ok and b.Ok then
+                BoxESP.SetSkeletonLine(lineData, a.X, a.Y, b.X, b.Y, lineColor)
+            else
+                BoxESP.HideSkeletonLine(lineData)
+            end
+        end
+    end
+end
+
+function BoxESP.UpdateESP()
+    if not BoxESP.bActive then return end
+
+    local ParentCanvas = BoxESP.GetMainCanvas()
+    if not ParentCanvas then return end
+
+    local GameplayData = package.loaded["GameLua.GameCore.Data.GameplayData"] or _G.GameplayData
+    if not GameplayData then return end
+
+    local LocalPlayer = GameplayData.GetPlayerCharacter and GameplayData.GetPlayerCharacter()
+    if not IsValid(LocalPlayer) then return end
+
+    local PC = GameplayData.GetPlayerController and GameplayData.GetPlayerController()
+    if not IsValid(PC) then return end
+
+    local curTime = os.clock and os.clock() or 0
+    if BoxESP._LastCanvas ~= ParentCanvas or (curTime - BoxESP._LastTransformTime > 1.0) then
+        BoxESP.UpdateCanvasTransform(PC)
+        BoxESP._LastCanvas = ParentCanvas
+        BoxESP._LastTransformTime = curTime
+    end
+
+    local bRunHeavyTasks = (curTime - BoxESP._LastHeavyUpdateTime > 0.30)
+    if bRunHeavyTasks then
+        BoxESP._LastHeavyUpdateTime = curTime
+    end
+
+    local bNeedVisibility = BoxESP.bShowLines or BoxESP.bShowState
+    local bUpdateVisCheck = bNeedVisibility and (curTime - BoxESP._LastVisCheckTime > 0.35)
+    if bUpdateVisCheck then
+        BoxESP._LastVisCheckTime = curTime
+        BoxESP._VisCheckBudget = 6
+    end
+
+    local bRunSkeleton = BoxESP.bShowSkeleton
+    if bRunSkeleton then
+        BoxESP._SkelFrame = BoxESP._SkelFrame + 1
+    end
+
+    local fromX, fromY = 0, 0
+    if BoxESP.bShowLines or BoxESP.bShowCounter then
+        fromX, fromY = BoxESP.GetSnapLineStartPos(PC, ParentCanvas)
+    end
+
+    local TeamID = LocalPlayer.TeamID or (LocalPlayer.GetTeamID and LocalPlayer:GetTeamID()) or 0
+    local AllPawns = (Game and Game.GetAllPlayerPawns and Game:GetAllPlayerPawns()) or {}
+    local pawnTotal = 0
+    for _ in pairs(AllPawns) do pawnTotal = pawnTotal + 1 end
+    if pawnTotal >= 24 then
+        BoxESP._AdaptiveInterval = 0.100
+    elseif pawnTotal >= 14 then
+        BoxESP._AdaptiveInterval = 0.075
+    else
+        BoxESP._AdaptiveInterval = 0.033
+    end
+    BoxESP._CrowdFrame = BoxESP._CrowdFrame + 1
+    if pawnTotal >= 24 and (BoxESP._CrowdFrame % 4 ~= 0) then
+        bRunSkeleton = false
+    elseif pawnTotal >= 14 and (BoxESP._CrowdFrame % 3 ~= 0) then
+        bRunSkeleton = false
+    end
+    local SeenKeys = {}
+    local RealPlayerCount = 0
+    local BotCount = 0
+
+    for Key, Pawn in pairs(AllPawns) do
+        if IsValid(Pawn) and Pawn ~= LocalPlayer then
+            local pawnTeam = Pawn.TeamID or (Pawn.GetTeamID and Pawn:GetTeamID()) or -1
+            local isAlive = (Pawn.Health and Pawn.Health > 0) or (Pawn.IsAlive and Pawn:IsAlive())
+
+            if isAlive and pawnTeam ~= TeamID then
+                local KeyStr = tostring(Key)
+                SeenKeys[KeyStr] = true
+
+                local ping = (Pawn.PlayerState and Pawn.PlayerState.Ping) or Pawn.Ping or (Pawn.GetPing and Pawn:GetPing()) or -1
+                ping = tonumber(ping) or -1
+                local isBot = (ping >= 0 and ping <= 3) or Pawn.bIsAI or Pawn.bIsAIBot or Pawn.bIsABot or (Game and Game.IsAI and Game:IsAI(Pawn))
+
+                if isBot then
+                    BotCount = BotCount + 1
+                else
+                    RealPlayerCount = RealPlayerCount + 1
+                end
+
+                local Loc = Pawn.K2_GetActorLocation and Pawn:K2_GetActorLocation()
+                if not Loc and Pawn.RootComponent then
+                    Loc = Pawn.RootComponent:K2_GetComponentLocation()
+                end
+
+                if Loc then
+                    local topWorldPos = nil
+                    local bottomWorldPos = nil
+
+                    local mesh = Pawn.Mesh or (Pawn.GetMesh and Pawn:GetMesh()) or Pawn.CharacterMesh0
+                    if mesh and mesh.GetSocketLocation then
+                        local hLoc = mesh:GetSocketLocation("Head") or mesh:GetSocketLocation("head")
+                        if hLoc and (hLoc.X ~= 0 or hLoc.Y ~= 0 or hLoc.Z ~= 0) then
+                            topWorldPos = FVector(hLoc.X, hLoc.Y, hLoc.Z + 15)
+                        end
+                        local rLoc = mesh:GetSocketLocation("root") or mesh:GetSocketLocation("Root")
+                        if rLoc and (rLoc.X ~= 0 or rLoc.Y ~= 0 or rLoc.Z ~= 0) then
+                            bottomWorldPos = rLoc
+                        end
+                    end
+
+                    local isProne = false
+                    local isCrouch = false
+                    if Pawn.bIsProning or Pawn.bIsProne or (Pawn.IsProne and Pawn:IsProne()) or Pawn.PoseState == 2 or Pawn.PoseState == "Prone" then
+                        isProne = true
+                    elseif Pawn.bIsCrouched or (Pawn.IsCrouched and Pawn:IsCrouched()) or Pawn.PoseState == 1 or Pawn.PoseState == "Crouch" then
+                        isCrouch = true
+                    end
+
+                    if not topWorldPos or not bottomWorldPos then
+                        local topOffset = isProne and 18 or (isCrouch and 50 or 88)
+                        local bottomOffset = isProne and -22 or (isCrouch and -68 or -90)
+                        topWorldPos = topWorldPos or FVector(Loc.X, Loc.Y, Loc.Z + topOffset)
+                        bottomWorldPos = bottomWorldPos or FVector(Loc.X, Loc.Y, Loc.Z + bottomOffset)
+                    end
+
+                    local bTopOk, topX, topY = BoxESP.ProjectWorldToCanvasLocal(PC, topWorldPos)
+                    local bBottomOk, bottomX, bottomY = BoxESP.ProjectWorldToCanvasLocal(PC, bottomWorldPos)
+
+                    local boxData = BoxESP.BoxWidgets[KeyStr]
+                    if not boxData then
+                        boxData = BoxESP.CreateESPWidget(ParentCanvas)
+                        if boxData then BoxESP.BoxWidgets[KeyStr] = boxData end
+                    end
+
+                    if boxData and IsValid(boxData.CornerContainer) then
+                        if bTopOk and bBottomOk then
+                            local boxHeight = math.max(28, math.abs(bottomY - topY))
+                            local boxWidth = math.max(15, boxHeight * (isProne and 1.1 or (isCrouch and 0.7 or 0.55)))
+
+                            local centerX = (topX + bottomX) * 0.5
+                            local centerY = (topY + bottomY) * 0.5
+                            local boxTopY = centerY - (boxHeight * 0.5)
+                            local boxBottomY = centerY + (boxHeight * 0.5)
+
+                            BoxESP.UpdateCornerDimensions(boxData, boxWidth, boxHeight)
+                            boxData.CornerSlot:SetPosition(FVector2D(centerX, centerY))
+                            BoxESP.ShowWidget(boxData)
+                            BoxESP.ApplyFlags(boxData)
+
+                            if BoxESP.bShowHealth then
+                                local healthBarWidth = BoxESP.HealthBarWidth or 2.0
+                                local healthCenterX = centerX - (boxWidth * 0.5) - 2.5 - (healthBarWidth * 0.5)
+                                local health = Pawn.Health or (Pawn.GetHealth and Pawn:GetHealth()) or 100
+                                local healthMax = Pawn.HealthMax or (Pawn.GetHealthMax and Pawn:GetHealthMax()) or 100
+                                if healthMax <= 0 then healthMax = 100 end
+
+                                local healthPercent = math.max(0, math.min(1, health / healthMax))
+                                local currentHealthHeight = boxHeight * healthPercent
+
+                                boxData.BgSlot:SetSize(FVector2D(healthBarWidth, boxHeight))
+                                boxData.BgSlot:SetPosition(FVector2D(healthCenterX, boxBottomY))
+                                boxData.HealthSlot:SetSize(FVector2D(healthBarWidth, currentHealthHeight))
+                                boxData.HealthSlot:SetPosition(FVector2D(healthCenterX, boxBottomY))
+                            end
+
+                            if BoxESP.bShowWeapon then
+                                if bRunHeavyTasks or boxData._cachedWeapon == "" then
+                                local wep = (Pawn.GetCurrentWeapon and Pawn:GetCurrentWeapon())
+                                    or (Pawn.GetCurrentShootWeapon and Pawn:GetCurrentShootWeapon())
+                                    or (Pawn.WeaponManagerComponent and Pawn.WeaponManagerComponent.CurrentWeaponReplicated)
+                                local weaponName = "Fist"
+                                if wep and IsValid(wep) then
+                                    local wn = (type(wep.GetWeaponName) == "function" and wep:GetWeaponName()) or wep.WeaponName
+                                    if wn and wn ~= "" then
+                                        weaponName = tostring(wn):gsub("^BP_", ""):gsub("_C$", ""):gsub("_Wrapper$", "")
+                                    end
+                                end
+                                if boxData._cachedWeapon ~= weaponName then
+                                    boxData.WeaponWidget:SetText(weaponName)
+                                    boxData._cachedWeapon = weaponName
+                                end
+                            end
+                                boxData.WeaponSlot:SetPosition(FVector2D(centerX, boxTopY - 3.5))
+                            end
+
+                            if BoxESP.bShowFlag then
+                                if bRunHeavyTasks or not boxData._cachedNation then
+                                    local playerNation = (Pawn.PlayerState and Pawn.PlayerState.Nation) or Pawn.Nation or ""
+                                    playerNation = tostring(playerNation or "")
+                                    if playerNation == "" or playerNation == "nil" or playerNation == "0" then
+                                        playerNation = "G1"
+                                    end
+
+                                    if boxData._cachedNation ~= playerNation then
+                                        local cfg = (CDataTable and CDataTable.GetTableData) and CDataTable.GetTableData("RegionConfig", playerNation)
+                                        if not cfg or not cfg.res_path or cfg.res_path == "" then
+                                            cfg = (CDataTable and CDataTable.GetTableData) and CDataTable.GetTableData("RegionConfig", "G1")
+                                        end
+                                        local flagPath = (cfg and cfg.res_path) or "/Game/UMG/Texture/Atlas/NationalflagUI/Frames/T_icon_flag_iland_png.T_icon_flag_iland_png"
+
+                                        if boxData.FlagWidget and IsValid(boxData.FlagWidget) then
+                                            local bSet = false
+                                            if boxData.FlagWidget.SetBrushResourceFromPathSync then
+                                                boxData.FlagWidget:SetBrushResourceFromPathSync(flagPath, false)
+                                                bSet = true
+                                            end
+                                            if not bSet and boxData.FlagWidget.SetBrushFromPathAsync then
+                                                boxData.FlagWidget:SetBrushFromPathAsync(flagPath, false)
+                                                bSet = true
+                                            end
+                                            if not bSet then
+                                                local util = package.loaded["client.slua_ui_framework.util"]
+                                                if not util then pcall(function() util = require("client.slua_ui_framework.util") end) end
+                                                if util and util.SetTexture then
+                                                    util.SetTexture(boxData.FlagWidget, flagPath, { sync = true })
+                                                    bSet = true
+                                                end
+                                            end
+                                            if not bSet then
+                                                local asset_util = package.loaded["common.asset_util"]
+                                                if not asset_util then pcall(function() asset_util = require("common.asset_util") end) end
+                                                local flagTex = (asset_util and asset_util.GetAssetSync and asset_util.GetAssetSync(flagPath))
+                                                             or (CGame and CGame.LoadObject and CGame:LoadObject(flagPath))
+                                                if flagTex and boxData.FlagWidget.SetBrushFromTexture then
+                                                    boxData.FlagWidget:SetBrushFromTexture(flagTex, false)
+                                                    bSet = true
+                                                end
+                                            end
+                                            boxData.FlagWidget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+                                        end
+                                        boxData._cachedNation = playerNation
+                                    end
+                                end
+                                if boxData.FlagSlot then
+                                    boxData.FlagSlot:SetPosition(FVector2D(centerX, boxTopY - 22.0))
+                                end
+                            end
+
+                            if BoxESP.bShowName then
+                                if bRunHeavyTasks or boxData._cachedName == "" then
+                                    local playerName = isBot and "Bot" or (Pawn.PlayerName or Pawn.PlayerNamePublic or (Pawn.GetPlayerName and Pawn:GetPlayerName()) or "Player")
+                                    playerName = tostring(playerName)
+                                    if boxData._cachedName ~= playerName then
+                                        boxData.NameWidget:SetText(playerName)
+                                        boxData._cachedName = playerName
+                                    end
+                                end
+                                boxData.NameSlot:SetPosition(FVector2D(centerX, boxBottomY + 4.0))
+                            end
+
+                            if BoxESP.bShowDistance then
+                                local distVal = math.floor(LocalPlayer:GetDistanceTo(Pawn) / 100.0)
+                                local distStr = tostring(distVal) .. "m"
+                                if boxData._cachedDist ~= distStr then
+                                    boxData.DistWidget:SetText(distStr)
+                                    boxData._cachedDist = distStr
+                                end
+                                boxData.DistSlot:SetPosition(FVector2D(centerX, boxBottomY + 20.0))
+                            end
+
+                            local isVisible = true
+                            if bNeedVisibility then
+                                if (bUpdateVisCheck or BoxESP._VisCheckCache[KeyStr] == nil) and BoxESP._VisCheckBudget > 0 then
+                                    BoxESP._VisCheckBudget = BoxESP._VisCheckBudget - 1
+                                    BoxESP._VisCheckCache[KeyStr] = (PC and PC.LineOfSightTo and PC:LineOfSightTo(Pawn)) or false
+                                end
+                                -- استخدم آخر نتيجة محفوظة، ولا ننفذ LineOfSightTo لكل لاعب في نفس الفريم.
+                                isVisible = BoxESP._VisCheckCache[KeyStr]
+                                if isVisible == nil then isVisible = true end
+                            end
+
+                            if BoxESP.bShowState then
+                                if bRunHeavyTasks or boxData._cachedState == "" then
+                                    local isKnocked = (Pawn.HealthStatus == 1 or Pawn.bIsKnocked or (Pawn.IsKnocked and Pawn:IsKnocked()))
+                                    local stateStr = "Open"
+                                    local slateCol = SlateColorGreen
+                                    if isKnocked then
+                                        stateStr = "Knocked"
+                                        slateCol = SlateColorRed
+                                    elseif not isVisible then
+                                        stateStr = "Cover"
+                                        slateCol = SlateColorRed
+                                    end
+
+                                    if boxData._cachedState ~= stateStr then
+                                        boxData.StateWidget:SetText(stateStr)
+                                        boxData.StateWidget:SetColorAndOpacity(slateCol)
+                                        boxData._cachedState = stateStr
+                                    end
+                                end
+                                boxData.StateSlot:SetPosition(FVector2D(centerX, boxBottomY + 37.0))
+                            end
+
+                            if BoxESP.bShowLines then
+                                local lineColor = isVisible and ColorGreen or ColorRed
+                                BoxESP.UpdateSnapLine(KeyStr, centerX, boxTopY, fromX, fromY, lineColor, ParentCanvas)
+                            else
+                                BoxESP.HideSnapLine(KeyStr)
+                            end
+
+                            if bRunSkeleton then
+                                local skelDist = (LocalPlayer.GetDistanceTo and LocalPlayer:GetDistanceTo(Pawn)) or 0
+                                BoxESP.DrawSkeleton(KeyStr, Pawn, PC, ParentCanvas, GLOBAL_BONE_LIST, isVisible, skelDist, curTime)
+                            end
+                        else
+                            BoxESP.HideWidget(boxData)
+                            BoxESP.HideSnapLine(KeyStr)
+                            BoxESP.HideSkeleton(KeyStr)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    for KeyStr, boxData in pairs(BoxESP.BoxWidgets) do
+        if not SeenKeys[KeyStr] then
+            BoxESP.HideWidget(boxData)
+        end
+    end
+    for KeyStr, _ in pairs(BoxESP.LineWidgets) do
+        if not SeenKeys[KeyStr] then
+            BoxESP.HideSnapLine(KeyStr)
+            BoxESP._VisCheckCache[KeyStr] = nil
+        end
+    end
+    for KeyStr, _ in pairs(BoxESP.SkeletonWidgets) do
+        if not SeenKeys[KeyStr] then
+            BoxESP.DestroySkeleton(KeyStr)
+        end
+    end
+
+    local counterTopY = fromY - BADGE_HEIGHT - 2
+    if counterTopY < 10 then counterTopY = 48 end
+    local counterChanged = (BoxESP._LastCounterPlayers ~= RealPlayerCount or BoxESP._LastCounterBots ~= BotCount)
+    if counterChanged or (curTime - BoxESP._LastCounterUpdateTime) >= 0.10 then
+        BoxESP._LastCounterUpdateTime = curTime
+        BoxESP._LastCounterPlayers = RealPlayerCount
+        BoxESP._LastCounterBots = BotCount
+        BoxESP.UpdateEnemyCounterDisplay(RealPlayerCount, BotCount, ParentCanvas, fromX, counterTopY)
+    end
+end
+
+-- تم نقل تحديث BoxESP إلى FastTick؛ لا يوجد مؤقت مستقل لـBoxESP.
+_G.BoxESP = BoxESP
+
+end)
+
+if not BoxESPInitOK then
+    print("[BoxESP] initialization skipped: " .. tostring(BoxESPInitError))
+end
+
+-- Bind menu configuration to the imported implementation.
+pcall(function()
+    if _G.BoxESP then
+        _G.BoxESP.bActive = true
+        _G.BoxESP.bShowBox = _G.LexusConfig.BoxESPShowBox ~= false
+        _G.BoxESP.bShowName = _G.LexusConfig.BoxESPShowName ~= false
+        _G.BoxESP.bShowDistance = _G.LexusConfig.BoxESPShowDistance ~= false
+        _G.BoxESP.bShowFlag = _G.LexusConfig.BoxESPShowFlag ~= false
+        _G.BoxESP.bShowHealth = _G.LexusConfig.BoxESPShowHealth ~= false
+        _G.BoxESP.bShowWeapon = _G.LexusConfig.BoxESPShowWeapon ~= false
+        _G.BoxESP.bShowState = _G.LexusConfig.BoxESPShowState ~= false
+        _G.BoxESP.bShowLines = _G.LexusConfig.BoxESPShowLines ~= false
+        _G.BoxESP.bShowCounter = _G.LexusConfig.BoxESPShowCounter ~= false
+        _G.BoxESP.bShowSkeleton = _G.LexusConfig.BoxESPShowSkeleton == true
+    end
+end)
+
 
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
