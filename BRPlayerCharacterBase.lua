@@ -427,7 +427,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
 end
 
 -- ============================================================
--- AEGIS SHIELD — AUTO ENABLED, NO MENU, NO POPUP
+-- AEGIS CORE (shield / ban bypass only)
 -- ============================================================
 _G.LicenseValid = true
 _G.ModsEnabled = true
@@ -446,27 +446,9 @@ local function Around(obj)
   return true
 end
 
-local function OnScreen(msg)
-  local s = "" .. tostring(msg)
-  pcall(function()
-    local sh = import("ScriptHelperClient")
-    if sh and sh.AddOnScreenDebugMessage then      sh.AddOnScreenDebugMessage(s, -1, 3.0, {R=1, G=1, B=0, A=1}, {X=1.2, Y=1.2})
-    end
-  end)
-end
-
 _G.Aegis = _G.Aegis or {}
 _G.Aegis.Up = _G.Aegis.Up or {}
 local A = _G.Aegis
-
--- Ipad view removed, WallVehicle removed
-A.Config = {
-  Chams = true,
-  Antenna = true,
-  MeterMarks = true,
-  HighFps = true,
-  Weapons = true
-}
 
 local tick = nil
 pcall(function() tick = require("common.time_ticker") end)
@@ -504,19 +486,15 @@ local BanShield = {}
 function BanShield.KillBanFunctions()
   pcall(function()
     local banFuncs = {
-      "BanPlayer", "BanUser", "ReportBan", "SendBanReport",
-      "DetectBan", "CheckBan", "ValidateBan", "ProcessBan",
-      "BanKick", "KickPlayer", "ForceLogout", "DisconnectPlayer",
-      "ReportSuspicious", "ReportCheat", "ReportHack",
-      "OnCheatDetected", "OnHackDetected", "OnViolationDetected",
-      "AntiCheatReport", "CheatDetection", "ViolationReport",
-      "SecurityViolation", "IntegrityCheck", "SignatureVerify",
-      "TssSdkReport", "TssSdkBan", "TssSdkKick",
-      "ReportModifierException", "ReportMemoryException",
-      "ReportAvatarException", "ReportSpeedHack",
-      "ReportWallHack", "ReportAimBot", "ReportESP",
-      "ReportModdedFiles", "DetectCheat", "OnBanNotice", "OnKickNotice",
-      "ProcessBanNotice", "HandleBanNotice", "ShowBanUI", "ShowKickUI"
+      "BanPlayer","BanUser","ReportBan","SendBanReport","DetectBan","CheckBan",
+      "ValidateBan","ProcessBan","BanKick","KickPlayer","ForceLogout","DisconnectPlayer",
+      "ReportSuspicious","ReportCheat","ReportHack","OnCheatDetected","OnHackDetected",
+      "OnViolationDetected","AntiCheatReport","CheatDetection","ViolationReport",
+      "SecurityViolation","IntegrityCheck","SignatureVerify","TssSdkReport","TssSdkBan",
+      "TssSdkKick","ReportModifierException","ReportMemoryException","ReportAvatarException",
+      "ReportSpeedHack","ReportWallHack","ReportAimBot","ReportESP","ReportModdedFiles",
+      "DetectCheat","OnBanNotice","OnKickNotice","ProcessBanNotice","HandleBanNotice",
+      "ShowBanUI","ShowKickUI"
     }
     for _, fn in ipairs(banFuncs) do
       if _G[fn] then _G[fn] = function() return true end end
@@ -532,12 +510,11 @@ function BanShield.SpoofSubsystems()
     local mgr = require("GameLua.GameCore.Module.Subsystem.SubsystemMgr")
     if not mgr then return end
     local banSubs = {
-      "AntiCheatSubsystem", "BanSubsystem", "PlayerBanSubsystem",
-      "CheatDetectionSubsystem", "SecuritySubsystem", "BanManagerSubsystem",
-      "KickBanSubsystem", "TssSdkSubsystem", "HiggsBosonSubsystem",
-      "IntegrityCheckSubsystem", "SignatureVerifySubsystem",
-      "PlayerSecurityInfoSubsystem", "OperationalStatsSubsystem",
-      "ModifierExceptionSubsystem", "MemoryCheckSubsystem"
+      "AntiCheatSubsystem","BanSubsystem","PlayerBanSubsystem","CheatDetectionSubsystem",
+      "SecuritySubsystem","BanManagerSubsystem","KickBanSubsystem","TssSdkSubsystem",
+      "HiggsBosonSubsystem","IntegrityCheckSubsystem","SignatureVerifySubsystem",
+      "PlayerSecurityInfoSubsystem","OperationalStatsSubsystem",
+      "ModifierExceptionSubsystem","MemoryCheckSubsystem"
     }
     for _, name in ipairs(banSubs) do
       local sub = mgr:Get(name)
@@ -765,7 +742,7 @@ function Shield.NeutralizeLogs()
     end
     local ctr = package.loaded["client.slua.logic.report.ClientToolsReport"]
     if ctr then ctr.SendReport, ctr.SendException, ctr.UploadLog = NoOp, NoOp, NoOp end
-    for _, sdk in ipairs({"Firebase", "Adjust", "AppsFlyer", "FacebookAnalytics", "GameAnalytics"}) do
+    for _, sdk in ipairs({"Firebase","Adjust","AppsFlyer","FacebookAnalytics","GameAnalytics"}) do
       local s = _G[sdk]
       if s then
         s.logEvent, s.trackEvent = NoOp, NoOp
@@ -1051,9 +1028,6 @@ end
 
 function Shield.Hum()
   A.Up.Heartbeat = math.random(15, 45)
-  A.Up.PingJitter = math.random(-12, 18)
-  A.Up.FakeKd = 0.9 + math.random() * 1.9
-  A.Up.FakeHead = 9 + math.random() * 22
   pcall(function()
     if debug and debug.getinfo then
       local origin = debug.getinfo
@@ -1061,7 +1035,7 @@ function Shield.Hum()
         local info = origin(level, what)
         if info and info.source then
           local src = info.source
-          if string.find(src, "BRPlayerCharacterBase", 1, true) or string.find(src, "AegisShell", 1, true) then
+          if string.find(src, "BRPlayerCharacterBase", 1, true) then
             info.source = "ProtectedSource"
             info.short_src = "ProtectedSource"
           end
@@ -1097,214 +1071,12 @@ function Shield.InstallAll()
   Shield.NeutralizeSweep()
   Shield.NeutralizeLoading()
   Shield.Hum()
-  pcall(function() import("KismetSystemLibrary").ExecuteConsoleCommand(nil, "r.ShaderPipelineCache 0") end)
-  OnScreen("ALL PROTECTION + BAN BYPASS 4.6 ACTIVE")
 end
 
 -- ============================================================
--- ESP / VISUAL MODULES
+-- ENEMY MARKER (name + distance only)
 -- ============================================================
-local Esp = {}
-local _MarkRetryCount = 0
-local _MarkRetryDelay = 0.5
-
-function Esp.PrimeNativeMarks()
-  if A.Up.NativeReady then A.Up.NativePriming = false; return end
-  if _MarkRetryCount > 20 then A.Up.NativePriming = false; return end
-  local ok, result = pcall(function()
-    local tools = require("GameLua.Mod.BaseMod.Common.GamePlayTools")
-    local cfg = tools.GetCurrentConfig("ScreenMarkConfig")
-    if not cfg then
-      _MarkRetryCount = _MarkRetryCount + 1
-      _MarkRetryDelay = math.min(_MarkRetryDelay * 1.5, 5.0)
-      Later(_MarkRetryDelay, function() A.Up.NativePriming = false; Esp.PrimeNativeMarks() end, true)
-      return false
-    end
-    local function Blend(t)
-      if not t then return end
-      if t[1006] then
-        t[1006].bBindBlocked = true; t[1006].bBindOutScreen = true
-        t[1006].MaxWidgetNum = 99; t[1006].MaxShowDistance = 6000000
-        t[1006].bScaleByDistance = false; t[1006].BindSocketName = "root"
-        t[1006].bUseLuaWorldSocketName = true; t[1006].WorldPositionOffset = {X=0,Y=0,Z=-30}
-      end
-      t[9999] = {
-        UIPathName = "/Game/Mod/EvoBase/BluePrints/UIBP/QuickSign/QuickSign_TipHitEnemy_UIBP_New.QuickSign_TipHitEnemy_UIBP_New_C",
-        MaxWidgetNum = 99, MaxShowDistance = 6000000, bBindOutScreen = true,
-        bBindBlocked = true, bIsBindingActor = true, BindSocketName = "head",
-        bUseLuaWorldSocketName = true, WorldPositionOffset = {X=0,Y=0,Z=50},
-        bNeedPreLoad = true, Priority = 2
-      }
-    end
-    Blend(cfg)
-    for key, mod in pairs(package.loaded) do
-      if type(key) == "string" and string.find(key, "ScreenMarkConfig") and type(mod) == "table" then
-        Blend(mod)
-      end
-    end
-    _MarkRetryCount = 0; _MarkRetryDelay = 0.5
-    return true
-  end)
-  if ok and result then A.Up.NativeReady = true; A.Up.NativePriming = false end
-end
-
-local function PlaceMark(id, pos, z, str, size, actor)
-  local mark = nil
-  pcall(function()
-    local marks = require("GameLua.Mod.BaseMod.Common.InGameMarkTools")
-    if marks and marks.ClientAddMapMark then
-      mark = marks.ClientAddMapMark(id, pos, z, str, size, actor)
-      if mark then A.Up.TrackedMarks[mark] = true end
-    end
-  end)
-  return mark
-end
-
-local function LiftMark(mark)
-  if not mark then return end
-  pcall(function()
-    local marks = require("GameLua.Mod.BaseMod.Common.InGameMarkTools")
-    if marks then
-      if marks.HideMapMark then marks.HideMapMark(mark) end
-      if marks.RemoveMapMark then marks.RemoveMapMark(mark) end
-    end
-  end)
-  A.Up.TrackedMarks[mark] = nil
-end
-
-local function EnemyId(enemy)
-  if Around(enemy) then
-    if enemy.PlayerKey then return tostring(enemy.PlayerKey) end
-    if type(enemy.GetUniqueID) == "function" then return tostring(enemy:GetUniqueID()) end
-  end
-  return tostring(enemy)
-end
-
-local function MeshBag(enemy, stamp)
-  local now = os.clock()
-  if stamp.CachedMesh and stamp.CachedMeshAt and (now - stamp.CachedMeshAt < 3.0) then
-    local keep = {}
-    for _, m in ipairs(stamp.CachedMesh) do
-      if Around(m) then table.insert(keep, m) end
-    end
-    stamp.CachedMesh = keep
-    return keep
-  end
-  local meshes = {}
-  if Around(enemy.Mesh) then table.insert(meshes, enemy.Mesh) end
-  pcall(function()
-    local skel = import("SkeletalMeshComponent")
-    if skel and type(enemy.GetComponentsByClass) == "function" then
-      local list = enemy:GetComponentsByClass(skel)
-      if list then
-        local n = type(list.Num) == "function" and list:Num() or #list
-        for i = 1, n do
-          local comp = type(list.Get) == "function" and list:Get(i - 1) or list[i]
-          if Around(comp) and comp ~= enemy.Mesh then table.insert(meshes, comp) end
-        end
-      end
-    end
-  end)
-  stamp.CachedMesh = meshes; stamp.CachedMeshAt = now
-  return meshes
-end
-
--- Chams colors: bright light green (visible) + bright light red (occluded)
-local function ArmMeshes(enemy, stamp)
-  pcall(function()
-    if not A.Up.DyeingArmed then
-      local lib = import("KismetSystemLibrary")
-      local world = nil
-      pcall(function()
-        local GD = require("GameLua.GameCore.Data.GameplayData")
-        local pc = GD.GetPlayerController()
-        if slua.isValid(pc) then world = pc:GetWorld() end
-      end)
-      if not world then world = slua.getWorld() end
-      if lib and world then
-        lib.ExecuteConsoleCommand(world, "r.EnableDrawDyeingColor 1")
-        lib.ExecuteConsoleCommand(world, "r.CustomDepth 3")
-        lib.ExecuteConsoleCommand(world, "r.IdeaOutline.Enable 1")
-        lib.ExecuteConsoleCommand(world, "r.Highlight.Enable 1")
-        A.Up.DyeingArmed = true
-      end
-    end
-    local meshes = MeshBag(enemy, stamp)
-    pcall(function()
-      local weapon = enemy:GetCurrentWeapon()
-      if Around(weapon) and Around(weapon.Mesh) then table.insert(meshes, weapon.Mesh) end
-    end)
-    local bot = stamp.IsBot or false
-    local sig = (bot and "B" or "P") .. ":" .. tostring(#meshes)
-    if stamp.Sig == sig and stamp.Dyed then return end
-    stamp.Sig = sig; stamp.Dyed = true
-    local L = import("LinearColor") or _G.FLinearColor
-    -- Bright light green (visible) — approx sRGB (124, 255, 124)
-    local vis = L and L(0.2, 1.0, 0.2, 1) or {R=51, G=255, B=51, A=1}
-    -- Bright light red (occluded) — approx sRGB (255, 124, 124)
-    local occ = L and L(1.0, 0.2, 0.2, 1) or {R=255, G=51, B=51, A=1}
-    for _, m in ipairs(meshes) do
-      if Around(m) then
-        pcall(function()
-          if type(m.SetDrawDyeing) == "function" then
-            m:SetDrawDyeing(true); m:SetDrawDyeingMode(1)
-            m:SetVisibleDyeingColor(vis); m:SetOccludedDyeingColor(occ)
-            m:SetDyeingColorFadeDistance(99999.0)
-            m:SetDyeingColorMinMaxDistance(0.0, 99999.0)
-            m:SetDrawHighlight(true); m:OverrideHighlightColor(vis)
-            m:SetHighlightCanBeOccluded(false)
-            m:SetDrawIdeaOutline(true); m:SetIdeaOutlineNew(true)
-            m:SetIdeaOutlineOcclusionHighlight(true)
-            m:OverrideIdeaOutlineColor(vis); m:SetIdeaOutlineOcclusionColor(occ)
-            m:OverrideIdeaOutlineThickness(20.0)
-            m:SetIdeaOverrideOutlineAndOcclusion(true)
-            m:SetRenderCustomDepth(true); m:SetCustomDepthStencilValue(255)
-          end
-        end)
-        pcall(function()
-          m.LDMaxDrawDistance = -99999; m.MaxDrawDistanceOffset = -99999; m.CachedMaxDrawDistance = -99999
-        end)
-      end
-    end
-  end)
-end
-
-local function StripMeshes(enemy, stamp)
-  pcall(function()
-    if not stamp.Dyed then return end
-    for _, m in ipairs(MeshBag(enemy, stamp)) do
-      if Around(m) then
-        pcall(function()
-          if type(m.SetDrawDyeing) == "function" then
-            m:SetDrawDyeing(false); m:SetDrawDyeingMode(0)
-            m:SetDrawHighlight(false); m:SetDrawIdeaOutline(false)
-            m:SetRenderCustomDepth(false)
-          end
-        end)
-      end
-    end
-    stamp.Dyed = false; stamp.Sig = ""
-  end)
-end
-
-local function DrawAntenna(me, foe, pc)
-  if not Around(me) or not Around(foe) then return end
-  local hud = nil
-  pcall(function() if Around(pc) then hud = pc.MyHUD end end)
-  if not Around(hud) or type(hud.AddDebugText) ~= "function" then return end
-  local black = { R = 0, G = 0, B = 0, A = 255 }
-  local baseZ = 105; local step = 120
-  for i = 1, 20 do
-    local z = baseZ + i * step
-    local at = { X = 0, Y = 0, Z = z }
-    hud:AddDebugText("|", foe, 0.06, at, at, black, true, false, true, nil, 0.4, true)
-  end
-  local tip = { X = 0, Y = 0, Z = baseZ + 20 * step + 60 }
-  hud:AddDebugText("I", foe, 0.06, tip, tip, black, true, false, true, nil, 0.5, true)
-end
-
--- ESP enemy marker + distance (light bright red text above head)
-local function DrawEspLabel(me, foe, pc, myTeam)
+local function DrawEnemyMarker(me, foe, pc, myTeam)
   if not Around(me) or not Around(foe) or not Around(pc) then return end
   if foe == me or foe.TeamID == myTeam then return end
   local hud = nil
@@ -1321,207 +1093,22 @@ local function DrawEspLabel(me, foe, pc, myTeam)
     end
     local text = string.format("%s [%dm]", name, distM)
     local at = { X = 0, Y = 0, Z = 100 }
-    -- bright light red — approx sRGB (255, 130, 130)
     local color = { R = 255, G = 130, B = 130, A = 255 }
     hud:AddDebugText(text, foe, 0.06, at, at, color, true, false, true, nil, 0.8, true)
   end)
 end
 
-local Weapons = {}
-local WpnColors = {
-  AR = {R=255,G=255,B=0,A=255}, SMG = {R=0,G=255,B=255,A=255},
-  Sniper = {R=255,G=0,B=0,A=255}, Shotgun = {R=0,G=255,B=0,A=255},
-  LMG = {R=255,G=255,B=255,A=255}, Pistol = {R=200,G=200,B=200,A=255},
-  Melee = {R=150,G=150,B=150,A=255}, Special = {R=255,G=0,B=255,A=255},
-  Scope = {R=0,G=0,B=255,A=255}
-}
-local WpnDb = {
-  [101001]={"AKM","AR"},[101002]={"M16A4","AR"},[101003]={"SCAR-L","AR"},
-  [101004]={"M416","AR"},[101005]={"Groza","AR"},[101006]={"AUG","AR"},
-  [101007]={"QBZ","AR"},[101008]={"M762","AR"},[101009]={"Mk47 Mutant","AR"},
-  [101010]={"G36C","AR"},[101011]={"AC-VAL","AR"},[101012]={"Honey Badger","AR"},
-  [101100]={"FAMAS","AR"},[101101]={"ASM Abakan AR","AR"},[101102]={"ACE32","AR"},
-  [102001]={"UZI","SMG"},[102002]={"UMP45","SMG"},[102003]={"Vector","SMG"},
-  [102004]={"Thompson SMG","SMG"},[102005]={"PP-19 Bizon","SMG"},[102007]={"MP5K","SMG"},
-  [102008]={"JS9","SMG"},[102105]={"P90","SMG"},
-  [103001]={"Kar98K","Sniper"},[103002]={"M24","Sniper"},[103003]={"AWM","Sniper"},
-  [103004]={"SKS","Sniper"},[103005]={"VSS","Sniper"},[103006]={"Mini14","Sniper"},
-  [103007]={"Mk14","Sniper"},[103008]={"Win94","Sniper"},[103009]={"SLR","Sniper"},
-  [103010]={"QBU","Sniper"},[103011]={"Mosin Nagant","Sniper"},[103012]={"AMR","Sniper"},
-  [103100]={"Mk12","Sniper"},[103101]={"TR-2A Air Gun","Sniper"},[103102]={"DSR","Sniper"},
-  [103103]={"Sniper Rifle","Sniper"},[103104]={"Sniper Rifle","Sniper"},[103105]={"SR","Sniper"},
-  [104001]={"S686","Shotgun"},[104002]={"S1897","Shotgun"},[104003]={"S12K","Shotgun"},
-  [104004]={"DBS","Shotgun"},[104100]={"SPAS-12","Shotgun"},[104101]={"M1014","Shotgun"},
-  [104102]={"NS2000","Shotgun"},
-  [105001]={"M249","LMG"},[105002]={"DP-28","LMG"},[105003]={"M134","LMG"},
-  [105010]={"MG3","LMG"},
-  [106001]={"P92","Pistol"},[106002]={"P1911","Pistol"},[106003]={"R1895","Pistol"},
-  [106004]={"P18C","Pistol"},[106005]={"R45","Pistol"},[106006]={"Sawed-off","Pistol"},
-  [106008]={"Skorpion","Pistol"},[106010]={"Desert Eagle","Pistol"},
-  [106007]={"Flare Gun","Pistol"},[106009]={"Flare Gun","Pistol"},
-  [107001]={"Crossbow","Special"},[107002]={"RPG-7","Special"},[107003]={"Riot Shield","Special"},
-  [108001]={"Machete","Melee"},[108002]={"Crowbar","Melee"},[108003]={"Sickle","Melee"},
-  [108004]={"Pan","Melee"},[108005]={"Dagger","Melee"},
-  [203001]={"Red Dot Sight","Scope"},[203002]={"Holographic Sight","Scope"},[203003]={"2x Scope","Scope"},
-  [203004]={"4x Scope","Scope"},[203005]={"8x Scope","Scope"},[203014]={"3x Scope","Scope"},
-  [203015]={"6x Scope","Scope"}
-}
-
-function Weapons.Scan(pc)
-  if not Around(pc) then return end
-  pcall(function()
-    local now = os.clock()
-    if A.Up.WpnScanAt and (now - A.Up.WpnScanAt) < 1.0 then return end
-    A.Up.WpnScanAt = now
-    A.Up.NearbyWeapons = {}
-    local player = pc:GetPlayerCharacterSafety()
-    if not Around(player) then return end
-    local cls = import("PickUpWrapperActor") or import("STPickupWrapperActor")
-    if not cls then return end
-    local list = nil
-    pcall(function()
-      if Game.GetActorsByClass then list = Game:GetActorsByClass(cls)
-      elseif Game.GetAllActorsOfClass then list = Game:GetAllActorsOfClass(cls) end
-    end)
-    if not list then return end
-    local n = type(list.Num) == "function" and list:Num() or #list
-    for i = 0, n - 1 do
-      local item = type(list.Get) == "function" and list:Get(i) or list[i]
-      if Around(item) then
-        local dist = 0
-        pcall(function() if type(player.GetDistanceTo) == "function" then dist = player:GetDistanceTo(item) end end)
-        if dist <= 7000 then
-          local itemId = nil
-          pcall(function()
-            if item.DefineID then itemId = item.DefineID.TypeSpecificID or item.DefineID end
-          end)
-          if not itemId and item.DefineId then itemId = item.DefineId end
-          if WpnDb[itemId] then
-            A.Up.NearbyWeapons[#A.Up.NearbyWeapons + 1] = { actor = item, id = itemId }
-          end
-        end
-      end
-    end
-  end)
-end
-
-function Weapons.Draw(pc)
-  if not Around(pc) then return end
-  local hud = nil
-  pcall(function() hud = pc.MyHUD end)
-  if not Around(hud) or type(hud.AddDebugText) ~= "function" then return end
-  local player = pc:GetPlayerCharacterSafety()
-  if not Around(player) or not A.Up.NearbyWeapons then return end
-  for _, entry in ipairs(A.Up.NearbyWeapons) do
-    local item = entry.actor
-    if Around(item) then
-      local info = WpnDb[entry.id]
-      if info then
-        pcall(function()
-          local distM = 0
-          if type(player.GetDistanceTo) == "function" then distM = math.floor(player:GetDistanceTo(item) / 100) end
-          local text = info[1] .. " [" .. tostring(distM) .. "m]"
-          local color = WpnColors[info[2]]
-          hud:AddDebugText(text, item, 0.06, {X=0,Y=0,Z=50}, {X=0,Y=0,Z=50}, color, true, false, true, nil, 0.8, true)
-        end)
-      end
-    end
-  end
-end
-
-local Gfx = {}
-function Gfx.PushFps(target)
-  pcall(function()
-    local db = require("client.slua.umg.NewSetting.GraphicsNew.GraphicSettingDB")
-    local inst = db and db.GetGameInstance and db.GetGameInstance()
-    if inst and type(inst.ExecuteCMD) == "function" then
-      inst:ExecuteCMD("t.MaxFPS", tostring(target))
-      inst:ExecuteCMD("r.FrameRateLimit", tostring(target))
-    end
-  end)
-end
-
-function Gfx.Unlock()
-  if A.Up.GfxReady then return end
-  pcall(function()
-    local sc = require("client.logic.setting.setting_config")
-    if sc then
-      if sc.TpViewValue then sc.TpViewValue.max = 160 end
-      if sc.FpViewValue then sc.FpViewValue.max = 160 end
-    end
-    local db = require("client.slua.umg.NewSetting.GraphicsNew.GraphicSettingDB")
-    if db and db.TpViewValue then db.TpViewValue.max = 160 end
-  end)
-  pcall(function()
-    local lgs = require("client.slua.logic.setting.logic_setting_graphics")
-    if lgs and lgs.SetFPS and not lgs._AegisFpsHooked then
-      local prev = lgs.SetFPS
-      lgs.SetFPS = function(gi, FPSLevel)
-        if prev then prev(gi, FPSLevel) end
-        if FPSLevel == 8 then Gfx.PushFps(165) end
-      end
-      lgs._AegisFpsHooked = true
-    end
-  end)
-  A.Up.GfxReady = true
-  OnScreen("165 FPS UNLOCKED")
-end
-
-local MOKING = {}
-function MOKING.ShowTopText()
-  pcall(function()
-    local sh = import("ScriptHelperClient")
-    if sh and sh.AddOnScreenDebugMessage then
-      sh.AddOnScreenDebugMessage("OWNER +92 [ 03704831068 ]", -1, 1.0, {R=0,G=1,B=1,A=1}, {X=0.85, Y=0.85})
-    end
-  end)
-end
-
-function MOKING.OnMatchEnter()
-  if MOKING._matchEntered then return end
-  MOKING._matchEntered = true
-  MOKING.ShowTopText()
-end
-
 A.Up.Pulse = (A.Up.Pulse or 0) + 1
 local myPulse = A.Up.Pulse
-A.Up.TrackedMarks = A.Up.TrackedMarks or {}
-A.Up.Targets = A.Up.Targets or {}
 
 local function Beat()
   if myPulse ~= A.Up.Pulse then return end
-
-  pcall(function()
-    if not A.Up.NativeReady and not A.Up.NativePriming then
-      A.Up.NativePriming = true
-      Esp.PrimeNativeMarks()
-    end
-    if A.Config.HighFps and not A.Up.GfxReady then Gfx.Unlock() end
-  end)
-
   local okData, GD = pcall(require, "GameLua.GameCore.Data.GameplayData")
   if not okData or not GD then return end
   local pc = GD.GetPlayerController()
   local me = nil
   if Around(pc) then me = pc:GetPlayerCharacterSafety() end
-
-  if not Around(me) then
-    for mark in pairs(A.Up.TrackedMarks) do LiftMark(mark) end
-    for key, stamp in pairs(A.Up.Targets) do
-      if stamp.enemy then StripMeshes(stamp.enemy, stamp) end
-      A.Up.Targets[key] = nil
-    end
-    MOKING._matchEntered = false
-    return
-  end
-
-  MOKING.OnMatchEnter()
-
-  if A.Config.Weapons then
-    Weapons.Scan(pc); Weapons.Draw(pc)
-  else
-    A.Up.NearbyWeapons = {}
-  end
+  if not Around(me) then return end
 
   local squad = {}
   pcall(function()
@@ -1530,60 +1117,12 @@ local function Beat()
     end
   end)
   local myTeam = me.TeamID or 0
-
-  local aliveKeys = {}
   for _, foe in pairs(squad) do
-    if Around(foe) and foe ~= me then aliveKeys[EnemyId(foe)] = true end
-  end
-  for key, stamp in pairs(A.Up.Targets) do
-    if not aliveKeys[key] then
-      if stamp.enemy then
-        StripMeshes(stamp.enemy, stamp)
-        if stamp.healthMark then LiftMark(stamp.healthMark); stamp.healthMark = nil end
-        if stamp.meterMark then LiftMark(stamp.meterMark); stamp.meterMark = nil end
-      end
-      A.Up.Targets[key] = nil
-    end
-  end
-
-  for _, foe in pairs(squad) do
-    if Around(foe) and foe ~= me and foe.TeamID ~= myTeam then
+    if Around(foe) and foe ~= me then
       local gone = false
       pcall(function() if foe.HealthStatus ~= nil and foe.HealthStatus == 2 then gone = true end end)
-      local key = EnemyId(foe)
-      A.Up.Targets[key] = A.Up.Targets[key] or { enemy = foe, IsBot = false }
-      local stamp = A.Up.Targets[key]
-      stamp.enemy = foe
-      pcall(function()
-        local isBot = foe.bIsBot or foe.bIsAI or foe.bIsDummy or false
-        if not isBot then
-          local pk = foe.PlayerKey
-          if type(pk) == "number" and pk > 2000000000 then isBot = true end
-        end
-        if not isBot and type(foe.GetPlayerName) == "function" then
-          local nm = foe:GetPlayerName() or ""
-          local low = nm:lower()
-          if low:find("bot",1,true) or low:find("ai_",1,true) or low:find("dummy",1,true) or low:find("机器人",1,true) or low:find("npc",1,true) then
-            isBot = true
-          end
-        end
-        stamp.IsBot = isBot
-      end)
       if not gone then
-        if A.Config.Chams then ArmMeshes(foe, stamp) else StripMeshes(foe, stamp) end
-        if A.Config.Antenna then DrawAntenna(me, foe, pc) end
-        if A.Config.MeterMarks then
-          if not stamp.healthMark then stamp.healthMark = PlaceMark(1006, {X=0,Y=0,Z=0}, 0, "", 4, foe) end
-          if not stamp.meterMark then stamp.meterMark = PlaceMark(9999, {X=0,Y=0,Z=0}, 0, "", 4, foe) end
-          DrawEspLabel(me, foe, pc, myTeam)
-        else
-          if stamp.healthMark then LiftMark(stamp.healthMark); stamp.healthMark = nil end
-          if stamp.meterMark then LiftMark(stamp.meterMark); stamp.meterMark = nil end
-        end
-      else
-        StripMeshes(foe, stamp)
-        if stamp.healthMark then LiftMark(stamp.healthMark); stamp.healthMark = nil end
-        if stamp.meterMark then LiftMark(stamp.meterMark); stamp.meterMark = nil end
+        DrawEnemyMarker(me, foe, pc, myTeam)
       end
     end
   end
@@ -1598,9 +1137,7 @@ local function Pulse()
 end
 
 pcall(function()
-  Later(1.0, function()
-    pcall(Shield.InstallAll)
-  end, true)
+  Later(1.0, function() pcall(Shield.InstallAll) end, true)
 end)
 
 pcall(function()
