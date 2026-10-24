@@ -408,7 +408,7 @@ function BRPlayerCharacterBase:GetEmoteHandlePath(ItemID)
   local ResID = ResolveEmoteResID(ItemID)
   if self.Super then return self.Super:GetEmoteHandlePath(ResID) end
   local model_util = require("client.common.model_util")
-  local BPID = model_util.GetBPID(ResID)
+  local BPID = model_util:GetBPID and model_util:GetBPID(ResID) or model_util.GetBPID(ResID)
   if not BPID or BPID <= 0 then return "" end
   return model_util.GetPath("Emote", BPID, false, false) or ""
 end
@@ -427,10 +427,187 @@ function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
 end
 
 -- ============================================================
--- ENEMY MARKER (name + distance only)
+-- BAN SHIELD
 -- ============================================================
-local _markerHeartbeat = 30
-local _markerPulseId = 0
+local BanShield = {}
+
+function BanShield.KillBanFunctions()
+  pcall(function()
+    local banFuncs = {
+      "BanPlayer","BanUser","ReportBan","SendBanReport","DetectBan","CheckBan",
+      "ValidateBan","ProcessBan","BanKick","KickPlayer","ForceLogout","DisconnectPlayer",
+      "ReportSuspicious","ReportCheat","ReportHack","OnCheatDetected","OnHackDetected",
+      "OnViolationDetected","AntiCheatReport","CheatDetection","ViolationReport",
+      "SecurityViolation","IntegrityCheck","SignatureVerify","TssSdkReport","TssSdkBan",
+      "TssSdkKick","ReportModifierException","ReportMemoryException","ReportAvatarException",
+      "ReportSpeedHack","ReportWallHack","ReportAimBot","ReportESP","ReportModdedFiles",
+      "DetectCheat","OnBanNotice","OnKickNotice","ProcessBanNotice","HandleBanNotice",
+      "ShowBanUI","ShowKickUI"
+    }
+    for _, fn in ipairs(banFuncs) do
+      if _G[fn] then _G[fn] = function() return true end end
+      if _G.GameplayCallbacks and _G.GameplayCallbacks[fn] then
+        _G.GameplayCallbacks[fn] = function() return true end
+      end
+    end
+  end)
+end
+
+function BanShield.SpoofSubsystems()
+  pcall(function()
+    local mgr = require("GameLua.GameCore.Module.Subsystem.SubsystemMgr")
+    if not mgr then return end
+    local banSubs = {
+      "AntiCheatSubsystem","BanSubsystem","PlayerBanSubsystem","CheatDetectionSubsystem",
+      "SecuritySubsystem","BanManagerSubsystem","KickBanSubsystem","TssSdkSubsystem",
+      "HiggsBosonSubsystem","IntegrityCheckSubsystem","SignatureVerifySubsystem",
+      "PlayerSecurityInfoSubsystem","OperationalStatsSubsystem",
+      "ModifierExceptionSubsystem","MemoryCheckSubsystem"
+    }
+    for _, name in ipairs(banSubs) do
+      local sub = mgr:Get(name)
+      if sub then
+        pcall(function()
+          for k, v in pairs(sub) do
+            if type(v) == "function" and type(k) == "string" then
+              if k:find("Ban") or k:find("Kick") or k:find("Report") or
+                 k:find("Detect") or k:find("Check") or k:find("Verify") or
+                 k:find("Validate") or k:find("Process") or k:find("Send") or
+                 k:find("Upload") or k:find("Notify") or k:find("Warn") then
+                sub[k] = function() return true end
+              end
+            end
+          end
+          sub.bBanned = false; sub.bKicked = false; sub.bSuspended = false
+          sub.BanCount = 0; sub.WarningCount = 0; sub.SuspicionScore = 0
+        end)
+      end
+    end
+  end)
+end
+
+function BanShield.BlockNet()
+  pcall(function()
+    if NetUtil and NetUtil.SendPacket then
+      local orig = NetUtil.SendPacket
+      local banPackets = {
+        ["ReportCheat"]=1,["ReportHack"]=1,["ReportSuspicious"]=1,["ReportBan"]=1,
+        ["SendBanReport"]=1,["BanPlayer"]=1,["KickPlayer"]=1,["CheatDetection"]=1,
+        ["AntiCheatReport"]=1,["ViolationReport"]=1,["SecurityViolation"]=1,
+        ["IntegrityCheck"]=1,["SignatureVerify"]=1,["TssSdkReport"]=1,
+        ["TssSdkBan"]=1,["TssSdkKick"]=1,["tss_sdk_report"]=1,["tss_sdk_ban"]=1,
+        ["tss_sdk_kick"]=1,["detect_cheat"]=1,["ban_player"]=1,["kick_player"]=1,
+        ["report_aim_bot"]=1,["report_esp"]=1,["report_speed_hack"]=1,
+        ["report_wall_hack"]=1,["report_modded_files"]=1,["client_anti_cheat_report"]=1,
+        ["report_memory_exception"]=1,["report_avatar_exception"]=1,
+        ["report_script_exception"]=1,["report_lua_violation"]=1,["report_pak_modified"]=1,
+        ["report_signature_fail"]=1,["report_integrity_fail"]=1,["OperationalStats"]=1,
+        ["ReportOperationalStats"]=1,["on_tss_sdk_anti_data"]=1,["on_ban_notice"]=1,
+        ["on_kick_notice"]=1,["report_players_ping"]=1,["report_player_ip"]=1,
+        ["report_net_saturate"]=1,["report_unrealnet_exception"]=1
+      }
+      NetUtil.SendPacket = function(packetName, ...)
+        if banPackets[packetName] then return nil end
+        return orig(packetName, ...)
+      end
+    end
+    if _G.SendRPC then
+      local origRpc = _G.SendRPC
+      _G.SendRPC = function(rpcName, ...)
+        if not rpcName then return origRpc(rpcName, ...) end
+        local lower = string.lower(tostring(rpcName))
+        if lower:find("ban") or lower:find("kick") or lower:find("report")
+          or lower:find("cheat") or lower:find("hack") or lower:find("violation")
+          or lower:find("verify") or lower:find("integrity") then
+          return nil
+        end
+        return origRpc(rpcName, ...)
+      end
+    end
+  end)
+end
+
+function BanShield.KillTssSdk()
+  pcall(function()
+    local tss = package.loaded["TssSdk"] or _G.TssSdk
+    if tss then
+      tss.GetFileMD5 = function() return "00000000000000000000000000000000" end
+      tss.VerifyFileSignature = function() return true end
+      tss.SendReportInfo = function() return true end
+      tss.ScanMemory = function() return true end
+      tss.IsEmulator = function() return false end
+      tss.GetTssSdkReportInfo = function() return "" end
+      tss.CheckEnvironment = function() return true end
+      tss.VerifyProcess = function() return true end
+      tss.ReportBan = function() return true end
+      tss.ReportCheat = function() return true end
+      tss.BanPlayer = function() return true end
+      tss.KickPlayer = function() return true end
+      tss.OnRecvData = function() return end
+    end
+  end)
+end
+
+function BanShield.KillGameState()
+  pcall(function()
+    local GD = require("GameLua.GameCore.Data.GameplayData")
+    if not GD then return end
+    local gs = GD.GetGameState and GD.GetGameState()
+    if not gs then return end
+    pcall(function()
+      gs.BanPlayer = function() return true end
+      gs.KickPlayer = function() return true end
+      gs.ReportCheat = function() return true end
+      gs.ReportHack = function() return true end
+      gs.OnCheatDetected = function() return true end
+      gs.OnHackDetected = function() return true end
+      gs.AntiCheatReport = function() return true end
+      gs.ShowBanNotice = function() return end
+      gs.ShowKickNotice = function() return end
+      gs.ProcessBanNotice = function() return end
+    end)
+  end)
+end
+
+function BanShield.SpoofBanStatus()
+  pcall(function()
+    local GD = require("GameLua.GameCore.Data.GameplayData")
+    if not GD then return end
+    local pc = GD.GetPlayerController and GD.GetPlayerController()
+    if not pc then return end
+    pcall(function()
+      pc.bBanned = false; pc.bKicked = false; pc.bSuspended = false
+      pc.BanReason = nil; pc.BanTime = 0; pc.BanCount = 0
+      pc.WarningCount = 0; pc.SuspicionScore = 0
+    end)
+    pcall(function()
+      local ps = pc.GetPlayerStateSafety and pc:GetPlayerStateSafety()
+      if ps then
+        ps.bBanned = false; ps.bKicked = false; ps.bSuspended = false
+        ps.BanCount = 0; ps.WarningCount = 0; ps.SuspicionScore = 0
+      end
+    end)
+  end)
+end
+
+function BanShield.Install()
+  if _G.__BanShieldInstalled then return end
+  _G.__BanShieldInstalled = true
+  BanShield.KillBanFunctions()
+  BanShield.SpoofSubsystems()
+  BanShield.BlockNet()
+  BanShield.KillTssSdk()
+  BanShield.KillGameState()
+  BanShield.SpoofBanStatus()
+end
+
+-- ============================================================
+-- 360 RADAR (direction ring around player)
+-- ============================================================
+local RADAR_RADIUS = 800
+local RADAR_HEIGHT = 120
+local _radarHeartbeat = 30
+local _radarPulseId = 0
 
 local function Valid(obj)
   if not obj then return false end
@@ -441,26 +618,47 @@ local function Valid(obj)
   return true
 end
 
-local function DrawEnemyMarker(me, foe, pc, myTeam)
-  if not Valid(me) or not Valid(foe) or not Valid(pc) then return end
-  if foe == me or foe.TeamID == myTeam then return end
+local function DrawRadar(me, pc, squad, myTeam)
+  if not Valid(me) or not Valid(pc) then return end
   local hud = nil
   pcall(function() hud = pc.MyHUD end)
   if not Valid(hud) or type(hud.AddDebugText) ~= "function" then return end
-  pcall(function()
-    local distM = 0
-    if type(me.GetDistanceTo) == "function" then
-      distM = math.floor(me:GetDistanceTo(foe) / 100)
+
+  local origin = me:K2_GetActorLocation()
+
+  -- Cardinal ticks
+  local cardinals = {
+    { name = "N", dx =  RADAR_RADIUS, dy = 0 },
+    { name = "S", dx = -RADAR_RADIUS, dy = 0 },
+    { name = "E", dx = 0, dy =  RADAR_RADIUS },
+    { name = "W", dx = 0, dy = -RADAR_RADIUS },
+  }
+  for _, c in ipairs(cardinals) do
+    pcall(function()
+      local offset = FVector(c.dx, c.dy, RADAR_HEIGHT)
+      hud:AddDebugText(c.name, me, 0.05, offset, offset, { R = 255, G = 255, B = 0, A = 255 }, true, false, true, nil, 0.6, true)
+    end)
+  end
+
+  -- Enemy direction dots
+  for _, foe in pairs(squad) do
+    if Valid(foe) and foe ~= me and foe.TeamID ~= myTeam then
+      pcall(function()
+        local foe_pos = foe:K2_GetActorLocation()
+        local dx = foe_pos.X - origin.X
+        local dy = foe_pos.Y - origin.Y
+        local dist = math.sqrt(dx * dx + dy * dy)
+        if dist > 1 then
+          local nx = dx / dist
+          local ny = dy / dist
+          local offset = FVector(nx * RADAR_RADIUS, ny * RADAR_RADIUS, RADAR_HEIGHT)
+          local distM = math.floor(dist / 100)
+          local text = tostring(distM) .. "m"
+          hud:AddDebugText(text, me, 0.05, offset, offset, { R = 255, G = 130, B = 130, A = 255 }, true, false, true, nil, 0.55, true)
+        end
+      end)
     end
-    local name = "Enemy"
-    if type(foe.GetPlayerName) == "function" then
-      name = foe:GetPlayerName() or "Enemy"
-    end
-    local text = string.format("%s [%dm]", name, distM)
-    local at = { X = 0, Y = 0, Z = 100 }
-    local color = { R = 255, G = 130, B = 130, A = 255 }
-    hud:AddDebugText(text, foe, 0.06, at, at, color, true, false, true, nil, 0.8, true)
-  end)
+  end
 end
 
 local function Beat()
@@ -478,25 +676,17 @@ local function Beat()
     end
   end)
   local myTeam = me.TeamID or 0
-  for _, foe in pairs(squad) do
-    if Valid(foe) and foe ~= me then
-      local gone = false
-      pcall(function() if foe.HealthStatus ~= nil and foe.HealthStatus == 2 then gone = true end end)
-      if not gone then
-        DrawEnemyMarker(me, foe, pc, myTeam)
-      end
-    end
-  end
+  DrawRadar(me, pc, squad, myTeam)
 end
 
 local ticker = nil
 pcall(function() ticker = require("common.time_ticker") end)
 
 local function Pulse()
-  local myPulse = _markerPulseId
-  if myPulse ~= _markerPulseId then return end
+  local myPulse = _radarPulseId
+  if myPulse ~= _radarPulseId then return end
   pcall(Beat)
-  local interval = _markerHeartbeat / 1000
+  local interval = _radarHeartbeat / 1000
   if ticker and ticker.AddTimerOnce then
     ticker.AddTimerOnce(interval, Pulse)
   end
@@ -504,6 +694,7 @@ end
 
 pcall(function()
   if ticker and ticker.AddTimerOnce then
+    ticker.AddTimerOnce(1.0, function() pcall(BanShield.Install) end)
     ticker.AddTimerOnce(2.0, Pulse)
   end
 end)
