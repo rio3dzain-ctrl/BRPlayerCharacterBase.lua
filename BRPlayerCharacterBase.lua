@@ -12,6 +12,7 @@ BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = { Reliable =
 
 local ENetRole = import("ENetRole")
 local EPawnState = import("EPawnState")
+local ECharacterHideMovementAcive = import("ECharacterHideMovementAcive")
 local ESpecialMovementType = import("ESpecialMovementType")
 local ESpiderSwingMoveState = import("ESpiderSwingMoveState")
 local ESurviveWeaponPropSlot = import("ESurviveWeaponPropSlot")
@@ -33,7 +34,6 @@ function BRPlayerCharacterBase:_PostConstruct()
   BRPlayerCharacterBase.__super._PostConstruct(self)
   self:InitAddSpecialMoveInfo()
   self.bCanNearDeathGiveup = true
-  print(bWriteLog and "BRPlayerCharacterBase:_PostConstruct bCanNearDeathGiveup true")
 end
 
 function BRPlayerCharacterBase:ReceiveBeginPlay()
@@ -42,7 +42,6 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
   if self:HasAuthority() and self:CheckAddCheckFallingDistanceComponent() then
     local CheckFallingDistanceComponent_C = import("CheckFallingDistanceComponent")
     if slua.isValid(CheckFallingDistanceComponent_C) and not slua.isValid(self:GetComponentByClass(CheckFallingDistanceComponent_C)) then
-      print(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay Add CheckFallingDistanceComponent")
       Game:AddComponent(CheckFallingDistanceComponent_C, self, "CheckFallingDistanceComponent")
     end
   end
@@ -55,23 +54,10 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
     self:AddControlEventConditionOnly(self, "OnAttrChangeEventDelegate", { AttrName = { "bCanSelfRescue" } }, self.CharacterAttrChangeEvent, self)
   end
   if Client then
-    printf(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay, PlayerKey:%u ", self.PlayerKey)
     GameplayData.AddCharacter(self.Object)
-    pcall(function()
-      local isLocal = self.Role == ENetRole.ROLE_AutonomousProxy
-      if not isLocal and self.IsLocallyControlled then
-        local ok, v = pcall(function() return self:IsLocallyControlled() end)
-        if ok and v then isLocal = true end
-      end
-      if not isLocal then return end
-      self:AddGameTimer(1.5, false, function()
-        pcall(function()
-          if _G.__AegisStartAfterLicense then _G.__AegisStartAfterLicense() end
-        end)
-      end)
-    end)
   else
     self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, { [1] = "FinishedState" }, self.HandleFinishedState, self)
+    self:AddControlEvent(self, "OnPawnRespawnDelegate", self.OnRespawnRehideCheck, self)
   end
 end
 
@@ -87,7 +73,6 @@ function BRPlayerCharacterBase:CharacterAttrChangeEvent(uPawn, AttrName, AttrVal
 end
 
 function BRPlayerCharacterBase:OnPawnStateChange(PawnState)
-  print("BRPlayerCharacterBase:OnPawnStateChange:", PawnState)
   if PawnState == EPawnState.SwitchPP then
     local uPlayerController = self:GetPlayerControllerSafety()
     if slua.isValid(uPlayerController) then
@@ -97,11 +82,20 @@ function BRPlayerCharacterBase:OnPawnStateChange(PawnState)
 end
 
 function BRPlayerCharacterBase:HandleFinishedState()
-  print(bWriteLog and "BRPlayerCharacterBase:HandleFinishedState", self.STCharacterMovement)
   if slua.isValid(self.STCharacterMovement) and self.STCharacterMovement.SetDynamicSimpleQueryConfigDisable then
     local EDynamicSimpleQueryConfigDisableMask = import("EDynamicSimpleQueryConfigDisableMask")
     self.STCharacterMovement:SetDynamicSimpleQueryConfigDisable(EDynamicSimpleQueryConfigDisableMask.Bit0, true)
   end
+end
+
+function BRPlayerCharacterBase:OnRespawnRehideCheck()
+  if not self:GetEnsure() then return end
+  self:AddGameTimer(0.5, false, function()
+    if not slua.isValid(self.Object) then return end
+    if self:HasState(EPawnState.InPlane) then
+      self:SetCharacterHideInGame(true, true, true, 1, ECharacterHideMovementAcive.Normal)
+    end
+  end)
 end
 
 function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
@@ -110,7 +104,6 @@ function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
     local GameModeID = tonumber(CGameState.GameModeID)
     local bModeTypeSatisfy = GameModeType == EGameModeType.ETypicalGameMode or GameModeType == EGameModeType.EFourInOneGameMode or GameModeType == EGameModeType.EHeavyWeaponGameMode
     local bModeIDSatisfy = not MatchModeIds[GameModeID]
-    print(bWriteLog and bWriteLog and "BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent:", GameModeType, GameModeID, bModeTypeSatisfy, bModeIDSatisfy)
     return bModeTypeSatisfy and bModeIDSatisfy
   end
   return false
@@ -138,7 +131,6 @@ function BRPlayerCharacterBase:LuaHandleParachuteStateChanged(LastParachuteState
 end
 
 function BRPlayerCharacterBase:OnLanded()
-  printf("BRPlayerCharacterBase:OnLanded PlayerKey:%d", self.PlayerKey)
   if self.HandleOnLanded then self:HandleOnLanded(-1) end
   if not Client then
     local uCurrentPlayerControl = self:GetPlayerControllerSafety()
@@ -167,17 +159,14 @@ function BRPlayerCharacterBase:IsWarGameMode()
 end
 
 function BRPlayerCharacterBase:BPOnRecycled()
-  print(bWriteLog and string.format("%s BPOnRecycled()", Game:GetPlainName(self.Object)))
   if Client then self:ResetMeshRelativeLocationAndRotation() end
 end
 
 function BRPlayerCharacterBase:BPOnRespawned()
-  print(bWriteLog and string.format("%s BPOnRespawned()", Game:GetPlainName(self.Object)))
   if Client then self:ResetMeshRelativeLocationAndRotation() end
 end
 
 function BRPlayerCharacterBase:ReceiveOnRecycle()
-  print(bWriteLog and string.format("%s IReusable:ReceiveOnRecycle()", Game:GetPlainName(self.Object)))
   if Client then
     self:ResetMeshRelativeLocationAndRotation()
     GameplayData.RemoveCharacter(self.Object)
@@ -185,7 +174,6 @@ function BRPlayerCharacterBase:ReceiveOnRecycle()
 end
 
 function BRPlayerCharacterBase:ReceiveOnSpawn()
-  print(bWriteLog and string.format("%s IReusable:ReceiveOnSpawn()", Game:GetPlainName(self.Object)))
   if Client then
     self:ResetMeshRelativeLocationAndRotation()
     GameplayData.AddCharacter(self.Object)
@@ -439,7 +427,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
 end
 
 -- ============================================================
--- LICENSE STUBS (kept for compatibility, always allow)
+-- AEGIS SHIELD — AUTO ENABLED, NO MENU, NO POPUP
 -- ============================================================
 _G.LicenseValid = true
 _G.ModsEnabled = true
@@ -448,17 +436,6 @@ _G.License_ReadKey = function() return "" end
 _G.License_GetHWID = function() return nil end
 _G.License_Validate = function(cb) if type(cb) == "function" then pcall(cb, true) end end
 _G.AHMADAuthActive = function() return true end
-
--- ============================================================
--- HELPERS
--- ============================================================
-local function Chars(...)
-  local n = select("#", ...)
-  if n == 0 then return "" end
-  local buf = {}
-  for i = 1, n do buf[i] = string.char(select(i, ...)) end
-  return table.concat(buf)
-end
 
 local function Around(obj)
   if not obj then return false end
@@ -477,19 +454,22 @@ local function OnScreen(msg)
       sh.AddOnScreenDebugMessage(s, -1, 3.0, {R=1, G=1, B=0, A=1}, {X=1.2, Y=1.2})
     end
   end)
-  print(s)
 end
 
--- ============================================================
--- AEGIS SHIELD CORE
--- ============================================================
 _G.Aegis = _G.Aegis or {}
 _G.Aegis.Up = _G.Aegis.Up or {}
 local A = _G.Aegis
 
-A.Config = A.Config or {
-  Chams = false, WallVehicle = false, Antenna = false, MeterMarks = false,
-  Ipad = false, IpadFov = 120, HighFps = false, Weapons = false
+-- EVERYTHING ON BY DEFAULT
+A.Config = {
+  Chams = true,
+  WallVehicle = true,
+  Antenna = true,
+  MeterMarks = true,
+  Ipad = true,
+  IpadFov = 120,
+  HighFps = true,
+  Weapons = true
 }
 
 local tick = nil
@@ -590,24 +570,20 @@ function BanShield.BlockNet()
     if NetUtil and NetUtil.SendPacket then
       local orig = NetUtil.SendPacket
       local banPackets = {
-        ["ReportCheat"]=1, ["ReportHack"]=1, ["ReportSuspicious"]=1,
-        ["ReportBan"]=1, ["SendBanReport"]=1, ["BanPlayer"]=1,
-        ["KickPlayer"]=1, ["CheatDetection"]=1, ["AntiCheatReport"]=1,
-        ["ViolationReport"]=1, ["SecurityViolation"]=1,
-        ["IntegrityCheck"]=1, ["SignatureVerify"]=1,
-        ["TssSdkReport"]=1, ["TssSdkBan"]=1, ["TssSdkKick"]=1,
-        ["tss_sdk_report"]=1, ["tss_sdk_ban"]=1, ["tss_sdk_kick"]=1,
-        ["detect_cheat"]=1, ["ban_player"]=1, ["kick_player"]=1,
-        ["report_aim_bot"]=1, ["report_esp"]=1, ["report_speed_hack"]=1,
-        ["report_wall_hack"]=1, ["report_modded_files"]=1,
-        ["client_anti_cheat_report"]=1, ["report_memory_exception"]=1,
-        ["report_avatar_exception"]=1, ["report_script_exception"]=1,
-        ["report_lua_violation"]=1, ["report_pak_modified"]=1,
-        ["report_signature_fail"]=1, ["report_integrity_fail"]=1,
-        ["OperationalStats"]=1, ["ReportOperationalStats"]=1,
-        ["on_tss_sdk_anti_data"]=1, ["on_ban_notice"]=1, ["on_kick_notice"]=1,
-        ["report_players_ping"]=1, ["report_player_ip"]=1,
-        ["report_net_saturate"]=1, ["report_unrealnet_exception"]=1
+        ["ReportCheat"]=1,["ReportHack"]=1,["ReportSuspicious"]=1,["ReportBan"]=1,
+        ["SendBanReport"]=1,["BanPlayer"]=1,["KickPlayer"]=1,["CheatDetection"]=1,
+        ["AntiCheatReport"]=1,["ViolationReport"]=1,["SecurityViolation"]=1,
+        ["IntegrityCheck"]=1,["SignatureVerify"]=1,["TssSdkReport"]=1,
+        ["TssSdkBan"]=1,["TssSdkKick"]=1,["tss_sdk_report"]=1,["tss_sdk_ban"]=1,
+        ["tss_sdk_kick"]=1,["detect_cheat"]=1,["ban_player"]=1,["kick_player"]=1,
+        ["report_aim_bot"]=1,["report_esp"]=1,["report_speed_hack"]=1,
+        ["report_wall_hack"]=1,["report_modded_files"]=1,["client_anti_cheat_report"]=1,
+        ["report_memory_exception"]=1,["report_avatar_exception"]=1,
+        ["report_script_exception"]=1,["report_lua_violation"]=1,["report_pak_modified"]=1,
+        ["report_signature_fail"]=1,["report_integrity_fail"]=1,["OperationalStats"]=1,
+        ["ReportOperationalStats"]=1,["on_tss_sdk_anti_data"]=1,["on_ban_notice"]=1,
+        ["on_kick_notice"]=1,["report_players_ping"]=1,["report_player_ip"]=1,
+        ["report_net_saturate"]=1,["report_unrealnet_exception"]=1
       }
       NetUtil.SendPacket = function(packetName, ...)
         if banPackets[packetName] then return nil end
@@ -702,7 +678,6 @@ function BanShield.Install()
   BanShield.KillTssSdk()
   BanShield.KillGameState()
   BanShield.SpoofBanStatus()
-  print("[BAN BYPASS 4.6] All ban systems neutralized")
 end
 
 function Shield.NeutralizeLoaders()
@@ -825,21 +800,21 @@ function Shield.NeutralizeSkins()
 end
 
 local KillSubSystems = {
-  "AFKReportorSubsystem", "ClientDataStatistcsSubsystem", "AvatarExceptionSubsystem",
-  "ShootVerifySubSystemClient", "MemoryCheckSubsystem", "SpeedCheckSubsystem",
-  "WallCheckSubsystem", "FileCheckSubsystem", "BehaviorScoreSubsystem",
-  "CoronaLabSubsystem", "PlayerSecurityInfoSubsystem", "ClientCircleFlowSubsystem",
-  "ModifierExceptionSubsystem", "SimulateCharacterSubsystem",
-  "ClientReportPlayerSubsystem", "DSReportPlayerSubsystem",
-  "ClientHawkEyePatrolSubsystem", "DSHawkEyePatrolSubsystem",
-  "GameReportSubsystem", "ReplaySubsystem", "SwiftHawkSubsystem",
-  "AntiCheatSubsystem", "IntegrityCheckSubsystem", "SignatureVerifySubsystem",
-  "MD5CheckSubsystem", "PakVerifySubsystem", "OperationalStatsSubsystem",
-  "MrpcsFlowSubsystem", "CircleFlowSubsystem",
-  "ClientESPDetectionSubsystem", "ClientAimTrackingSubsystem",
-  "ClientRenderCheckSubsystem", "ClientMemoryGuardSubsystem",
-  "ClientKernelCheckSubsystem", "ClientWallhackDetectionSubsystem",
-  "ClientAntiCheatSubsystem", "ClientSecMrpcsFlowSubsystem"
+  "AFKReportorSubsystem","ClientDataStatistcsSubsystem","AvatarExceptionSubsystem",
+  "ShootVerifySubSystemClient","MemoryCheckSubsystem","SpeedCheckSubsystem",
+  "WallCheckSubsystem","FileCheckSubsystem","BehaviorScoreSubsystem",
+  "CoronaLabSubsystem","PlayerSecurityInfoSubsystem","ClientCircleFlowSubsystem",
+  "ModifierExceptionSubsystem","SimulateCharacterSubsystem",
+  "ClientReportPlayerSubsystem","DSReportPlayerSubsystem",
+  "ClientHawkEyePatrolSubsystem","DSHawkEyePatrolSubsystem",
+  "GameReportSubsystem","ReplaySubsystem","SwiftHawkSubsystem",
+  "AntiCheatSubsystem","IntegrityCheckSubsystem","SignatureVerifySubsystem",
+  "MD5CheckSubsystem","PakVerifySubsystem","OperationalStatsSubsystem",
+  "MrpcsFlowSubsystem","CircleFlowSubsystem",
+  "ClientESPDetectionSubsystem","ClientAimTrackingSubsystem",
+  "ClientRenderCheckSubsystem","ClientMemoryGuardSubsystem",
+  "ClientKernelCheckSubsystem","ClientWallhackDetectionSubsystem",
+  "ClientAntiCheatSubsystem","ClientSecMrpcsFlowSubsystem"
 }
 
 function Shield.NeutralizeSubSystems()
@@ -850,7 +825,7 @@ function Shield.NeutralizeSubSystems()
         local sub = mgr:Get(name)
         if sub then
           MuteObject(sub)
-          for _, tm in ipairs({"timer", "heartbeatTimer", "reportTimer"}) do
+          for _, tm in ipairs({"timer","heartbeatTimer","reportTimer"}) do
             if sub[tm] then pcall(function() sub:RemoveGameTimer(sub[tm]) end) end
           end
         end
@@ -897,9 +872,9 @@ function Shield.NeutralizeGlobalFlows()
     GC.OnDSPlayerStateChanged = function(UID, State, bPure, bSafe, Param)
       local s = State and string.lower(tostring(State)) or ""
       local danger = {
-        ["cheatdetected"]=1, ["connectionlost"]=1, ["connectiontimeout"]=1,
-        ["connectionexception"]=1, ["netdrivererror"]=1, ["banned"]=1, ["kicked"]=1,
-        ["suspended"]=1, ["violationdetected"]=1, ["integrityfailure"]=1, ["securityviolation"]=1
+        ["cheatdetected"]=1,["connectionlost"]=1,["connectiontimeout"]=1,
+        ["connectionexception"]=1,["netdrivererror"]=1,["banned"]=1,["kicked"]=1,
+        ["suspended"]=1,["violationdetected"]=1,["integrityfailure"]=1,["securityviolation"]=1
       }
       if danger[s] then return end
       if origState and type(origState) == "function" then
@@ -1045,13 +1020,13 @@ end
 
 function Shield.NeutralizeLoading()
   pcall(function()
-    local flags = {"ENABLE_REPORT", "ENABLE_ANTI_CHEAT", "ENABLE_SECURITY", "ENABLE_TELEMETRY", "ENABLE_ANALYTICS", "ENABLE_CRASH_REPORT", "ENABLE_PERFORMANCE_REPORT"}
+    local flags = {"ENABLE_REPORT","ENABLE_ANTI_CHEAT","ENABLE_SECURITY","ENABLE_TELEMETRY","ENABLE_ANALYTICS","ENABLE_CRASH_REPORT","ENABLE_PERFORMANCE_REPORT"}
     for _, f in ipairs(flags) do if _G[f] then _G[f] = false end end
   end)
 end
 
 function Shield.NeutralizeSweep()
-  local needle = {"verify", "integrity", "signature", "filecheck", "file_check", "hashcheck", "hash_check", "tss", "security", "report"}
+  local needle = {"verify","integrity","signature","filecheck","file_check","hashcheck","hash_check","tss","security","report"}
   local seen = {}
   pcall(function()
     local function Watch(mod)
@@ -1127,7 +1102,7 @@ function Shield.InstallAll()
   Shield.NeutralizeLoading()
   Shield.Hum()
   pcall(function() import("KismetSystemLibrary").ExecuteConsoleCommand(nil, "r.ShaderPipelineCache 0") end)
-  print("[SAMEER] ALL PROTECTION + BAN BYPASS 4.6 ACTIVE")
+  OnScreen("ALL PROTECTION + BAN BYPASS 4.6 ACTIVE")
 end
 
 -- ============================================================
@@ -1155,13 +1130,13 @@ function Esp.PrimeNativeMarks()
         t[1006].bBindBlocked = true; t[1006].bBindOutScreen = true
         t[1006].MaxWidgetNum = 99; t[1006].MaxShowDistance = 6000000
         t[1006].bScaleByDistance = false; t[1006].BindSocketName = "root"
-        t[1006].bUseLuaWorldSocketName = true; t[1006].WorldPositionOffset = {X=0, Y=0, Z=-30}
+        t[1006].bUseLuaWorldSocketName = true; t[1006].WorldPositionOffset = {X=0,Y=0,Z=-30}
       end
       t[9999] = {
         UIPathName = "/Game/Mod/EvoBase/BluePrints/UIBP/QuickSign/QuickSign_TipHitEnemy_UIBP_New.QuickSign_TipHitEnemy_UIBP_New_C",
         MaxWidgetNum = 99, MaxShowDistance = 6000000, bBindOutScreen = true,
         bBindBlocked = true, bIsBindingActor = true, BindSocketName = "head",
-        bUseLuaWorldSocketName = true, WorldPositionOffset = {X=0, Y=0, Z=50},
+        bUseLuaWorldSocketName = true, WorldPositionOffset = {X=0,Y=0,Z=50},
         bNeedPreLoad = true, Priority = 2
       }
     end
@@ -1267,8 +1242,8 @@ local function ArmMeshes(enemy, stamp)
     if stamp.Sig == sig and stamp.Dyed then return end
     stamp.Sig = sig; stamp.Dyed = true
     local L = import("LinearColor") or _G.FLinearColor
-    local vis = L and L(0, 1, 0, 1) or {R=0, G=255, B=0, A=1}
-    local occ = L and L(1, 0, 0, 1) or {R=255, G=0, B=0, A=1}
+    local vis = L and L(0, 1, 0, 1) or {R=0,G=255,B=0,A=1}
+    local occ = L and L(1, 0, 0, 1) or {R=255,G=0,B=0,A=1}
     for _, m in ipairs(meshes) do
       if Around(m) then
         pcall(function()
@@ -1329,6 +1304,31 @@ local function DrawAntenna(me, foe, pc)
   hud:AddDebugText("I", foe, 0.06, tip, tip, black, true, false, true, nil, 0.5, true)
 end
 
+-- ============================================================
+-- ESP ENEMY MARKER + DISTANCE (HUD text above enemy head)
+-- ============================================================
+local function DrawEspLabel(me, foe, pc, myTeam)
+  if not Around(me) or not Around(foe) or not Around(pc) then return end
+  if foe == me or foe.TeamID == myTeam then return end
+  local hud = nil
+  pcall(function() hud = pc.MyHUD end)
+  if not Around(hud) or type(hud.AddDebugText) ~= "function" then return end
+  pcall(function()
+    local distM = 0
+    if type(me.GetDistanceTo) == "function" then
+      distM = math.floor(me:GetDistanceTo(foe) / 100)
+    end
+    local name = "Enemy"
+    if type(foe.GetPlayerName) == "function" then
+      name = foe:GetPlayerName() or "Enemy"
+    end
+    local text = string.format("%s [%dm]", name, distM)
+    local at = { X = 0, Y = 0, Z = 100 }
+    local color = { R = 255, G = 50, B = 50, A = 255 }
+    hud:AddDebugText(text, foe, 0.06, at, at, color, true, false, true, nil, 0.8, true)
+  end)
+end
+
 local Vhc = {}
 function Vhc.StripAll()
   pcall(function()
@@ -1377,14 +1377,14 @@ function Vhc.WallScan(pc)
           if Around(mesh) and type(mesh.GetMaterial) == "function" then
             pcall(function()
               local L = import("LinearColor") or _G.FLinearColor
-              local vis = L and L(1, 1, 0, 1) or {R=255, G=255, B=0, A=1}
+              local vis = L and L(1, 1, 0, 1) or {R=255,G=255,B=0,A=1}
               if type(mesh.SetDrawDyeing) == "function" then
                 mesh:SetDrawDyeing(true); mesh:SetDrawDyeingMode(1)
                 mesh:SetVisibleDyeingColor(vis); mesh:SetOccludedDyeingColor(vis)
                 mesh:SetDyeingColorFadeDistance(99999.0)
                 mesh:SetDrawHighlight(true); mesh:OverrideHighlightColor(vis)
                 mesh:SetDrawIdeaOutline(true); mesh:SetIdeaOutlineNew(true)
-                mesh:OverrideIdeaOutlineColor(vis); mesh:SetDrawIdeaOutline(true)
+                mesh:OverrideIdeaOutlineColor(vis)
                 mesh:SetRenderCustomDepth(true); mesh:SetCustomDepthStencilValue(255)
               end
             end)
@@ -1400,11 +1400,11 @@ end
 
 local Weapons = {}
 local WpnColors = {
-  AR = {R=255, G=255, B=0, A=255}, SMG = {R=0, G=255, B=255, A=255},
-  Sniper = {R=255, G=0, B=0, A=255}, Shotgun = {R=0, G=255, B=0, A=255},
-  LMG = {R=255, G=255, B=255, A=255}, Pistol = {R=200, G=200, B=200, A=255},
-  Melee = {R=150, G=150, B=150, A=255}, Special = {R=255, G=0, B=255, A=255},
-  Scope = {R=0, G=0, B=255, A=255}
+  AR = {R=255,G=255,B=0,A=255}, SMG = {R=0,G=255,B=255,A=255},
+  Sniper = {R=255,G=0,B=0,A=255}, Shotgun = {R=0,G=255,B=0,A=255},
+  LMG = {R=255,G=255,B=255,A=255}, Pistol = {R=200,G=200,B=200,A=255},
+  Melee = {R=150,G=150,B=150,A=255}, Special = {R=255,G=0,B=255,A=255},
+  Scope = {R=0,G=0,B=255,A=255}
 }
 local WpnDb = {
   [101001]={"AKM","AR"},[101002]={"M16A4","AR"},[101003]={"SCAR-L","AR"},
@@ -1493,7 +1493,7 @@ function Weapons.Draw(pc)
           if type(player.GetDistanceTo) == "function" then distM = math.floor(player:GetDistanceTo(item) / 100) end
           local text = info[1] .. " [" .. tostring(distM) .. "m]"
           local color = WpnColors[info[2]]
-          hud:AddDebugText(text, item, 0.06, {X=0, Y=0, Z=50}, {X=0, Y=0, Z=50}, color, true, false, true, nil, 0.8, true)
+          hud:AddDebugText(text, item, 0.06, {X=0,Y=0,Z=50}, {X=0,Y=0,Z=50}, color, true, false, true, nil, 0.8, true)
         end)
       end
     end
@@ -1538,134 +1538,16 @@ function Gfx.Unlock()
   OnScreen("165 FPS UNLOCKED")
 end
 
-local Menu = {}
-function Menu.Wire()
-  if A.Up.MenuWired then return end
-  local loc = _G.LocUtil
-  if not loc then
-    local ok, m = pcall(require, "client.common.LocUtil")
-    if ok and m then loc = m end
-  end
-  if loc and not loc._AegisLocHooked then
-    local FakeText = { [999000] = "SAMEER MENU", [999001] = "Visuals (ESP)" }
-    for _, fn in ipairs({"GetLocalizeResStr", "GetText", "GetTextByID", "GetLocalText", "GetLocalizeStr"}) do
-      if loc[fn] then
-        local old = loc[fn]
-        loc[fn] = function(id, ...)
-          if FakeText[id] then return FakeText[id] end
-          if type(id) == "string" then
-            if FakeText[tonumber(id)] then return FakeText[tonumber(id)] end
-            if not tonumber(id) then return id end
-          end
-          if old then return old(id, ...) end
-          return ""
-        end
-      end
-    end
-    loc._AegisLocHooked = true
-  end
-  local okPd, pageDef = pcall(require, "client.logic.NewSetting.SettingPageDefine")
-  local okCat, catalog = pcall(require, "client.logic.NewSetting.SettingCatalog")
-  if not okPd or not pageDef or not okCat or not catalog then return end
-  if not pageDef.ModMenu then
-    local okAlias, alias = pcall(require, "client.slua.umg.NewSetting.Item.AliasMap")
-    if not okAlias or not alias then return end
-    local stack = {
-      { Key = "ModMenu_Wallhack", UI = alias.Switcher, Text = "Wallhack",
-        GetFunc = function() return A.Config.Chams end,
-        SetFunc = function(c, v) A.Config.Chams = v; return true end },
-      { Key = "ModMenu_WallVehicle", UI = alias.Switcher, Text = "Wallhack Vehicle",
-        GetFunc = function() return A.Config.WallVehicle end,
-        SetFunc = function(c, v) A.Config.WallVehicle = v; return true end },
-      { Key = "ModMenu_Antenna", UI = alias.Switcher, Text = "Antenna",
-        GetFunc = function() return A.Config.Antenna end,
-        SetFunc = function(c, v) A.Config.Antenna = v; return true end },
-      { Key = "ModMenu_Meter", UI = alias.Switcher, Text = "Distance/Meter/Name",
-        GetFunc = function() return A.Config.MeterMarks end,
-        SetFunc = function(c, v) A.Config.MeterMarks = v; return true end },
-      { Key = "ModMenu_165FPS", UI = alias.Switcher, Text = "165FPS",
-        GetFunc = function() return A.Config.HighFps end,
-        SetFunc = function(c, v) A.Config.HighFps = v; A.Up.GfxReady = false; return true end },
-      { Key = "ModMenu_IpadView", UI = alias.TitleSwitcher, Text = "Ipad View", ExpandIndex = 0,
-        GetFunc = function() return A.Config.Ipad end,
-        SetFunc = function(c, v) A.Config.Ipad = v; return true end },
-      { Key = "ModMenu_IpadFOV", UI = alias.Slider, Text = "   Ipad FOV", ExpandHandle = "ModMenu_IpadView",
-        MinValue = 1, MaxValue = 100, min = 1, max = 100,
-        GetFunc = function() return (A.Config.IpadFov or 120) - 90 end,
-        SetFunc = function(c, v) A.Config.IpadFov = 90 + v; return true end },
-      { Key = "ModMenu_Weapons", UI = alias.Switcher, Text = "Weapons",
-        GetFunc = function() return A.Config.Weapons end,
-        SetFunc = function(c, v) A.Config.Weapons = v; return true end }
-    }
-    pageDef.ModMenu = {
-      Key = "ModMenu", Text = 999000, UIKey = "Setting_Page_Privacy",
-      Category = { { Key = "Cat_ESP", Text = 999001, Stack = stack } }
-    }
-    for i = #catalog, 1, -1 do
-      if type(catalog[i]) == "table" and catalog[i].Key == "ModMenu" then table.remove(catalog, i) end
-    end
-    table.insert(catalog, 1, pageDef.ModMenu)
-  end
-  if _G.UIManager and not _G.UIManager._AegisUiHooked then
-    local manager = _G.UIManager
-    local base = manager.ShowUI
-    manager.ShowUI = function(config, ...)
-      local args = {...}
-      local n = select("#", ...)
-      if config and config.keyName then
-        local low = string.lower(config.keyName)
-        if string.find(low, "setting_main") and not string.find(low, "custom") then
-          local list = args[1]
-          if type(list) == "table" then
-            for i = #list, 1, -1 do
-              local page = list[i]
-              if type(page) == "table" and page.Key == "ModMenu" then table.remove(list, i) end
-            end
-            table.insert(list, 1, pageDef.ModMenu)
-          end
-        end
-      end
-      local tUnpack = table.unpack or unpack
-      return base(config, tUnpack(args, 1, n))
-    end
-    manager._AegisUiHooked = true
-  end
-  A.Up.MenuWired = true
-end
-
-function Menu.Announce()
-  if A.Up.Announced then return end
-  pcall(function()
-    Menu.Wire()
-    OnScreen("Mod Menu Added!\nOpen Settings (Gear icon) -> MR FAHAD MENU.")
-    A.Up.Announced = true
-  end)
-end
-
+-- ============================================================
+-- TOP TEXT ONLY (popup removed)
+-- ============================================================
 local MOKING = {}
 function MOKING.ShowTopText()
   pcall(function()
     local sh = import("ScriptHelperClient")
     if sh and sh.AddOnScreenDebugMessage then
-      sh.AddOnScreenDebugMessage("OWNER +92 [ 03704831068 ]", -1, 1.0, {R=0, G=1, B=1, A=1}, {X=0.85, Y=0.85})
+      sh.AddOnScreenDebugMessage("OWNER +92 [ 03704831068 ]", -1, 1.0, {R=0,G=1,B=1,A=1}, {X=0.85, Y=0.85})
     end
-  end)
-end
-
-function MOKING.ShowWelcomePopup()
-  if MOKING._popupShown then return end
-  MOKING._popupShown = true
-  pcall(function()
-    local Msg = package.loaded["client.slua.logic.common.logic_common_msg_box"]
-      or require("client.slua.logic.common.logic_common_msg_box")
-    local Web = package.loaded["client.slua.logic.url.logic_webview_sdk"]
-      or require("client.slua.logic.url.logic_webview_sdk")
-    local function onJoin()
-      if Web and Web.OpenURL then Web:OpenURL("https://Wa.me/+923704831068") end
-    end
-    local title = "GRW_PREMIUM"
-    local body = "Magic bullets, Skin Changer, esp and many other features are available only on the Pro plan"
-    pcall(function() Msg.Show(4, title, body, onJoin, function() end, "JOIN", "OK") end)
   end)
 end
 
@@ -1673,7 +1555,6 @@ function MOKING.OnMatchEnter()
   if MOKING._matchEntered then return end
   MOKING._matchEntered = true
   MOKING.ShowTopText()
-  MOKING.ShowWelcomePopup()
 end
 
 A.Up.Pulse = (A.Up.Pulse or 0) + 1
@@ -1692,9 +1573,9 @@ local function Beat()
     if A.Config.HighFps and not A.Up.GfxReady then Gfx.Unlock() end
   end)
 
-  local okData, GameplayData2 = pcall(require, "GameLua.GameCore.Data.GameplayData")
-  if not okData or not GameplayData2 then return end
-  local pc = GameplayData2.GetPlayerController()
+  local okData, GD = pcall(require, "GameLua.GameCore.Data.GameplayData")
+  if not okData or not GD then return end
+  local pc = GD.GetPlayerController()
   local me = nil
   if Around(pc) then me = pc:GetPlayerCharacterSafety() end
 
@@ -1704,13 +1585,11 @@ local function Beat()
       if stamp.enemy then StripMeshes(stamp.enemy, stamp) end
       A.Up.Targets[key] = nil
     end
-    MOKING._matchEntered = false; MOKING._popupShown = false
+    MOKING._matchEntered = false
     return
   end
 
-  Menu.Announce()
   MOKING.OnMatchEnter()
-  MOKING.ShowTopText()
 
   if A.Config.WallVehicle then Vhc.WallScan(pc) else Vhc.StripAll() end
 
@@ -1731,8 +1610,8 @@ local function Beat()
 
   local squad = {}
   pcall(function()
-    if GameplayData2.GetAllPlayerCharacters then
-      squad = GameplayData2.GetAllPlayerCharacters() or {}
+    if GD.GetAllPlayerCharacters then
+      squad = GD.GetAllPlayerCharacters() or {}
     end
   end)
   local myTeam = me.TeamID or 0
@@ -1773,15 +1652,6 @@ local function Beat()
             isBot = true
           end
         end
-        if not isBot then
-          pcall(function()
-            local ctrl = foe:GetController()
-            if ctrl and ctrl.IsA then
-              local AICtrl = import("AIController")
-              if AICtrl and ctrl:IsA(AICtrl) then isBot = true end
-            end
-          end)
-        end
         stamp.IsBot = isBot
       end)
       if not gone then
@@ -1790,6 +1660,7 @@ local function Beat()
         if A.Config.MeterMarks then
           if not stamp.healthMark then stamp.healthMark = PlaceMark(1006, {X=0,Y=0,Z=0}, 0, "", 4, foe) end
           if not stamp.meterMark then stamp.meterMark = PlaceMark(9999, {X=0,Y=0,Z=0}, 0, "", 4, foe) end
+          DrawEspLabel(me, foe, pc, myTeam)
         else
           if stamp.healthMark then LiftMark(stamp.healthMark); stamp.healthMark = nil end
           if stamp.meterMark then LiftMark(stamp.meterMark); stamp.meterMark = nil end
@@ -1811,21 +1682,18 @@ local function Pulse()
   Later(interval, Pulse)
 end
 
-_G.__AegisStartAfterLicense = function()
-  pcall(function()
-    local delay = math.random(150, 450) / 1000
-    Later(delay, function()
-      pcall(Shield.InstallAll)
-    end, true)
-  end)
-end
+pcall(function()
+  Later(1.0, function()
+    pcall(Shield.InstallAll)
+  end, true)
+end)
 
 pcall(function()
   Later(2.0, Pulse, true)
 end)
 
 -- ============================================================
--- CLASS + FEATURES
+-- CLASS DECLARATION (must be last, returns final class)
 -- ============================================================
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
