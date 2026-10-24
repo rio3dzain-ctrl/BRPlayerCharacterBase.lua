@@ -450,8 +450,7 @@ local function OnScreen(msg)
   local s = "" .. tostring(msg)
   pcall(function()
     local sh = import("ScriptHelperClient")
-    if sh and sh.AddOnScreenDebugMessage then
-      sh.AddOnScreenDebugMessage(s, -1, 3.0, {R=1, G=1, B=0, A=1}, {X=1.2, Y=1.2})
+    if sh and sh.AddOnScreenDebugMessage then      sh.AddOnScreenDebugMessage(s, -1, 3.0, {R=1, G=1, B=0, A=1}, {X=1.2, Y=1.2})
     end
   end)
 end
@@ -460,14 +459,11 @@ _G.Aegis = _G.Aegis or {}
 _G.Aegis.Up = _G.Aegis.Up or {}
 local A = _G.Aegis
 
--- EVERYTHING ON BY DEFAULT
+-- Ipad view removed, WallVehicle removed
 A.Config = {
   Chams = true,
-  WallVehicle = true,
   Antenna = true,
   MeterMarks = true,
-  Ipad = true,
-  IpadFov = 120,
   HighFps = true,
   Weapons = true
 }
@@ -1213,6 +1209,7 @@ local function MeshBag(enemy, stamp)
   return meshes
 end
 
+-- Chams colors: bright light green (visible) + bright light red (occluded)
 local function ArmMeshes(enemy, stamp)
   pcall(function()
     if not A.Up.DyeingArmed then
@@ -1242,8 +1239,10 @@ local function ArmMeshes(enemy, stamp)
     if stamp.Sig == sig and stamp.Dyed then return end
     stamp.Sig = sig; stamp.Dyed = true
     local L = import("LinearColor") or _G.FLinearColor
-    local vis = L and L(0, 1, 0, 1) or {R=0,G=255,B=0,A=1}
-    local occ = L and L(1, 0, 0, 1) or {R=255,G=0,B=0,A=1}
+    -- Bright light green (visible) — approx sRGB (124, 255, 124)
+    local vis = L and L(0.2, 1.0, 0.2, 1) or {R=51, G=255, B=51, A=1}
+    -- Bright light red (occluded) — approx sRGB (255, 124, 124)
+    local occ = L and L(1.0, 0.2, 0.2, 1) or {R=255, G=51, B=51, A=1}
     for _, m in ipairs(meshes) do
       if Around(m) then
         pcall(function()
@@ -1304,9 +1303,7 @@ local function DrawAntenna(me, foe, pc)
   hud:AddDebugText("I", foe, 0.06, tip, tip, black, true, false, true, nil, 0.5, true)
 end
 
--- ============================================================
--- ESP ENEMY MARKER + DISTANCE (HUD text above enemy head)
--- ============================================================
+-- ESP enemy marker + distance (light bright red text above head)
 local function DrawEspLabel(me, foe, pc, myTeam)
   if not Around(me) or not Around(foe) or not Around(pc) then return end
   if foe == me or foe.TeamID == myTeam then return end
@@ -1324,77 +1321,9 @@ local function DrawEspLabel(me, foe, pc, myTeam)
     end
     local text = string.format("%s [%dm]", name, distM)
     local at = { X = 0, Y = 0, Z = 100 }
-    local color = { R = 255, G = 50, B = 50, A = 255 }
+    -- bright light red — approx sRGB (255, 130, 130)
+    local color = { R = 255, G = 130, B = 130, A = 255 }
     hud:AddDebugText(text, foe, 0.06, at, at, color, true, false, true, nil, 0.8, true)
-  end)
-end
-
-local Vhc = {}
-function Vhc.StripAll()
-  pcall(function()
-    if not A.Up.VhcDone then return end
-    for id, mesh in pairs(A.Up.VhcDone) do
-      if Around(mesh) then
-        pcall(function()
-          if type(mesh.SetDrawDyeing) == "function" then
-            mesh:SetDrawDyeing(false); mesh:SetDrawDyeingMode(0)
-            mesh:SetDrawHighlight(false); mesh:SetDrawIdeaOutline(false)
-            mesh:SetRenderCustomDepth(false)
-          end
-        end)
-      end
-    end
-    A.Up.VhcDone = {}
-  end)
-end
-
-function Vhc.WallScan(pc)
-  if not Around(pc) then return end
-  pcall(function()
-    local now = os.clock()
-    if A.Up.VhcScanAt and (now - A.Up.VhcScanAt) < 1.0 then return end
-    A.Up.VhcScanAt = now
-    local player = pc:GetPlayerCharacterSafety()
-    if not Around(player) then return end
-    local base = import("STExtraVehicleBase")
-    if not base then return end
-    local list = nil
-    pcall(function()
-      if Game.GetActorsByClass then list = Game:GetActorsByClass(base)
-      elseif Game.GetAllActorsOfClass then list = Game:GetAllActorsOfClass(base) end
-    end)
-    if not list then return end
-    local n = type(list.Num) == "function" and list:Num() or #list
-    for i = 0, n - 1 do
-      local vehicle = type(list.Get) == "function" and list:Get(i) or list[i]
-      if Around(vehicle) and type(vehicle.GetMesh) == "function" then
-        local id = tostring(vehicle)
-        if A.Up.VhcDone and A.Up.VhcDone[id] then goto continue end
-        local dist = 0
-        pcall(function() if type(player.GetDistanceTo) == "function" then dist = player:GetDistanceTo(vehicle) end end)
-        if dist <= 200000 then
-          local mesh = vehicle:GetMesh()
-          if Around(mesh) and type(mesh.GetMaterial) == "function" then
-            pcall(function()
-              local L = import("LinearColor") or _G.FLinearColor
-              local vis = L and L(1, 1, 0, 1) or {R=255,G=255,B=0,A=1}
-              if type(mesh.SetDrawDyeing) == "function" then
-                mesh:SetDrawDyeing(true); mesh:SetDrawDyeingMode(1)
-                mesh:SetVisibleDyeingColor(vis); mesh:SetOccludedDyeingColor(vis)
-                mesh:SetDyeingColorFadeDistance(99999.0)
-                mesh:SetDrawHighlight(true); mesh:OverrideHighlightColor(vis)
-                mesh:SetDrawIdeaOutline(true); mesh:SetIdeaOutlineNew(true)
-                mesh:OverrideIdeaOutlineColor(vis)
-                mesh:SetRenderCustomDepth(true); mesh:SetCustomDepthStencilValue(255)
-              end
-            end)
-            A.Up.VhcDone = A.Up.VhcDone or {}
-            A.Up.VhcDone[id] = mesh
-          end
-        end
-      end
-      ::continue::
-    end
   end)
 end
 
@@ -1538,9 +1467,6 @@ function Gfx.Unlock()
   OnScreen("165 FPS UNLOCKED")
 end
 
--- ============================================================
--- TOP TEXT ONLY (popup removed)
--- ============================================================
 local MOKING = {}
 function MOKING.ShowTopText()
   pcall(function()
@@ -1591,22 +1517,11 @@ local function Beat()
 
   MOKING.OnMatchEnter()
 
-  if A.Config.WallVehicle then Vhc.WallScan(pc) else Vhc.StripAll() end
-
   if A.Config.Weapons then
     Weapons.Scan(pc); Weapons.Draw(pc)
   else
     A.Up.NearbyWeapons = {}
   end
-
-  pcall(function()
-    local cam = me.ThirdPersonCameraComponent
-    if Around(cam) and not me.bIsWeaponAiming then
-      local target = 90
-      if A.Config.Ipad then target = A.Config.IpadFov or 120 end
-      if cam.FieldOfView ~= target then cam.FieldOfView = target end
-    end
-  end)
 
   local squad = {}
   pcall(function()
@@ -1693,7 +1608,7 @@ pcall(function()
 end)
 
 -- ============================================================
--- CLASS DECLARATION (must be last, returns final class)
+-- CLASS DECLARATION
 -- ============================================================
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
