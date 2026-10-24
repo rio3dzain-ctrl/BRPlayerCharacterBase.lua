@@ -33,19 +33,18 @@ BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = {
   }
 }
 
--- [ESP ADD] begin — Snapshot ESP module (snap lines + player/bot counter + distance)
-local SnapLineESP = (function()
+-- [ESP ADD] begin — SnapLineESP module
+local SnapLineESP = nil
+pcall(function()
   local SlateBlueprintLibrary, WidgetLayoutLibrary
   local FVector2D, FVector, FLinearColor, FSlateColor
 
-  pcall(function()
-    SlateBlueprintLibrary = import("SlateBlueprintLibrary") or import("/Script/UMG.SlateBlueprintLibrary")
-    WidgetLayoutLibrary  = import("WidgetLayoutLibrary")  or import("/Script/UMG.WidgetLayoutLibrary")
-    FVector2D    = import("Vector2D")
-    FVector      = import("Vector")
-    FLinearColor = import("LinearColor")
-    FSlateColor  = import("SlateColor") or import("/Script/SlateCore.SlateColor")
-  end)
+  SlateBlueprintLibrary = import("SlateBlueprintLibrary") or import("/Script/UMG.SlateBlueprintLibrary")
+  WidgetLayoutLibrary  = import("WidgetLayoutLibrary")  or import("/Script/UMG.WidgetLayoutLibrary")
+  FVector2D    = import("Vector2D")
+  FVector      = import("Vector")
+  FLinearColor = import("LinearColor")
+  FSlateColor  = import("SlateColor") or import("/Script/SlateCore.SlateColor")
 
   local function IsValid(obj)
     if not obj then return false end
@@ -53,17 +52,22 @@ local SnapLineESP = (function()
     return true
   end
 
+  local GameplayData = nil
+  pcall(function()
+    GameplayData = _G.GameplayData
+       or package.loaded["GameLua.GameCore.Data.GameplayData"]
+       or require("GameLua.GameCore.Data.GameplayData")
+  end)
+
   local TempProjVec2D = FVector2D and FVector2D(0, 0) or nil
   local ColorWhite  = FLinearColor and FLinearColor(1.0, 1.0, 1.0, 1.0) or nil
   local ColorRed    = FLinearColor and FLinearColor(1.0, 0.15, 0.15, 1.0) or nil
   local ColorGreen  = FLinearColor and FLinearColor(0.0, 1.0, 0.05, 1.0) or nil
-  local ColorYellow = FLinearColor and FLinearColor(1.0, 0.95, 0.0, 1.0) or nil
 
   local ENEMY_COUNTER_PLAYER_URLS = {}
   local ENEMY_COUNTER_BOT_URLS    = {}
   local EnemyCounterTextureCache  = {}
-  local BADGE_WIDTH  = 48
-  local BADGE_HEIGHT = 22
+  local BADGE_WIDTH, BADGE_HEIGHT = 48, 22
 
   local function FileExists(path)
     if not path or path == "" then return false end
@@ -85,7 +89,6 @@ local SnapLineESP = (function()
 
   local function LoadBadgeTexture(imgWidget, urls, filename, typeKey, counterData)
     if not imgWidget or not IsValid(imgWidget) then return end
-
     if EnemyCounterTextureCache[typeKey] and IsValid(EnemyCounterTextureCache[typeKey]) then
       pcall(function()
         imgWidget:SetBrushFromTexture(EnemyCounterTextureCache[typeKey], false)
@@ -97,7 +100,6 @@ local SnapLineESP = (function()
       end
       return
     end
-
     local function applyTex(tex)
       if tex and IsValid(tex) and IsValid(imgWidget) then
         EnemyCounterTextureCache[typeKey] = tex
@@ -113,7 +115,6 @@ local SnapLineESP = (function()
       end
       return false
     end
-
     for _, localPath in ipairs(GetPossibleLocalPaths(filename)) do
       if FileExists(localPath) then
         local tex = nil
@@ -127,7 +128,6 @@ local SnapLineESP = (function()
         if tex and applyTex(tex) then return end
       end
     end
-
     local function tryDownloadUrl(i)
       if i > #urls then return end
       local url = urls[i]
@@ -183,7 +183,8 @@ local SnapLineESP = (function()
     _CanvasOffsetX = 0.0, _CanvasOffsetY = 0.0,
     _LastCanvas = nil, _LastTransformTime = 0,
     _LastHeavyUpdateTime = 0, _LastVisCheckTime = 0,
-    _VisCheckCache = {}
+    _VisCheckCache = {},
+    _tick = 0
   }
 
   function M.GetMainCanvas()
@@ -289,12 +290,10 @@ local SnapLineESP = (function()
       lineData.bVisible = true
     end
     if CustomColor then pcall(function() lineData.Widget:SetBrushColor(CustomColor) end) end
-
     local dx, dy = toX - fromX, toY - fromY
     local length = math.sqrt(dx * dx + dy * dy)
     local angle = (math.atan2 and math.atan2(dy, dx) or math.atan(dy, dx)) * (180.0 / math.pi)
     local t = M.SnapLineThickness or 1.0
-
     if not lineData._CachedPosVec then
       lineData._CachedPosVec  = FVector2D(fromX, fromY - t * 0.5)
       lineData._CachedSizeVec = FVector2D(length, t)
@@ -375,7 +374,6 @@ local SnapLineESP = (function()
   function M.CreateEnemyCounter(ParentCanvas, centerX, topY)
     local CD = M.CounterData
     if CD.ImgPlayer and IsValid(CD.ImgPlayer) and CD.ImgBot and IsValid(CD.ImgBot) then return true end
-
     local imgPlayer = CGame:NewObjectFromPath("/Script/UMG.Image", ParentCanvas)
     local slotPlayer = nil
     if imgPlayer and IsValid(imgPlayer) then
@@ -388,7 +386,6 @@ local SnapLineESP = (function()
         slotPlayer:SetZOrder(1005)
       end
     end
-
     local imgBot = CGame:NewObjectFromPath("/Script/UMG.Image", ParentCanvas)
     local slotBot = nil
     if imgBot and IsValid(imgBot) then
@@ -401,7 +398,6 @@ local SnapLineESP = (function()
         slotBot:SetZOrder(1005)
       end
     end
-
     local function MakeText(posX, posY)
       local txt = CGame:NewObjectFromPath("/Script/UMG.TextBlock", ParentCanvas)
       local sl = nil
@@ -431,13 +427,10 @@ local SnapLineESP = (function()
       end
       return txt, sl
     end
-
     local txtPlayer, slotTxtPlayer = MakeText(centerX - (BADGE_WIDTH * 0.25), topY + (BADGE_HEIGHT * 0.5))
     local txtBot,    slotTxtBot    = MakeText(centerX + (BADGE_WIDTH * 0.65), topY + (BADGE_HEIGHT * 0.5))
-
     LoadBadgeTexture(imgPlayer, ENEMY_COUNTER_PLAYER_URLS, "ic_danger_enemy.png", "Player", CD)
     LoadBadgeTexture(imgBot,    ENEMY_COUNTER_BOT_URLS,    "ic_clear_boot.png",   "Bot",    CD)
-
     CD.ImgPlayer, CD.SlotPlayer = imgPlayer, slotPlayer
     CD.ImgBot,    CD.SlotBot    = imgBot,    slotBot
     CD.TxtPlayer, CD.SlotTxtPlayer = txtPlayer, slotTxtPlayer
@@ -448,27 +441,8 @@ local SnapLineESP = (function()
 
   function M.UpdateEnemyCounterDisplay(realCount, botCount, ParentCanvas, centerX, topY)
     local CD = M.CounterData
-    if not M.bShowCounter then
-      local col = UEnums.ESlateVisibility.Collapsed
-      if CD.ImgPlayer and IsValid(CD.ImgPlayer) then CD.ImgPlayer:SetWidgetVisibility(col) end
-      if CD.ImgBot    and IsValid(CD.ImgBot)    then CD.ImgBot:SetWidgetVisibility(col)    end
-      if CD.TxtPlayer and IsValid(CD.TxtPlayer) then CD.TxtPlayer:SetWidgetVisibility(col) end
-      if CD.TxtBot    and IsValid(CD.TxtBot)    then CD.TxtBot:SetWidgetVisibility(col)    end
-      return
-    end
+    if not M.bShowCounter then return end
     if not M.CreateEnemyCounter(ParentCanvas, centerX, topY) then return end
-
-    local now = os.clock()
-    if (not CD.PlayerLoaded or not CD.BotLoaded) and (now - CD.LastDownloadRetry > 2.0) then
-      CD.LastDownloadRetry = now
-      if not CD.PlayerLoaded and CD.ImgPlayer then
-        LoadBadgeTexture(CD.ImgPlayer, ENEMY_COUNTER_PLAYER_URLS, "ic_danger_enemy.png", "Player", CD)
-      end
-      if not CD.BotLoaded and CD.ImgBot then
-        LoadBadgeTexture(CD.ImgBot, ENEMY_COUNTER_BOT_URLS, "ic_clear_boot.png", "Bot", CD)
-      end
-    end
-
     pcall(function()
       if CD.SlotPlayer then
         CD.SlotPlayer:SetSize(FVector2D(BADGE_WIDTH, BADGE_HEIGHT))
@@ -496,12 +470,25 @@ local SnapLineESP = (function()
     end)
   end
 
+  local function GetAllPawns()
+    local list = nil
+    if Game and Game.GetAllPlayerPawns then
+      local ok, r = pcall(function() return Game:GetAllPlayerPawns() end)
+      if ok and r then list = r end
+    end
+    if (not list or next(list) == nil) and GameplayData and GameplayData.GetAllPlayerPawns then
+      local ok, r = pcall(function() return GameplayData:GetAllPlayerPawns() end)
+      if ok and r then list = r end
+    end
+    return list or {}
+  end
+
   function M.UpdateESP()
     if not M.bActive then return end
+    M._tick = M._tick + 1
+
     local ParentCanvas = M.GetMainCanvas()
     if not ParentCanvas then return end
-
-    local GameplayData = package.loaded["GameLua.GameCore.Data.GameplayData"] or _G.GameplayData
     if not GameplayData then return end
     local LocalPlayer = GameplayData.GetPlayerCharacter and GameplayData.GetPlayerCharacter()
     if not IsValid(LocalPlayer) then return end
@@ -514,15 +501,15 @@ local SnapLineESP = (function()
       M._LastCanvas = ParentCanvas
       M._LastTransformTime = curTime
     end
-    local bRunHeavy  = (curTime - M._LastHeavyUpdateTime > 0.15)
-    local bVisCheck  = (curTime - M._LastVisCheckTime   > 0.12)
+    local bRunHeavy = (curTime - M._LastHeavyUpdateTime > 0.15)
+    local bVisCheck = (curTime - M._LastVisCheckTime   > 0.12)
     if bRunHeavy then M._LastHeavyUpdateTime = curTime end
     if bVisCheck then M._LastVisCheckTime    = curTime end
 
     local fromX, fromY = M.GetSnapLineStartPos(PC)
 
     local TeamID = LocalPlayer.TeamID or (LocalPlayer.GetTeamID and LocalPlayer:GetTeamID()) or 0
-    local AllPawns = (Game and Game.GetAllPlayerPawns and Game:GetAllPlayerPawns()) or {}
+    local AllPawns = GetAllPawns()
     local SeenKeys = {}
     local RealPlayerCount, BotCount = 0, 0
 
@@ -558,17 +545,16 @@ local SnapLineESP = (function()
             local topWorld    = FVector(Loc.X, Loc.Y, Loc.Z + topOffset)
             local bottomWorld = FVector(Loc.X, Loc.Y, Loc.Z + bottomOffset)
 
-            local bTopOk, topX, topY          = M.ProjectWorldToCanvasLocal(PC, topWorld)
-            local bBotOk, bottomX, bottomY    = M.ProjectWorldToCanvasLocal(PC, bottomWorld)
+            local bTopOk, topX, topY  = M.ProjectWorldToCanvasLocal(PC, topWorld)
+            local bBotOk, botX, botY  = M.ProjectWorldToCanvasLocal(PC, bottomWorld)
 
             if bTopOk and bBotOk then
-              local centerX   = (topX + bottomX) * 0.5
-              local boxTopY   = math.min(topY, bottomY)
-              local boxBotY   = math.max(topY, bottomY)
+              local centerX = (topX + botX) * 0.5
+              local boxTopY = math.min(topY, botY)
+              local boxBotY = math.max(topY, botY)
 
               if bVisCheck or M._VisCheckCache[KeyStr] == nil then
-                M._VisCheckCache[KeyStr] =
-                  (PC and PC.LineOfSightTo and PC:LineOfSightTo(Pawn)) or false
+                M._VisCheckCache[KeyStr] = (PC and PC.LineOfSightTo and PC:LineOfSightTo(Pawn)) or false
               end
               local isVisible = M._VisCheckCache[KeyStr]
 
@@ -609,36 +595,35 @@ local SnapLineESP = (function()
     M.UpdateEnemyCounterDisplay(RealPlayerCount, BotCount, ParentCanvas, fromX, counterTopY)
   end
 
-  function M.Init()
-    if M.bBootstrapped then return end
-    M.bBootstrapped = true
+  SnapLineESP = M
+end)
 
-    pcall(function()
-      local Ticker = package.loaded["common.time_ticker"] or require("common.time_ticker")
-      if Ticker and Ticker.AddTimerLoop then
-        Ticker.AddTimerLoop(function()
-          M.UpdateESP()
-          return true
-        end, 0.02)
-        print(bWriteLog and "SnapLineESP: ticker registered via common.time_ticker")
-        return
-      end
-    end)
+_G.SnapLineESP = SnapLineESP
 
-    pcall(function()
-      local PC = nil
-      if slua_GameFrontendHUD and slua_GameFrontendHUD.GetPlayerController then
-        PC = slua_GameFrontendHUD:GetPlayerController()
-      end
-      if IsValid(PC) and PC.AddGameTimer then
-        PC:AddGameTimer(0.02, true, M.UpdateESP)
-        print(bWriteLog and "SnapLineESP: ticker registered via PC:AddGameTimer")
-      end
-    end)
-  end
+-- Register tickers at file-load time (mirrors the working original pattern)
+if SnapLineESP then
+  pcall(function()
+    local Ticker = package.loaded["common.time_ticker"] or require("common.time_ticker")
+    if Ticker and Ticker.AddTimerLoop then
+      Ticker.AddTimerLoop(function()
+        SnapLineESP.UpdateESP()
+        return true
+      end, 0.02)
+      print("[SnapLineESP] ticker registered via common.time_ticker")
+    end
+  end)
 
-  return M
-end)()
+  pcall(function()
+    local PC = nil
+    if slua_GameFrontendHUD and slua_GameFrontendHUD.GetPlayerController then
+      PC = slua_GameFrontendHUD:GetPlayerController()
+    end
+    if PC and slua.isValid(PC) and PC.AddGameTimer then
+      PC:AddGameTimer(0.02, true, SnapLineESP.UpdateESP)
+      print("[SnapLineESP] ticker registered via PC:AddGameTimer")
+    end
+  end)
+end
 -- [ESP ADD] end
 
 local ENetRole = import("ENetRole")
@@ -689,13 +674,6 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
       AttrName = { "bCanSelfRescue" }
     }, self.CharacterAttrChangeEvent, self)
   end
-
-  -- [ESP ADD] start — bootstrap SnapLineESP once for the local player
-  if Client and self:IsLocallyControlled() then
-    SnapLineESP.Init()
-  end
-  -- [ESP ADD] end
-
   if Client then
     printf(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay, PlayerKey:%u ", self.PlayerKey)
     GameplayData.AddCharacter(self.Object)
