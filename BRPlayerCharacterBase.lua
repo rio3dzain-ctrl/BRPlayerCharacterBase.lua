@@ -556,23 +556,23 @@ _G.LexusConfig = _G.LexusConfig or {
     EspLoai5 = false, 
     EspLoai6 = false, 
     EspLoai7 = false,
-    Esp7_SoLuong = false, -- [THÊM MỚI] Bật tắt Số lượng địch
-    Esp7_VuKhi = false,   -- [THÊM MỚI] Bật tắt Vũ khí địch
-    Esp7_TuThe = false,   -- [THÊM MỚI] Bật tắt Tư thế địch
+    Esp7_SoLuong = true, -- [THÊM MỚI] Bật tắt Số lượng địch
+    Esp7_VuKhi = true,   -- [THÊM MỚI] Bật tắt Vũ khí địch
+    Esp7_TuThe = true,   -- [THÊM MỚI] Bật tắt Tư thế địch
     EspLoai8 = false,
     EspLoai9 = false, -- Công tắc TỔNG ESP Loại 9
     -- BoxESP from EspLeakedByLava.lua
-    BoxESPEnabled = false,
-    BoxESPShowBox = false,
-    BoxESPShowName = false,
-    BoxESPShowDistance = false,
-    BoxESPShowFlag = false,
-    BoxESPShowHealth = false,
-    BoxESPShowWeapon = false,
-    BoxESPShowState = false,
-    BoxESPShowLines = false,
-    BoxESPShowCounter = false,
-    BoxESPShowSkeleton = false,
+    BoxESPEnabled = true,
+    BoxESPShowBox = true,
+    BoxESPShowName = true,
+    BoxESPShowDistance = true,
+    BoxESPShowFlag = true,
+    BoxESPShowHealth = true,
+    BoxESPShowWeapon = true,
+    BoxESPShowState = true,
+    BoxESPShowLines = true,
+    BoxESPShowCounter = true,
+    BoxESPShowSkeleton = true,
     Esp9_Count = true,    -- Đếm người (RedBox)
     Esp9_Name = true,     -- Tên
     Esp9_HP = true,       -- Thanh Máu
@@ -681,7 +681,7 @@ _G.LexusConfig = _G.LexusConfig or {
     -- Config Bug Màn
     BugManEnable = false,
 
-    -- Config Fake CHACHA Visual
+    -- Config Fake DRAGON Visual
     X3FakeVisual = false
 }
 
@@ -702,7 +702,7 @@ _G.LexusState = _G.LexusState or {
     PrevGraphicsState = {}
 }
 
-local limitTime = os.time({ year = 2026, month = 10, day = 16, hour = 23, min = 59, sec = 0 })
+local limitTime = os.time({ year = 2027, month = 10, day = 20, hour = 23, min = 59, sec = 0 })
 local currentTime = os.time(os.date("!*t"))
 local isExpired = false
 
@@ -795,7 +795,7 @@ end)
 isExpired = (currentTime > limitTime)
 
 -- ==============================================================================
--- =========== CHACHA PALSU / FAKE CHACHA VISUAL (X3FakeVisual) ===============
+-- =========== DRAGON PALSU / FAKE DRAGON VISUAL (X3FakeVisual) ===============
 -- ==============================================================================
 do
     _G.X3 = _G.X3 or {}
@@ -924,7 +924,7 @@ end
 -- ==============================================================================
 
 -- ============================================================================
--- CHACHA MERGED BYPASS v3.0 - COMPLETE SECURITY DISABLEMENT
+-- DRAGON MERGED BYPASS v3.0 - COMPLETE SECURITY DISABLEMENT
 -- ============================================================================
 local function nop() return true end
 local function retFalse() return false end
@@ -1253,14 +1253,14 @@ local function InitializeOperationalStatsBypass()
                 OperationalStatsSubsystem.TimerHandle = nil
             end
             OperationalStatsSubsystem.StatsData = {}
-            print("[CHACHA BYPASS] OperationalStatsSubsystem blocked!")
+            print("[DRAGON BYPASS] OperationalStatsSubsystem blocked!")
         end
     end)
 end
 
 _G.StartBypass_VIP_v3 = function()
     pcall(function()
-        print("[CHACHA BYPASS] Starting initialization...")
+        print("[DRAGON BYPASS] Starting initialization...")
         InitializeSLUABypass()
         InitializeMD5Bypass()
         InitializeSkinBypass() -- Thêm dòng này
@@ -1283,7 +1283,7 @@ _G.StartBypass_VIP_v3 = function()
         InitializeKillAllSubsystems()
         InitializeOperationalStatsBypass() -- [NEW] BYPASS BÁO CÁO THỐNG KÊ (Operational Stats)
         InitializeFinalProtection()
-        print("[CHACHA BYPASS] Complete - All Security Systems Disabled")
+        print("[DRAGON BYPASS] Complete - All Security Systems Disabled")
     end)
 end
 
@@ -1489,7 +1489,7 @@ local function GetConfigPaths(fileName)
     return paths
 end
 
-local ConfigFileName = "MOHSINXFILES_settings.txt"
+local ConfigFileName = "file_dragon_settings.txt"
 local KillCountFileName = "lexus_kill_count.txt"
 _G.LastConfigSaveStr = ""
 
@@ -1636,11 +1636,11 @@ function _G.InitModMenuTab()
     
     -- 1. TẠO BẢNG ID ẢO VỚI TEXT MỚI (Hỗ trợ 2 ngôn ngữ)
     local FakeTextMap = {
-        [999000] = T("چاچو", "CHACHA"),
-        [999007] = T("جادو VIP", "VIP ESP"),
-        [999003] = T("پویوں آئل", "AIMBOT"),
-        [999004] = T("شوم", "MEMORY"),
-        [999005] = T("خطرہ )", "MOD SKIN (RISKY)"),
+        [999000] = T("دراجون", "DRAGON"),
+        [999007] = T("كشف VIP", "VIP ESP"),
+        [999003] = T("الايم بوت", "AIMBOT"),
+        [999004] = T("مومري", "MEMORY"),
+        [999005] = T("الاسكنات (خطير)", "MOD SKIN (RISKY)"),
     }
 
     -- 2. HOOK TOÀN BỘ HÀM ĐỌC TEXT CỦA GAME (FIX LỖI TRỐNG THANH TAB)
@@ -1681,196 +1681,196 @@ function _G.InitModMenuTab()
         end
 
         local StackBoxESP = {
-            { Key = "ModMenu_BoxESP", UI = AliasMap.Switcher, Text = T(" Show Box"), GetFunc = function() return _G.LexusConfig.BoxESPShowBox end, SetFunc = function(c,v) return BoxESPSet("bShowBox", "BoxESPShowBox", c, v) end },
-            { Key = "ModMenu_BoxESP_Name", UI = AliasMap.Switcher, Text = T("Show Name"), GetFunc = function() return _G.LexusConfig.BoxESPShowName end, SetFunc = function(c,v) return BoxESPSet("bShowName", "BoxESPShowName", c, v) end },
-            { Key = "ModMenu_BoxESP_Distance", UI = AliasMap.Switcher, Text = T(" Show Distance"), GetFunc = function() return _G.LexusConfig.BoxESPShowDistance end, SetFunc = function(c,v) return BoxESPSet("bShowDistance", "BoxESPShowDistance", c, v) end },
-            { Key = "ModMenu_BoxESP_Weapon", UI = AliasMap.Switcher, Text = T(" Show Weapon"), GetFunc = function() return _G.LexusConfig.BoxESPShowWeapon end, SetFunc = function(c,v) return BoxESPSet("bShowWeapon", "BoxESPShowWeapon", c, v) end },
-            { Key = "ModMenu_BoxESP_State", UI = AliasMap.Switcher, Text = T(" Show State"), GetFunc = function() return _G.LexusConfig.BoxESPShowState end, SetFunc = function(c,v) return BoxESPSet("bShowState", "BoxESPShowState", c, v) end },
-            { Key = "ModMenu_BoxESP_Flag", UI = AliasMap.Switcher, Text = T(" Show Flag"), GetFunc = function() return _G.LexusConfig.BoxESPShowFlag end, SetFunc = function(c,v) return BoxESPSet("bShowFlag", "BoxESPShowFlag", c, v) end },
-            { Key = "ModMenu_BoxESP_Health", UI = AliasMap.Switcher, Text = T(" Show Health"), GetFunc = function() return _G.LexusConfig.BoxESPShowHealth end, SetFunc = function(c,v) return BoxESPSet("bShowHealth", "BoxESPShowHealth", c, v) end },
-            { Key = "ModMenu_BoxESP_Lines", UI = AliasMap.Switcher, Text = T("   Show Snap Lines"), GetFunc = function() return _G.LexusConfig.BoxESPShowLines end, SetFunc = function(c,v) return BoxESPSet("bShowLines", "BoxESPShowLines", c, v) end },
-            { Key = "ModMenu_BoxESP_Counter", UI = AliasMap.Switcher, Text = T("  Show Player/Bot Counter"), GetFunc = function() return _G.LexusConfig.BoxESPShowCounter end, SetFunc = function(c,v) return BoxESPSet("bShowCounter", "BoxESPShowCounter", c, v) end },
-            { Key = "ModMenu_BoxESP_Skeleton", UI = AliasMap.Switcher, Text = T("   Show Skeleton"), GetFunc = function() return _G.LexusConfig.BoxESPShowSkeleton end, SetFunc = function(c,v) return BoxESPSet("bShowSkeleton", "BoxESPShowSkeleton", c, v) end },
+            { Key = "ModMenu_BoxESP", UI = AliasMap.Switcher, Text = T("   إظهار البوكس", "   Show Box"), GetFunc = function() return _G.LexusConfig.BoxESPShowBox end, SetFunc = function(c,v) return BoxESPSet("bShowBox", "BoxESPShowBox", c, v) end },
+            { Key = "ModMenu_BoxESP_Name", UI = AliasMap.Switcher, Text = T("   إظهار الاسم", "   Show Name"), GetFunc = function() return _G.LexusConfig.BoxESPShowName end, SetFunc = function(c,v) return BoxESPSet("bShowName", "BoxESPShowName", c, v) end },
+            { Key = "ModMenu_BoxESP_Distance", UI = AliasMap.Switcher, Text = T("   إظهار المسافة", "   Show Distance"), GetFunc = function() return _G.LexusConfig.BoxESPShowDistance end, SetFunc = function(c,v) return BoxESPSet("bShowDistance", "BoxESPShowDistance", c, v) end },
+            { Key = "ModMenu_BoxESP_Weapon", UI = AliasMap.Switcher, Text = T("   إظهار السلاح", "   Show Weapon"), GetFunc = function() return _G.LexusConfig.BoxESPShowWeapon end, SetFunc = function(c,v) return BoxESPSet("bShowWeapon", "BoxESPShowWeapon", c, v) end },
+            { Key = "ModMenu_BoxESP_State", UI = AliasMap.Switcher, Text = T("   إظهار الحاله", "   Show State"), GetFunc = function() return _G.LexusConfig.BoxESPShowState end, SetFunc = function(c,v) return BoxESPSet("bShowState", "BoxESPShowState", c, v) end },
+            { Key = "ModMenu_BoxESP_Flag", UI = AliasMap.Switcher, Text = T("   إظهار العلم", "   Show Flag"), GetFunc = function() return _G.LexusConfig.BoxESPShowFlag end, SetFunc = function(c,v) return BoxESPSet("bShowFlag", "BoxESPShowFlag", c, v) end },
+            { Key = "ModMenu_BoxESP_Health", UI = AliasMap.Switcher, Text = T("   إظهار الصحة", "   Show Health"), GetFunc = function() return _G.LexusConfig.BoxESPShowHealth end, SetFunc = function(c,v) return BoxESPSet("bShowHealth", "BoxESPShowHealth", c, v) end },
+            { Key = "ModMenu_BoxESP_Lines", UI = AliasMap.Switcher, Text = T("   إظهار خطوط التتبع", "   Show Snap Lines"), GetFunc = function() return _G.LexusConfig.BoxESPShowLines end, SetFunc = function(c,v) return BoxESPSet("bShowLines", "BoxESPShowLines", c, v) end },
+            { Key = "ModMenu_BoxESP_Counter", UI = AliasMap.Switcher, Text = T("   إظهار عداد اللاعبين والبوتات", "   Show Player/Bot Counter"), GetFunc = function() return _G.LexusConfig.BoxESPShowCounter end, SetFunc = function(c,v) return BoxESPSet("bShowCounter", "BoxESPShowCounter", c, v) end },
+            { Key = "ModMenu_BoxESP_Skeleton", UI = AliasMap.Switcher, Text = T("   إظهار الهيكل العظمي", "   Show Skeleton"), GetFunc = function() return _G.LexusConfig.BoxESPShowSkeleton end, SetFunc = function(c,v) return BoxESPSet("bShowSkeleton", "BoxESPShowSkeleton", c, v) end },
             
-            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = T("ESP Type 1 (360 Alert-HP-Name) "), GetFunc = function() return _G.LexusConfig.EspVip end, SetFunc = function(c,v) _G.LexusConfig.EspVip = v return true end },
-            { Key = "ModMenu_ESP2", UI = AliasMap.Switcher, Text = T("ESP Type 2 (Distance Meter) "), GetFunc = function() return _G.LexusConfig.EspDistance end, SetFunc = function(c,v) _G.LexusConfig.EspDistance = v return true end },
+            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = T("ESP نوع 1 (تنبيه 360-دم-اسم) ", "ESP Type 1 (360 Alert-HP-Name) "), GetFunc = function() return _G.LexusConfig.EspVip end, SetFunc = function(c,v) _G.LexusConfig.EspVip = v return true end },
+            { Key = "ModMenu_ESP2", UI = AliasMap.Switcher, Text = T("ESP نوع 2 (المسافة بالمتر) ", "ESP Type 2 (Distance Meter) "), GetFunc = function() return _G.LexusConfig.EspDistance end, SetFunc = function(c,v) _G.LexusConfig.EspDistance = v return true end },
             
-            { Key = "ModMenu_ESPVehicle_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Vehicle ESP "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVehicle end, SetFunc = function(c,v) _G.LexusConfig.EspVehicle = v return true end },
-            { Key = "ModMenu_ESPVeh_Dacia", UI = AliasMap.Switcher, Text = T(" Show Dacia "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Dacia end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Dacia = v return true end },
-            { Key = "ModMenu_ESPVeh_UAZ", UI = AliasMap.Switcher, Text = T("Show UAZ "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_UAZ end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_UAZ = v return true end },
-            { Key = "ModMenu_ESPVeh_Buggy", UI = AliasMap.Switcher, Text = T("Buggy ", "   Show Buggy "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Buggy end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Buggy = v return true end },
-            { Key = "ModMenu_ESPVeh_Coupe", UI = AliasMap.Switcher, Text = T("(Coupe RB) ", "   Show Coupe RB "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Coupe end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Coupe = v return true end },
-            { Key = "ModMenu_ESPVeh_Mirado", UI = AliasMap.Switcher, Text = T(" Show Mirado "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Mirado end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Mirado = v return true end },
-            { Key = "ModMenu_ESPVeh_Motor", UI = AliasMap.Switcher, Text = T(" Show Motorcycles "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Motor end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Motor = v return true end },
-            { Key = "ModMenu_ESPVeh_Other", UI = AliasMap.Switcher, Text = T("   Show Others (Boat/BRDM) "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Other end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Other = v return true end }
+            { Key = "ModMenu_ESPVehicle_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP تحديد العربيات ", "▶ Vehicle ESP "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVehicle end, SetFunc = function(c,v) _G.LexusConfig.EspVehicle = v return true end },
+            { Key = "ModMenu_ESPVeh_Dacia", UI = AliasMap.Switcher, Text = T("   إظهار العربيات (Dacia) ", "   Show Dacia "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Dacia end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Dacia = v return true end },
+            { Key = "ModMenu_ESPVeh_UAZ", UI = AliasMap.Switcher, Text = T("   إظهار الجيب (UAZ) ", "   Show UAZ "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_UAZ end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_UAZ = v return true end },
+            { Key = "ModMenu_ESPVeh_Buggy", UI = AliasMap.Switcher, Text = T("   إظهار عربية Buggy ", "   Show Buggy "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Buggy end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Buggy = v return true end },
+            { Key = "ModMenu_ESPVeh_Coupe", UI = AliasMap.Switcher, Text = T("   إظهار العربية الرياضية (Coupe RB) ", "   Show Coupe RB "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Coupe end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Coupe = v return true end },
+            { Key = "ModMenu_ESPVeh_Mirado", UI = AliasMap.Switcher, Text = T("   إظهار عربية Mirado ", "   Show Mirado "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Mirado end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Mirado = v return true end },
+            { Key = "ModMenu_ESPVeh_Motor", UI = AliasMap.Switcher, Text = T("   إظهار الموتوسيكلات ", "   Show Motorcycles "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Motor end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Motor = v return true end },
+            { Key = "ModMenu_ESPVeh_Other", UI = AliasMap.Switcher, Text = T("   إظهار باقي العربيات (قوارب/BRDM...) ", "   Show Others (Boat/BRDM) "), ExpandHandle = "ModMenu_ESPVehicle_Ex", GetFunc = function() return _G.LexusConfig.EspVeh_Other end, SetFunc = function(c,v) _G.LexusConfig.EspVeh_Other = v return true end }
         }
 
         local StackESP = {
-            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = T("ESP Type 1 (360 Alert-HP-Name) "), GetFunc = function() return _G.LexusConfig.EspVip end, SetFunc = function(c,v) _G.LexusConfig.EspVip = v return true end },
-            { Key = "ModMenu_ESP2", UI = AliasMap.Switcher, Text = T("ESP Type 2 (Distance Meter) "), GetFunc = function() return _G.LexusConfig.EspDistance end, SetFunc = function(c,v) _G.LexusConfig.EspDistance = v return true end },
+            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = T("ESP نوع 1 (تنبيه 360-دم-اسم) ", "ESP Type 1 (360 Alert-HP-Name) "), GetFunc = function() return _G.LexusConfig.EspVip end, SetFunc = function(c,v) _G.LexusConfig.EspVip = v return true end },
+            { Key = "ModMenu_ESP2", UI = AliasMap.Switcher, Text = T("ESP نوع 2 (المسافة بالمتر) ", "ESP Type 2 (Distance Meter) "), GetFunc = function() return _G.LexusConfig.EspDistance end, SetFunc = function(c,v) _G.LexusConfig.EspDistance = v return true end },
             
-            { Key = "ModMenu_ESP3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Type 3 (Vertical HP & Name) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVipPro end, SetFunc = function(c,v) _G.LexusConfig.EspVipPro = v return true end },
-            { Key = "ModMenu_ESP3_Name", UI = AliasMap.Switcher, Text = T(" Show Player Name "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowName end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowName = v return true end },
-            { Key = "ModMenu_ESP3_HP", UI = AliasMap.Switcher, Text = T(" Show Vertical HP Bar "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowHP end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowHP = v return true end },
+            { Key = "ModMenu_ESP3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP نوع 3 (دم عمودي والاسم) ", "▶ ESP Type 3 (Vertical HP & Name) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspVipPro end, SetFunc = function(c,v) _G.LexusConfig.EspVipPro = v return true end },
+            { Key = "ModMenu_ESP3_Name", UI = AliasMap.Switcher, Text = T("   إظهار اسم اللاعب ", "   Show Player Name "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowName end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowName = v return true end },
+            { Key = "ModMenu_ESP3_HP", UI = AliasMap.Switcher, Text = T("   إظهار شريط الدم العمودي ", "   Show Vertical HP Bar "), ExpandHandle = "ModMenu_ESP3_Ex", GetFunc = function() return _G.LexusConfig.Esp3ShowHP end, SetFunc = function(c,v) _G.LexusConfig.Esp3ShowHP = v return true end },
             
-            { Key = "ModMenu_ESP4", UI = AliasMap.Switcher, Text = T("ESP Type 4 (Radar 360) "), GetFunc = function() return _G.LexusConfig.EspRadar end, SetFunc = function(c,v) _G.LexusConfig.EspRadar = v return true end },
-            { Key = "ModMenu_ESP5", UI = AliasMap.Switcher, Text = T("ESP Type 5 (Box ESP) "), GetFunc = function() return _G.LexusConfig.EspLoai5 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai5 = v return true end },
-            { Key = "ModMenu_ESP6", UI = AliasMap.Switcher, Text = T("ESP Type 6 (Skeleton) "), GetFunc = function() return _G.LexusConfig.EspLoai6 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai6 = v return true end },
-            { Key = "ModMenu_ESP7_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP Type 7 (Detail Info) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspLoai7 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai7 = v return true end },
-            { Key = "ModMenu_ESP7_SoLuong", UI = AliasMap.Switcher, Text = T(" Show Enemies Count Around "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_SoLuong end, SetFunc = function(c,v) _G.LexusConfig.Esp7_SoLuong = v return true end },
-            { Key = "ModMenu_ESP7_VuKhi", UI = AliasMap.Switcher, Text = T(" Show Enemy Weapon "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_VuKhi end, SetFunc = function(c,v) _G.LexusConfig.Esp7_VuKhi = v return true end },
-            { Key = "ModMenu_ESP7_TuThe", UI = AliasMap.Switcher, Text = T(" Show Posture (Stand/Crouch/Prone) "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_TuThe end, SetFunc = function(c,v) _G.LexusConfig.Esp7_TuThe = v return true end },
-            { Key = "ModMenu_ESP8", UI = AliasMap.Switcher, Text = T("ESP Type 8 (Head HP Bar) "), GetFunc = function() return _G.LexusConfig.EspLoai8 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai8 = v return true end },
+            { Key = "ModMenu_ESP4", UI = AliasMap.Switcher, Text = T("ESP نوع 4 (رادار 360) ", "ESP Type 4 (Radar 360) "), GetFunc = function() return _G.LexusConfig.EspRadar end, SetFunc = function(c,v) _G.LexusConfig.EspRadar = v return true end },
+            { Key = "ModMenu_ESP5", UI = AliasMap.Switcher, Text = T("ESP نوع 5 (صندوق Box) ", "ESP Type 5 (Box ESP) "), GetFunc = function() return _G.LexusConfig.EspLoai5 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai5 = v return true end },
+            { Key = "ModMenu_ESP6", UI = AliasMap.Switcher, Text = T("ESP نوع 6 (هيكل عظمي) ", "ESP Type 6 (Skeleton) "), GetFunc = function() return _G.LexusConfig.EspLoai6 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai6 = v return true end },
+            { Key = "ModMenu_ESP7_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP نوع 7 (معلومات تفصيلية) ", "▶ ESP Type 7 (Detail Info) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspLoai7 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai7 = v return true end },
+            { Key = "ModMenu_ESP7_SoLuong", UI = AliasMap.Switcher, Text = T("   إظهار عدد الأعداء حولك ", "   Show Enemies Count Around "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_SoLuong end, SetFunc = function(c,v) _G.LexusConfig.Esp7_SoLuong = v return true end },
+            { Key = "ModMenu_ESP7_VuKhi", UI = AliasMap.Switcher, Text = T("   إظهار سلاح العدو ", "   Show Enemy Weapon "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_VuKhi end, SetFunc = function(c,v) _G.LexusConfig.Esp7_VuKhi = v return true end },
+            { Key = "ModMenu_ESP7_TuThe", UI = AliasMap.Switcher, Text = T("   إظهار الوضعية (واقف/قاعد/رابض) ", "   Show Posture (Stand/Crouch/Prone) "), ExpandHandle = "ModMenu_ESP7_Ex", GetFunc = function() return _G.LexusConfig.Esp7_TuThe end, SetFunc = function(c,v) _G.LexusConfig.Esp7_TuThe = v return true end },
+            { Key = "ModMenu_ESP8", UI = AliasMap.Switcher, Text = T("ESP نوع 8 (شريط دم على الرأس) ", "ESP Type 8 (Head HP Bar) "), GetFunc = function() return _G.LexusConfig.EspLoai8 end, SetFunc = function(c,v) _G.LexusConfig.EspLoai8 = v return true end },
             
             
             
-            { Key = "ModMenu_EspItem_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Item ESP (Under 70m) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspItem_Master end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Master = v return true end },
-            { Key = "ModMenu_EspItem_AR", UI = AliasMap.Switcher, Text = T(" Show AR Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_AR end, SetFunc = function(c,v) _G.LexusConfig.EspItem_AR = v return true end },
-            { Key = "ModMenu_EspItem_Sniper", UI = AliasMap.Switcher, Text = T(" Show Sniper Rifles "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Sniper end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Sniper = v return true end },
-            { Key = "ModMenu_EspItem_SMG", UI = AliasMap.Switcher, Text = T(" Show SMGs "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_SMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_SMG = v return true end },
-            { Key = "ModMenu_EspItem_Shotgun", UI = AliasMap.Switcher, Text = T(" Show Shotguns "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Shotgun end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Shotgun = v return true end },
-            { Key = "ModMenu_EspItem_LMG", UI = AliasMap.Switcher, Text = T(" Show LMGs "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_LMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_LMG = v return true end },
-            { Key = "ModMenu_EspItem_Pistol", UI = AliasMap.Switcher, Text = T(" Show Pistols / Flares "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Pistol end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Pistol = v return true end },
-            { Key = "ModMenu_EspItem_Melee", UI = AliasMap.Switcher, Text = T(" Show Melee Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Melee end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Melee = v return true end },
-            { Key = "ModMenu_EspItem_Special", UI = AliasMap.Switcher, Text = T(" Show Special Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Special end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Special = v return true end },
-            { Key = "ModMenu_EspItem_Scope", UI = AliasMap.Switcher, Text = T(" Show Scopes "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Scope end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Scope = v return true end },
-            { Key = "ModMenu_EspItem_Grenade", UI = AliasMap.Switcher, Text = T(" Show Grenades "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Grenade end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Grenade = v return true end },
-            { Key = "ModMenu_EspItem_Med", UI = AliasMap.Switcher, Text = T(" Show Medkits/Boosters "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Med end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Med = v return true end },
+            { Key = "ModMenu_EspItem_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP عناصر (تحت 70م) ", "▶ Item ESP (Under 70m) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspItem_Master end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Master = v return true end },
+            { Key = "ModMenu_EspItem_AR", UI = AliasMap.Switcher, Text = T("   إظهار أسلحة AR ", "   Show AR Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_AR end, SetFunc = function(c,v) _G.LexusConfig.EspItem_AR = v return true end },
+            { Key = "ModMenu_EspItem_Sniper", UI = AliasMap.Switcher, Text = T("   إظهار بنادق القنص ", "   Show Sniper Rifles "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Sniper end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Sniper = v return true end },
+            { Key = "ModMenu_EspItem_SMG", UI = AliasMap.Switcher, Text = T("   إظهار رشاشات SMG ", "   Show SMGs "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_SMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_SMG = v return true end },
+            { Key = "ModMenu_EspItem_Shotgun", UI = AliasMap.Switcher, Text = T("   إظهار رشاشات الخرطوش ", "   Show Shotguns "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Shotgun end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Shotgun = v return true end },
+            { Key = "ModMenu_EspItem_LMG", UI = AliasMap.Switcher, Text = T("   إظهار رشاشات LMG ", "   Show LMGs "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_LMG end, SetFunc = function(c,v) _G.LexusConfig.EspItem_LMG = v return true end },
+            { Key = "ModMenu_EspItem_Pistol", UI = AliasMap.Switcher, Text = T("   إظهار المسدسات / الصواريخ ", "   Show Pistols / Flares "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Pistol end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Pistol = v return true end },
+            { Key = "ModMenu_EspItem_Melee", UI = AliasMap.Switcher, Text = T("   إظهار أسلحة الاشتباك ", "   Show Melee Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Melee end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Melee = v return true end },
+            { Key = "ModMenu_EspItem_Special", UI = AliasMap.Switcher, Text = T("   إظهار الأسلحة الخاصة ", "   Show Special Weapons "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Special end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Special = v return true end },
+            { Key = "ModMenu_EspItem_Scope", UI = AliasMap.Switcher, Text = T("   إظهار المناظير ", "   Show Scopes "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Scope end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Scope = v return true end },
+            { Key = "ModMenu_EspItem_Grenade", UI = AliasMap.Switcher, Text = T("   إظهار القنابل اليدوية ", "   Show Grenades "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Grenade end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Grenade = v return true end },
+            { Key = "ModMenu_EspItem_Med", UI = AliasMap.Switcher, Text = T("   إظهار الدم والماء (طبي) ", "   Show Medkits/Boosters "), ExpandHandle = "ModMenu_EspItem_Ex", GetFunc = function() return _G.LexusConfig.EspItem_Med end, SetFunc = function(c,v) _G.LexusConfig.EspItem_Med = v return true end },
             
-            { Key = "ModMenu_ESPBom_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Grenade Warning & Tracker "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspBomMaster end, SetFunc = function(c,v) _G.LexusConfig.EspBomMaster = v return true end },
-            { Key = "ModMenu_ESPItemBom", UI = AliasMap.Switcher, Text = T(" Show Grenades On Ground "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspItemBom end, SetFunc = function(c,v) _G.LexusConfig.EspItemBom = v return true end },
-            { Key = "ModMenu_ESPActiveBom", UI = AliasMap.Switcher, Text = T(" Active Grenade Warning "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspActiveBom end, SetFunc = function(c,v) _G.LexusConfig.EspActiveBom = v return true end },
+            { Key = "ModMenu_ESPBom_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ تنبيه وتحديد القنابل ", "▶ Grenade Warning & Tracker "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspBomMaster end, SetFunc = function(c,v) _G.LexusConfig.EspBomMaster = v return true end },
+            { Key = "ModMenu_ESPItemBom", UI = AliasMap.Switcher, Text = T("   تحديد القنابل على الأرض ", "   Show Grenades On Ground "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspItemBom end, SetFunc = function(c,v) _G.LexusConfig.EspItemBom = v return true end },
+            { Key = "ModMenu_ESPActiveBom", UI = AliasMap.Switcher, Text = T("   تنبيه عدو يمسك ويرمي قنبلة ", "   Active Grenade Warning "), ExpandHandle = "ModMenu_ESPBom_Ex", GetFunc = function() return _G.LexusConfig.EspActiveBom end, SetFunc = function(c,v) _G.LexusConfig.EspActiveBom = v return true end },
             
             -- [جديد] قائمة تنبيه تصويب العدو
-            { Key = "ModMenu_EspAimWarning_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Enemy Aim Warning "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspAimWarning end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarning = v return true end },
-            { Key = "ModMenu_EspAimWarning_Vis", UI = AliasMap.Switcher, Text = T(" Visibility Check "), ExpandHandle = "ModMenu_EspAimWarning_Ex", GetFunc = function() return _G.LexusConfig.EspAimWarningVisCheck end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarningVisCheck = v return true end },
+            { Key = "ModMenu_EspAimWarning_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ تنبيه تصويب العدو ", "▶ Enemy Aim Warning "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspAimWarning end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarning = v return true end },
+            { Key = "ModMenu_EspAimWarning_Vis", UI = AliasMap.Switcher, Text = T("   فحص الجدار (إشارة عند الظهور) ", "   Visibility Check "), ExpandHandle = "ModMenu_EspAimWarning_Ex", GetFunc = function() return _G.LexusConfig.EspAimWarningVisCheck end, SetFunc = function(c,v) _G.LexusConfig.EspAimWarningVisCheck = v return true end },
             
-            { Key = "ModMenu_ESPAntenna", UI = AliasMap.Switcher, Text = T("Antenna ESP "), GetFunc = function() return _G.LexusConfig.EspAntenna end, SetFunc = function(c,v) _G.LexusConfig.EspAntenna = v return true end },
-            { Key = "ModMenu_ESPOutline_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Outline ESP (HDR supported) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspOutline end, SetFunc = function(c,v) _G.LexusConfig.EspOutline = v return true end },
-            { Key = "ModMenu_ESPOutline_Color", UI = AliasMap.Slider, Text = T(" Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht) "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.OutlineColor or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OutlineColor = v return true end },
-            { Key = "ModMenu_ESPOutline_Thickness", UI = AliasMap.Slider, Text = T(" Outline Thickness "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 20, min = 1, max = 20, GetFunc = function() return _G.LexusConfig.OutlineThickness end, SetFunc = function(c,v) _G.LexusConfig.OutlineThickness = v return true end }
+            { Key = "ModMenu_ESPAntenna", UI = AliasMap.Switcher, Text = T("ESP الهوائي (عمود) ", "Antenna ESP "), GetFunc = function() return _G.LexusConfig.EspAntenna end, SetFunc = function(c,v) _G.LexusConfig.EspAntenna = v return true end },
+            { Key = "ModMenu_ESPOutline_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ ESP خط عدو (بتشغيل HDR هيضّي) ", "▶ Outline ESP (HDR supported) "), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.EspOutline end, SetFunc = function(c,v) _G.LexusConfig.EspOutline = v return true end },
+            { Key = "ModMenu_ESPOutline_Color", UI = AliasMap.Slider, Text = T("   لون الخط (1:أحمر 2:أخضر 3:أزرق 4:أصفر 5:بنفسجي 6:أبيض) ", "   Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht) "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.OutlineColor or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OutlineColor = v return true end },
+            { Key = "ModMenu_ESPOutline_Thickness", UI = AliasMap.Slider, Text = T("   سماكة الخط ", "   Outline Thickness "), ExpandHandle = "ModMenu_ESPOutline_Ex", MinValue = 1, MaxValue = 20, min = 1, max = 20, GetFunc = function() return _G.LexusConfig.OutlineThickness end, SetFunc = function(c,v) _G.LexusConfig.OutlineThickness = v return true end }
         }
 
         local StackAimbot = {
-            { Key = "ModMenu_Aimbot_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Custom Long Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbot end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbot = v return true end },
-            { Key = "ModMenu_Aimbot_Speed", UI = AliasMap.Slider, Text = T(" Long Range Speed"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.OuterSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterSpeed = v return true end },
-            { Key = "ModMenu_Aimbot_Recoil", UI = AliasMap.Slider, Text = T(" Recoil Compensation"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.OuterRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterRecoil = v return true end },
+            { Key = "ModMenu_Aimbot_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ أيمبوت بعيد مخصص", "▶ Custom Long Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbot end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbot = v return true end },
+            { Key = "ModMenu_Aimbot_Speed", UI = AliasMap.Slider, Text = T("   سرعة الأيمبوت البعيد", "   Long Range Speed"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.OuterSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterSpeed = v return true end },
+            { Key = "ModMenu_Aimbot_Recoil", UI = AliasMap.Slider, Text = T("   تعويض الارتداد", "   Recoil Compensation"), ExpandHandle = "ModMenu_Aimbot_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.OuterRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.OuterRecoil = v return true end },
 
-            { Key = "ModMenu_AimbotClose_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Custom Close Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbotClose end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbotClose = v return true end },
-            { Key = "ModMenu_AimbotClose_Speed", UI = AliasMap.Slider, Text = T(" Close Range Speed"), ExpandHandle = "ModMenu_AimbotClose_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.InnerSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.InnerSpeed = v return true end },
+            { Key = "ModMenu_AimbotClose_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ أيمبوت قريب مخصص", "▶ Custom Close Range Aimbot"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomAimbotClose end, SetFunc = function(c,v) _G.LexusConfig.CustomAimbotClose = v return true end },
+            { Key = "ModMenu_AimbotClose_Speed", UI = AliasMap.Slider, Text = T("   سرعة الأيمبوت القريب", "   Close Range Speed"), ExpandHandle = "ModMenu_AimbotClose_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.InnerSpeed end, SetFunc = function(c,v) _G.LexusState.CustomTextData.InnerSpeed = v return true end },
 
-            { Key = "ModMenu_Magic_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ (RISK BAN) Custom Magic Bullet"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomMagicBullet end, SetFunc = function(c,v) _G.LexusConfig.CustomMagicBullet = v return true end },
-            { Key = "ModMenu_Magic_Head", UI = AliasMap.Slider, Text = T(" Head Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end },
-            { Key = "ModMenu_Magic_Body", UI = AliasMap.Slider, Text = T(" Body Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end },
-            { Key = "ModMenu_Magic_Legs", UI = AliasMap.Slider, Text = T(" Legs Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ (خطير للبان) رصاصة سحرية مخصصة", "▶ (RISK BAN) Custom Magic Bullet"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomMagicBullet end, SetFunc = function(c,v) _G.LexusConfig.CustomMagicBullet = v return true end },
+            { Key = "ModMenu_Magic_Head", UI = AliasMap.Slider, Text = T("   ضرر الرأس (0.0 - 5.0)", "   Head Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Body", UI = AliasMap.Slider, Text = T("   ضرر الجسد (0.0 - 5.0)", "   Body Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Legs", UI = AliasMap.Slider, Text = T("   ضرر الأرجل (0.0 - 5.0)", "   Legs Damage (0.0 - 5.0)"), ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.LexusState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end },
 
-            { Key = "ModMenu_HRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Less Horizontal Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomHRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomHRecoil = v return true end },
-            { Key = "ModMenu_HRecoil_Val", UI = AliasMap.Slider, Text = T("  Horizontal Recoil Value"), ExpandHandle = "ModMenu_HRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.HRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.HRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
+            { Key = "ModMenu_HRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ أقل ارتداد أفقي (ارمي السلاح واقطعه للتحميل)", "▶ Less Horizontal Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomHRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomHRecoil = v return true end },
+            { Key = "ModMenu_HRecoil_Val", UI = AliasMap.Slider, Text = T("   قيمة الارتداد الأفقي", "   Horizontal Recoil Value"), ExpandHandle = "ModMenu_HRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.HRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.HRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
 
-            { Key = "ModMenu_VRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Less Vertical Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomVRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomVRecoil = v return true end },
-            { Key = "ModMenu_VRecoil_Val", UI = AliasMap.Slider, Text = T(" Vertical Recoil Value"), ExpandHandle = "ModMenu_VRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.VRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.VRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
+            { Key = "ModMenu_VRecoil_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ أقل ارتداد رأسي (ارمي السلاح واقطعه للتحميل)", "▶ Less Vertical Recoil (Drop/Pick weapon)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.CustomVRecoil end, SetFunc = function(c,v) _G.LexusConfig.CustomVRecoil = v return true end },
+            { Key = "ModMenu_VRecoil_Val", UI = AliasMap.Slider, Text = T("   قيمة الارتداد الرأسي", "   Vertical Recoil Value"), ExpandHandle = "ModMenu_VRecoil_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor((((_G.LexusState.CustomTextData.VRecoil or 0.3) - 0.3) / 4.7) * 100 + 0.5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.VRecoil = 0.3 + (v / 100.0) * 4.7 return true end },
 
-            { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = T("Small Crosshair"), GetFunc = function() return _G.LexusConfig.Crosshair end, SetFunc = function(c,v) _G.LexusConfig.Crosshair = v return true end },
+            { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = T("نقطة تصويب صغيرة", "Small Crosshair"), GetFunc = function() return _G.LexusConfig.Crosshair end, SetFunc = function(c,v) _G.LexusConfig.Crosshair = v return true end },
         }
 
         local StackAimbotV2 = {
-            { Key = "ModMenu_AT_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Enable Custom Aimbot V2"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchEnable end, SetFunc = function(c,v) _G.LexusConfig.AimTouchEnable = v return true end },
+            { Key = "ModMenu_AT_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ تشغيل أيمبوت روي ومخصص", "▶ Enable Custom Aimbot V2"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchEnable end, SetFunc = function(c,v) _G.LexusConfig.AimTouchEnable = v return true end },
             
             -- HIPFIRE (TÂM TRẮNG)
-            { Key = "ModMenu_AT_Hip_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Hipfire Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchHipfire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipfire = v return true end },
-            { Key = "ModMenu_AT_Hip_IgKnock", UI = AliasMap.Switcher, Text = T(" Ignore Knocked"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgKnock = v return true end },
-            { Key = "ModMenu_AT_Hip_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgBot = v return true end },
-            { Key = "ModMenu_AT_Hip_Vis", UI = AliasMap.Switcher, Text = T(" Visibility Check"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipVisCheck = v return true end },
-            { Key = "ModMenu_AT_Hip_Prio", UI = AliasMap.Slider, Text = T(" Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipPrio = val return true end },
-            { Key = "ModMenu_AT_Hip_Bone", UI = AliasMap.Slider, Text = T("  Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipBone = val return true end },
-            { Key = "ModMenu_AT_Hip_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchHipCond = val return true end },
-            { Key = "ModMenu_AT_Hip_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipSpeed or 50 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipSpeed = v return true end },
-            { Key = "ModMenu_AT_Hip_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipFOV or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipFOV = v return true end },
-            { Key = "ModMenu_AT_Hip_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchHipDist or 250) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipDist = v * 5 return true end },
+            { Key = "ModMenu_AT_Hip_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ أيمبوت نقطة بيضاء", "   ▶ Hipfire Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchHipfire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipfire = v return true end },
+            { Key = "ModMenu_AT_Hip_IgKnock", UI = AliasMap.Switcher, Text = T("      تجاهل المصاب بالضربة", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgKnock = v return true end },
+            { Key = "ModMenu_AT_Hip_IgBot", UI = AliasMap.Switcher, Text = T("      تجاهل البوتات", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipIgBot = v return true end },
+            { Key = "ModMenu_AT_Hip_Vis", UI = AliasMap.Switcher, Text = T("      فحص الجدار (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.LexusConfig.AimTouchHipVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchHipVisCheck = v return true end },
+            { Key = "ModMenu_AT_Hip_Prio", UI = AliasMap.Slider, Text = T("      الأولوية (1:نقطة تصويب 2:مسافة 3:دم)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipPrio = val return true end },
+            { Key = "ModMenu_AT_Hip_Bone", UI = AliasMap.Slider, Text = T("      المكان (1:رأس 2:صدر 3:بطن 4:حوض)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchHipBone = val return true end },
+            { Key = "ModMenu_AT_Hip_Cond", UI = AliasMap.Slider, Text = T("      الشرط (1:تصويب عند الرماية، 2:دائماً)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchHipCond = val return true end },
+            { Key = "ModMenu_AT_Hip_Spd", UI = AliasMap.Slider, Text = T("      النعومة / السرعة (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipSpeed or 50 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipSpeed = v return true end },
+            { Key = "ModMenu_AT_Hip_FOV", UI = AliasMap.Slider, Text = T("      نطاق FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchHipFOV or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipFOV = v return true end },
+            { Key = "ModMenu_AT_Hip_Dist", UI = AliasMap.Slider, Text = T("      المسافة (1-500م)", "      Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchHipDist or 250) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchHipDist = v * 5 return true end },
 
             -- AIMBOT SHOTGUN
-            { Key = "ModMenu_AT_SG_Ex", UI = AliasMap.TitleSwitcher, Text = T(" ▶ Shotgun Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchSG end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSG = v return true end },
-            { Key = "ModMenu_AT_SG_AutoFire", UI = AliasMap.Switcher, Text = T(" Auto Fire"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGAutoFire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGAutoFire = v return true end },
-            { Key = "ModMenu_AT_SG_IgKnock", UI = AliasMap.Switcher, Text = T(" Ignore Knocked"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgKnock = v return true end },
-            { Key = "ModMenu_AT_SG_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgBot = v return true end },
-            { Key = "ModMenu_AT_SG_Vis", UI = AliasMap.Switcher, Text = T("  Visibility Check"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGVisCheck = v return true end },
-            { Key = "ModMenu_AT_SG_Prio", UI = AliasMap.Slider, Text = T("  Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGPrio = val return true end },
-            { Key = "ModMenu_AT_SG_Bone", UI = AliasMap.Slider, Text = T(" Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGBone = val return true end },
-            { Key = "ModMenu_AT_SG_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSGCond = val return true end },
-            { Key = "ModMenu_AT_SG_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGSpeed or 80 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGSpeed = v return true end },
-            { Key = "ModMenu_AT_SG_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGFOV or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGFOV = v return true end },
-            { Key = "ModMenu_AT_SG_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-100m)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGDist or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGDist = v return true end },
+            { Key = "ModMenu_AT_SG_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ Aimbot Shotgun", "   ▶ Shotgun Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchSG end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSG = v return true end },
+            { Key = "ModMenu_AT_SG_AutoFire", UI = AliasMap.Switcher, Text = T("      رماية تلقائية", "      Auto Fire"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGAutoFire end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGAutoFire = v return true end },
+            { Key = "ModMenu_AT_SG_IgKnock", UI = AliasMap.Switcher, Text = T("      تجاهل المصاب بالضربة", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgKnock = v return true end },
+            { Key = "ModMenu_AT_SG_IgBot", UI = AliasMap.Switcher, Text = T("      تجاهل البوتات", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGIgBot = v return true end },
+            { Key = "ModMenu_AT_SG_Vis", UI = AliasMap.Switcher, Text = T("      فحص الجدار (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSGVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSGVisCheck = v return true end },
+            { Key = "ModMenu_AT_SG_Prio", UI = AliasMap.Slider, Text = T("      الأولوية (1:نقطة تصويب 2:مسافة 3:دم)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGPrio = val return true end },
+            { Key = "ModMenu_AT_SG_Bone", UI = AliasMap.Slider, Text = T("      المكان (1:رأس 2:صدر 3:بطن 4:حوض)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSGBone = val return true end },
+            { Key = "ModMenu_AT_SG_Cond", UI = AliasMap.Slider, Text = T("      الشرط (1:تصويب عند الرماية، 2:دائماً)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSGCond = val return true end },
+            { Key = "ModMenu_AT_SG_Spd", UI = AliasMap.Slider, Text = T("      النعومة / السرعة (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGSpeed or 80 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGSpeed = v return true end },
+            { Key = "ModMenu_AT_SG_FOV", UI = AliasMap.Slider, Text = T("      نطاق FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGFOV or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGFOV = v return true end },
+            { Key = "ModMenu_AT_SG_Dist", UI = AliasMap.Slider, Text = T("      المسافة (1-100م)", "      Distance Limit (1-100m)"), ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSGDist or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSGDist = v return true end },
             
             -- SCOPE ALL (SÚNG THƯỜNG KHI MỞ SCOPE)
-            { Key = "ModMenu_AT_ScopeAll_Ex", UI = AliasMap.TitleSwitcher, Text = T(" ▶ Scope Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeAll end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeAll = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_IgKnock", UI = AliasMap.Switcher, Text = T(" Ignore Knocked"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgKnock = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"),ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgBot = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Vis", UI = AliasMap.Switcher, Text = T("Visibility Check"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeVisCheck = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Prio", UI = AliasMap.Slider, Text = T(" Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopePrio = val return true end },
-            { Key = "ModMenu_AT_ScopeAll_Bone", UI = AliasMap.Slider, Text = T(" Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopeBone = val return true end },
-            { Key = "ModMenu_AT_ScopeAll_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchScopeCond = val return true end },
-            { Key = "ModMenu_AT_ScopeAll_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeSpeed or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeSpeed = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeFOV = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchScopeDist or 300) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeDist = v * 5 return true end },
-            { Key = "ModMenu_AT_ScopeAll_Pred", UI = AliasMap.Slider, Text = T("   Prediction Value"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopePred = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Recoil", UI = AliasMap.Slider, Text = T("  Auto Recoil Comp."), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeRecoil = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ أيمبوت سكوب عادي", "   ▶ Scope Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeAll end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeAll = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_IgKnock", UI = AliasMap.Switcher, Text = T("      تجاهل المصاب بالضربة", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgKnock = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_IgBot", UI = AliasMap.Switcher, Text = T("      تجاهل البوتات", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeIgBot = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Vis", UI = AliasMap.Switcher, Text = T("      فحص الجدار (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.LexusConfig.AimTouchScopeVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeVisCheck = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Prio", UI = AliasMap.Slider, Text = T("      الأولوية (1:نقطة تصويب 2:مسافة 3:دم)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopePrio = val return true end },
+            { Key = "ModMenu_AT_ScopeAll_Bone", UI = AliasMap.Slider, Text = T("      المكان (1:رأس 2:صدر 3:بطن 4:حوض)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeBone or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchScopeBone = val return true end },
+            { Key = "ModMenu_AT_ScopeAll_Cond", UI = AliasMap.Slider, Text = T("      الشرط (1:تصويب عند الرماية، 2:دائماً)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchScopeCond = val return true end },
+            { Key = "ModMenu_AT_ScopeAll_Spd", UI = AliasMap.Slider, Text = T("      النعومة / السرعة (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeSpeed or 40 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeSpeed = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_FOV", UI = AliasMap.Slider, Text = T("      نطاق FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeFOV = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Dist", UI = AliasMap.Slider, Text = T("      المسافة (1-500م)", "      Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchScopeDist or 300) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeDist = v * 5 return true end },
+            { Key = "ModMenu_AT_ScopeAll_Pred", UI = AliasMap.Slider, Text = T("      توقع اتجاه الركض", "      Prediction Value"), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopePred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopePred = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Recoil", UI = AliasMap.Slider, Text = T("      تعويض ارتداد تلقائي", "      Auto Recoil Comp."), ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchScopeRecoil or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchScopeRecoil = v return true end },
 
             -- SCOPE SNIPER (SÚNG NGẮM/TỈA)
-            { Key = "ModMenu_AT_Sniper_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Sniper Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeSniper end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeSniper = v return true end },
-            { Key = "ModMenu_AT_Sniper_IgKnock", UI = AliasMap.Switcher, Text = T("  Ignore Knocked"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgKnock = v return true end },
-            { Key = "ModMenu_AT_Sniper_IgBot", UI = AliasMap.Switcher, Text = T(" Ignore Bots"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgBot = v return true end },
-            { Key = "ModMenu_AT_Sniper_Vis", UI = AliasMap.Switcher, Text = T(" Visibility Check"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperVisCheck = v return true end },
-            { Key = "ModMenu_AT_Sniper_Prio", UI = AliasMap.Slider, Text = T(" Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperPrio = val return true end },
-            { Key = "ModMenu_AT_Sniper_Bone", UI = AliasMap.Slider, Text = T("  Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperBone = val return true end },
-            { Key = "ModMenu_AT_Sniper_Cond", UI = AliasMap.Slider, Text = T(" Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperCond or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSniperCond = val return true end },
-            { Key = "ModMenu_AT_Sniper_Spd", UI = AliasMap.Slider, Text = T(" Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperSpeed or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperSpeed = v return true end },
-            { Key = "ModMenu_AT_Sniper_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperFOV = v return true end },
-            { Key = "ModMenu_AT_Sniper_Dist", UI = AliasMap.Slider, Text = T(" Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchSniperDist or 400) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperDist = v * 5 return true end },
-            { Key = "ModMenu_AT_Sniper_Pred", UI = AliasMap.Slider, Text = T(" Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperPred = v return true end },
+            { Key = "ModMenu_AT_Sniper_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ أيمبوت عند فتح السكوب (بندقية قنص/رماية)", "   ▶ Sniper Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchScopeSniper end, SetFunc = function(c,v) _G.LexusConfig.AimTouchScopeSniper = v return true end },
+            { Key = "ModMenu_AT_Sniper_IgKnock", UI = AliasMap.Switcher, Text = T("      تجاهل المصاب بالضربة", "      Ignore Knocked"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgKnock end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgKnock = v return true end },
+            { Key = "ModMenu_AT_Sniper_IgBot", UI = AliasMap.Switcher, Text = T("      تجاهل البوتات", "      Ignore Bots"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperIgBot end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperIgBot = v return true end },
+            { Key = "ModMenu_AT_Sniper_Vis", UI = AliasMap.Switcher, Text = T("      فحص الجدار (VisCheck)", "      Visibility Check"), ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.LexusConfig.AimTouchSniperVisCheck end, SetFunc = function(c,v) _G.LexusConfig.AimTouchSniperVisCheck = v return true end },
+            { Key = "ModMenu_AT_Sniper_Prio", UI = AliasMap.Slider, Text = T("      الأولوية (1:نقطة تصويب 2:مسافة 3:دم)", "      Priority (1:Crosshair 2:Distance 3:HP)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPrio or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperPrio = val return true end },
+            { Key = "ModMenu_AT_Sniper_Bone", UI = AliasMap.Slider, Text = T("      المكان (1:رأس 2:صدر 3:بطن 4:حوض)", "      Bone (1:Head 2:Chest 3:Stomach 4:Pelvis)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 4, min = 1, max = 4, Min = 1, Max = 4, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperBone or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 4 then val = 4 end; _G.LexusState.CustomTextData.AimTouchSniperBone = val return true end },
+            { Key = "ModMenu_AT_Sniper_Cond", UI = AliasMap.Slider, Text = T("      الشرط (1:تصويب عند الرماية، 2:دائماً)", "      Trigger (1:On Fire, 2:Always)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperCond or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.LexusState.CustomTextData.AimTouchSniperCond = val return true end },
+            { Key = "ModMenu_AT_Sniper_Spd", UI = AliasMap.Slider, Text = T("      النعومة / السرعة (1-100)", "      Smoothness / Speed (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperSpeed or 30 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperSpeed = v return true end },
+            { Key = "ModMenu_AT_Sniper_FOV", UI = AliasMap.Slider, Text = T("      نطاق FOV (1-100)", "      FOV Radius (1-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperFOV or 20 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperFOV = v return true end },
+            { Key = "ModMenu_AT_Sniper_Dist", UI = AliasMap.Slider, Text = T("      المسافة (1-500م)", "      Distance Limit (1-500m)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.LexusState.CustomTextData.AimTouchSniperDist or 400) / 5) end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperDist = v * 5 return true end },
+            { Key = "ModMenu_AT_Sniper_Pred", UI = AliasMap.Slider, Text = T("      توقع اتجاه الركض (0-100)", "      Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchSniperPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchSniperPred = v return true end },
 
             -- AIMBOT SÚNG CỐI (MORTAR)
-            { Key = "ModMenu_AT_Mortar_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Mortar Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchMortar end, SetFunc = function(c,v) _G.LexusConfig.AimTouchMortar = v return true end },
-            { Key = "ModMenu_AT_Mortar_FOV", UI = AliasMap.Slider, Text = T(" FOV Radius (1-360)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 1, MaxValue = 360, min = 1, max = 360, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarFOV or 360 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarFOV = v return true end },
-            { Key = "ModMenu_AT_Mortar_Pred", UI = AliasMap.Slider, Text = T(" Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarPred = v return true end }
+            { Key = "ModMenu_AT_Mortar_Ex", UI = AliasMap.TitleSwitcher, Text = T("   ▶ أيمبوت الهاون (Mortar)", "   ▶ Mortar Aimbot"), ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.AimTouchMortar end, SetFunc = function(c,v) _G.LexusConfig.AimTouchMortar = v return true end },
+            { Key = "ModMenu_AT_Mortar_FOV", UI = AliasMap.Slider, Text = T("      نطاق FOV (1-360)", "      FOV Radius (1-360)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 1, MaxValue = 360, min = 1, max = 360, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarFOV or 360 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarFOV = v return true end },
+            { Key = "ModMenu_AT_Mortar_Pred", UI = AliasMap.Slider, Text = T("      توقع اتجاه الركض (0-100)", "      Prediction Value (0-100)"), ExpandHandle = "ModMenu_AT_Mortar_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.LexusState.CustomTextData.AimTouchMortarPred or 0 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.AimTouchMortarPred = v return true end }
         }
 
         local StackSkin = {
             
-            { Key = "ModMenu_ModEmote", UI = AliasMap.Switcher, Text = T("Unlock All VIP Emotes"), GetFunc = function() return _G.LexusConfig.ModEmote end, SetFunc = function(c,v) _G.LexusConfig.ModEmote = v return true end },
-            { Key = "ModMenu_ModSkin", UI = AliasMap.Switcher, Text = T("VIP Mod Skin System (Open inventory)"), GetFunc = function() return _G.LexusConfig.ModSkin end, SetFunc = function(c,v) _G.LexusConfig.ModSkin = v return true end },
-            { Key = "ModMenu_SkinDeadBox", UI = AliasMap.Switcher, Text = T("Deadbox Skin (Sync with Weapon)"), GetFunc = function() return _G.LexusConfig.SkinDeadBox end, SetFunc = function(c,v) _G.LexusConfig.SkinDeadBox = v return true end },
-            { Key = "ModMenu_SkinAttachment", UI = AliasMap.Switcher, Text = T("Weapon Attachment Skin"), GetFunc = function() return _G.LexusConfig.SkinAttachment end, SetFunc = function(c,v) _G.LexusConfig.SkinAttachment = v return true end },
-            { Key = "ModMenu_KillMessage", UI = AliasMap.Switcher, Text = T("VIP Kill Messenger"), GetFunc = function() return _G.LexusConfig.KillMessage end, SetFunc = function(c,v) _G.LexusConfig.KillMessage = v return true end },
-            { Key = "ModMenu_KillCountUI", UI = AliasMap.Switcher, Text = T("Kill Counter UI"), GetFunc = function() return _G.LexusConfig.KillCountUI end, SetFunc = function(c,v) _G.LexusConfig.KillCountUI = v return true end },
-            { Key = "ModMenu_SkinOpenLink", UI = AliasMap.Switcher, Text = T("Mod Skin Guide (Link)"), GetFunc = function() return _G.LexusConfig.SkinOpenLink end, SetFunc = function(c,v) _G.LexusConfig.SkinOpenLink = v; if v == true then pcall(function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end end) end return true end },
-            { Key = "ModMenu_X3FakeVisual", UI = AliasMap.Switcher, Text = T("100 لیول ID [ CHACHA G ] (visual)", "  Fake CHACHA: Currency + Collect Lv100 [ CHACHA PALSU ] (visual)"), GetFunc = function() return _G.LexusConfig.X3FakeVisual == true end, SetFunc = function(c,v) _G.LexusConfig.X3FakeVisual = v and true or false; if v == true then pcall(InitFakeGachaSystem); pcall(function() if _G.X3 and _G.X3.LobbyVisualsTick then _G.X3.LobbyVisualsTick() end end) end return true end },
+            { Key = "ModMenu_ModEmote", UI = AliasMap.Switcher, Text = T("فتح كل حركات VIP (إيموشنز)", "Unlock All VIP Emotes"), GetFunc = function() return _G.LexusConfig.ModEmote end, SetFunc = function(c,v) _G.LexusConfig.ModEmote = v return true end },
+            { Key = "ModMenu_ModSkin", UI = AliasMap.Switcher, Text = T("نظام سكن VIP (افتح الشنطة عشان تختار)", "VIP Mod Skin System (Open inventory)"), GetFunc = function() return _G.LexusConfig.ModSkin end, SetFunc = function(c,v) _G.LexusConfig.ModSkin = v return true end },
+            { Key = "ModMenu_SkinDeadBox", UI = AliasMap.Switcher, Text = T("سكن صندوق الجثة (متابع لسكن السلاح)", "Deadbox Skin (Sync with Weapon)"), GetFunc = function() return _G.LexusConfig.SkinDeadBox end, SetFunc = function(c,v) _G.LexusConfig.SkinDeadBox = v return true end },
+            { Key = "ModMenu_SkinAttachment", UI = AliasMap.Switcher, Text = T("سكن إكسسوار السلاح (سبطنة، مقبض...)", "Weapon Attachment Skin"), GetFunc = function() return _G.LexusConfig.SkinAttachment end, SetFunc = function(c,v) _G.LexusConfig.SkinAttachment = v return true end },
+            { Key = "ModMenu_KillMessage", UI = AliasMap.Switcher, Text = T("رسالة القتل VIP", "VIP Kill Messenger"), GetFunc = function() return _G.LexusConfig.KillMessage end, SetFunc = function(c,v) _G.LexusConfig.KillMessage = v return true end },
+            { Key = "ModMenu_KillCountUI", UI = AliasMap.Switcher, Text = T("عداد القتلات (يعرض عدد قتلات السلاح)", "Kill Counter UI"), GetFunc = function() return _G.LexusConfig.KillCountUI end, SetFunc = function(c,v) _G.LexusConfig.KillCountUI = v return true end },
+            { Key = "ModMenu_SkinOpenLink", UI = AliasMap.Switcher, Text = T("شرح سكن الخوذة/الشنطة (لينك)", "Mod Skin Guide (Link)"), GetFunc = function() return _G.LexusConfig.SkinOpenLink end, SetFunc = function(c,v) _G.LexusConfig.SkinOpenLink = v; if v == true then pcall(function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/file_dragon") end end) end return true end },
+            { Key = "ModMenu_X3FakeVisual", UI = AliasMap.Switcher, Text = T("  دارجون وهمي: عملة + كلكت Lv100 [ DRAGON PALSU ] (visual)", "  Fake DRAGON: Currency + Collect Lv100 [ DRAGON PALSU ] (visual)"), GetFunc = function() return _G.LexusConfig.X3FakeVisual == true end, SetFunc = function(c,v) _G.LexusConfig.X3FakeVisual = v and true or false; if v == true then pcall(InitFakeGachaSystem); pcall(function() if _G.X3 and _G.X3.LobbyVisualsTick then _G.X3.LobbyVisualsTick() end end) end return true end },
         }
 
         local StackCombat = {
-            { Key = "ModMenu_FakeHWID", UI = AliasMap.Switcher, Text = T("Fake HWID (Anti-Ban)"), GetFunc = function() return _G.LexusConfig.FakeHWID end, SetFunc = function(c,v) _G.LexusConfig.FakeHWID = v return true end },
-            { Key = "ModMenu_Ipad_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Ipad View"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.IpadView end, SetFunc = function(c,v) _G.LexusConfig.IpadView = v return true end },
-            { Key = "ModMenu_Ipad_FOV", UI = AliasMap.Slider, Text = T(" FOV Value"), ExpandHandle = "ModMenu_Ipad_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return (_G.LexusState.CustomTextData.IpadViewFOV or 120) - 90 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.IpadViewFOV = 90 + v return true end },
+            { Key = "ModMenu_FakeHWID", UI = AliasMap.Switcher, Text = T("تغيير HWID وهمي (منع تحديد الجهاز)", "Fake HWID (Anti-Ban)"), GetFunc = function() return _G.LexusConfig.FakeHWID end, SetFunc = function(c,v) _G.LexusConfig.FakeHWID = v return true end },
+            { Key = "ModMenu_Ipad_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ عرض الآيباد", "▶ Ipad View"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.IpadView end, SetFunc = function(c,v) _G.LexusConfig.IpadView = v return true end },
+            { Key = "ModMenu_Ipad_FOV", UI = AliasMap.Slider, Text = T("   زاوية الرؤية FOV", "   FOV Value"), ExpandHandle = "ModMenu_Ipad_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return (_G.LexusState.CustomTextData.IpadViewFOV or 120) - 90 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.IpadViewFOV = 90 + v return true end },
 
-            { Key = "ModMenu_165FPS", UI = AliasMap.Switcher, Text = T("Unlock 165 FPS"), GetFunc = function() return _G.LexusConfig.UnlockFPS end, SetFunc = function(c,v) _G.LexusConfig.UnlockFPS = v; if v then _G.LexusState.GraphicsUnlocked = false end return true end },
+            { Key = "ModMenu_165FPS", UI = AliasMap.Switcher, Text = T("فتح 165 FPS", "Unlock 165 FPS"), GetFunc = function() return _G.LexusConfig.UnlockFPS end, SetFunc = function(c,v) _G.LexusConfig.UnlockFPS = v; if v then _G.LexusState.GraphicsUnlocked = false end return true end },
             
-            { Key = "ModMenu_WallXuyenTuong", UI = AliasMap.Switcher, Text = T("Wallhack V1 (See through)"), GetFunc = function() return _G.LexusConfig.WallXuyenTuong end, SetFunc = function(c,v) _G.LexusConfig.WallXuyenTuong = v return true end },
-            { Key = "ModMenu_ColorBodyV2", UI = AliasMap.Switcher, Text = T("Chams V2 (Basic Color)"), GetFunc = function() return _G.LexusConfig.ColorBodyV2 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV2 = v return true end },
-            { Key = "ModMenu_ColorBodyNew", UI = AliasMap.Switcher, Text = T("NEW ENGINE CHAMS (Red/Green)"), GetFunc = function() return _G.LexusConfig.ColorBodyNew end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyNew = v return true end },
-            { Key = "ModMenu_ColorBodyV3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ WALL V2 + CHAMS V3 (Custom)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.ColorBodyV3 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV3 = v return true end },
-            { Key = "ModMenu_V3_Hidden", UI = AliasMap.Slider, Text = T(" Hidden Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Hidden or 1 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Hidden = v return true end },
-            { Key = "ModMenu_V3_Vis", UI = AliasMap.Slider, Text = T("   Visible Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Visible or 2 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Visible = v return true end },
-            { Key = "ModMenu_V3_Thick", UI = AliasMap.Slider, Text = T(" HDR Outline Thickness"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 20, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Thickness or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Thickness = v return true end },
+            { Key = "ModMenu_WallXuyenTuong", UI = AliasMap.Switcher, Text = T("اختراق الجدار V1 (رؤية فقط)", "Wallhack V1 (See through)"), GetFunc = function() return _G.LexusConfig.WallXuyenTuong end, SetFunc = function(c,v) _G.LexusConfig.WallXuyenTuong = v return true end },
+            { Key = "ModMenu_ColorBodyV2", UI = AliasMap.Switcher, Text = T("تلوين العدو V2 (شامس أساسي)", "Chams V2 (Basic Color)"), GetFunc = function() return _G.LexusConfig.ColorBodyV2 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV2 = v return true end },
+            { Key = "ModMenu_ColorBodyNew", UI = AliasMap.Switcher, Text = T("شامس جديد (أخضر/أحمر ساطع)", "NEW ENGINE CHAMS (Red/Green)"), GetFunc = function() return _G.LexusConfig.ColorBodyNew end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyNew = v return true end },
+            { Key = "ModMenu_ColorBodyV3_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ جدار V2 + شامس V3 (تخصيص اللون)", "▶ WALL V2 + CHAMS V3 (Custom)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.ColorBodyV3 end, SetFunc = function(c,v) _G.LexusConfig.ColorBodyV3 = v return true end },
+            { Key = "ModMenu_V3_Hidden", UI = AliasMap.Slider, Text = T("   لون خلف الجدار (1:أحمر 2:أخضر 3:أزرق 4:أصفر 5:بنفسجي 6:أبيض)", "   Hidden Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Hidden or 1 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Hidden = v return true end },
+            { Key = "ModMenu_V3_Vis", UI = AliasMap.Slider, Text = T("   لون الظاهر (1:أحمر 2:أخضر 3:أزرق 4:أصفر 5:بنفسجي 6:أبيض)", "   Visible Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Pur 6:Wht)"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 6, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Visible or 2 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Visible = v return true end },
+            { Key = "ModMenu_V3_Thick", UI = AliasMap.Slider, Text = T("   سماكة خط HDR الظاهر", "   HDR Outline Thickness"), ExpandHandle = "ModMenu_ColorBodyV3_Ex", MinValue = 1, MaxValue = 20, GetFunc = function() return _G.LexusState.CustomTextData.ColorV3Thickness or 4 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.ColorV3Thickness = v return true end },
 
-            { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = T("Small Crosshair"), GetFunc = function() return _G.LexusConfig.Crosshair end, SetFunc = function(c,v) _G.LexusConfig.Crosshair = v return true end },
-            { Key = "ModMenu_WhiteBody", UI = AliasMap.Switcher, Text = T( "White Body"), GetFunc = function() return _G.LexusConfig.WhiteBody end, SetFunc = function(c,v) _G.LexusConfig.WhiteBody = v return true end },
-            { Key = "ModMenu_BlackSky", UI = AliasMap.Switcher, Text = T("Black Sky"), GetFunc = function() return _G.LexusConfig.BlackSky end, SetFunc = function(c,v) _G.LexusConfig.BlackSky = v return true end },
-            { Key = "ModMenu_RemoveFog", UI = AliasMap.Switcher, Text = T("Remove Fog"), GetFunc = function() return _G.LexusConfig.RemoveFog end, SetFunc = function(c,v) _G.LexusConfig.RemoveFog = v return true end },
-            { Key = "ModMenu_RemoveGrass", UI = AliasMap.Switcher, Text = T( "Remove Grass"), GetFunc = function() return _G.LexusConfig.RemoveGrass end, SetFunc = function(c,v) _G.LexusConfig.RemoveGrass = v return true end },
-            { Key = "ModMenu_RemoveTrees", UI = AliasMap.Switcher, Text = T("Remove Trees"), GetFunc = function() return _G.LexusConfig.RemoveTrees end, SetFunc = function(c,v) _G.LexusConfig.RemoveTrees = v return true end },
+            { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = T("نقطة تصويب صغيرة", "Small Crosshair"), GetFunc = function() return _G.LexusConfig.Crosshair end, SetFunc = function(c,v) _G.LexusConfig.Crosshair = v return true end },
+            { Key = "ModMenu_WhiteBody", UI = AliasMap.Switcher, Text = T("جسم أبيض", "White Body"), GetFunc = function() return _G.LexusConfig.WhiteBody end, SetFunc = function(c,v) _G.LexusConfig.WhiteBody = v return true end },
+            { Key = "ModMenu_BlackSky", UI = AliasMap.Switcher, Text = T("سماء مظلمة (بلاك سكاي)", "Black Sky"), GetFunc = function() return _G.LexusConfig.BlackSky end, SetFunc = function(c,v) _G.LexusConfig.BlackSky = v return true end },
+            { Key = "ModMenu_RemoveFog", UI = AliasMap.Switcher, Text = T("إزالة الضباب", "Remove Fog"), GetFunc = function() return _G.LexusConfig.RemoveFog end, SetFunc = function(c,v) _G.LexusConfig.RemoveFog = v return true end },
+            { Key = "ModMenu_RemoveGrass", UI = AliasMap.Switcher, Text = T("إزالة العشب", "Remove Grass"), GetFunc = function() return _G.LexusConfig.RemoveGrass end, SetFunc = function(c,v) _G.LexusConfig.RemoveGrass = v return true end },
+            { Key = "ModMenu_RemoveTrees", UI = AliasMap.Switcher, Text = T("إزالة الأشجار", "Remove Trees"), GetFunc = function() return _G.LexusConfig.RemoveTrees end, SetFunc = function(c,v) _G.LexusConfig.RemoveTrees = v return true end },
 
-            { Key = "ModMenu_WeaponGlow_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ Weapon Glow (HDR)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.WeaponGlow end, SetFunc = function(c,v) _G.LexusConfig.WeaponGlow = v return true end },
-            { Key = "ModMenu_WeaponGlowColor", UI = AliasMap.Slider, Text = T(" Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Rnb)"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 5, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowColor or 5 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowColor = v return true end },
-            { Key = "ModMenu_WeaponGlowThick", UI = AliasMap.Slider, Text = T(" Glow Thickness"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 15, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowThickness or 3 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowThickness = v return true end }
+            { Key = "ModMenu_WeaponGlow_Ex", UI = AliasMap.TitleSwitcher, Text = T("▶ توهج السلاح (HDR)", "▶ Weapon Glow (HDR)"), ExpandIndex = 0, GetFunc = function() return _G.LexusConfig.WeaponGlow end, SetFunc = function(c,v) _G.LexusConfig.WeaponGlow = v return true end },
+            { Key = "ModMenu_WeaponGlowColor", UI = AliasMap.Slider, Text = T("   لون السلاح (1:أحمر 2:أخضر 3:أزرق 4:أصفر 5:قوس قزح)", "   Color (1:Red 2:Grn 3:Blu 4:Ylw 5:Rnb)"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 5, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowColor or 5 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowColor = v return true end },
+            { Key = "ModMenu_WeaponGlowThick", UI = AliasMap.Slider, Text = T("   سماكة توهج السلاح", "   Glow Thickness"), ExpandHandle = "ModMenu_WeaponGlow_Ex", MinValue = 1, MaxValue = 15, GetFunc = function() return _G.LexusState.CustomTextData.WeaponGlowThickness or 3 end, SetFunc = function(c,v) _G.LexusState.CustomTextData.WeaponGlowThickness = v return true end }
         }
 
         local StackESPV2 = {} --تم الحذف
@@ -1931,33 +1931,33 @@ local function ShowLexusVIPMenu()
         if not Msg or not Msg.Show then return end
 
         local function Step_ScamAlert()
-            local title = _G.LexusLang == "EN" and "SCAM ALERT" or "Papa Ko Btao SCAM MOD"
+            local title = _G.LexusLang == "EN" and "SCAM ALERT" or "CẢNH BÁO SCAM MOD"
             local content = _G.LexusLang == "EN" 
-                and "Telegram channel @CHACHA - @MOHSINXFILES to communicate with the developer @CHACHA" 
-                or "Telegram @CHACHA - @MOHSINXFILES @CHACHA"
-            local btn1 = _G.LexusLang == "EN" and "JOIN" or "Aa Jao"
-            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "Poyon Oil"
+                and "Telegram channel @CRACK_M5 - @file_dragon to communicate with the developer @mm_a7h" 
+                or "قناة التليجرام @CRACK_M5 - @file_dragon للتواصل مع المطور @mm_a7h"
+            local btn1 = _G.LexusLang == "EN" and "JOIN" or "انضم"
+            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "إغلاق"
 
-            Msg.Show(1, title, content, function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/CHACHA") end end, function() end, btn1, btn2)
+            Msg.Show(1, title, content, function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/CRACK_M5") end end, function() end, btn1, btn2)
             _G.LexusState.MenuStep = 99
             _G.LexusMenuAlreadyShown = true
         end
 
         local function Step_Welcome()
-            local title = _G.LexusLang == "EN" and "WELCOME TO CHACHA MOD" or "Sb Theek Hain Na"
+            local title = _G.LexusLang == "EN" and "WELCOME TO DRAGON MOD" or "أهلاً بيك في المود"
             local content = _G.LexusLang == "EN" 
-                and "Hi, Dung here. The CHACHA MENU is now inside Game Settings!\nIMPORTANT: Enable fewer features to avoid lag. Play safe!" 
-                or "Kam Features Istrmal Kren CHACHA Setting Main Jao\nTayyar Ho?"
-            local btn1 = _G.LexusLang == "EN" and "OPEN GAME MENU" or "Bismillah"
-            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "Bye"
+                and "Hi, Dung here. The DRAGON MENU is now inside Game Settings!\nIMPORTANT: Enable fewer features to avoid lag. Play safe!" 
+                or "أهلاً بيك. القائمة DRAGON بقت جوه إعدادات اللعبة!\nمهم: فعّل خصائص قليلة عشان تتجنب اللاق. والعب بحرص!"
+            local btn1 = _G.LexusLang == "EN" and "OPEN GAME MENU" or "افتح قائمة اللعبة"
+            local btn2 = _G.LexusLang == "EN" and "CLOSE" or "إغلاق"
 
             Msg.Show(1, title, content, 
             function() 
                 _G.InitModMenuTab()
                 if _G.LexusLang == "EN" then
-                    Notify("CHACHA MOD MENU ADDED!\nOpen Settings (Gear icon) -> CHACHA MOD MENU to toggle features.")
+                    Notify("DRAGON MOD MENU ADDED!\nOpen Settings (Gear icon) -> DRAGON MOD MENU to toggle features.")
                 else
-                    Notify("Theek CHACHA Salam\nCusomize (Setting Gear Icon) -> CHACHA MOD MENU Ehtiyat Zaruri Hai")
+                    Notify("اتضافت قائمة DRAGON المود جوه إعدادات اللعبة!\nافتح الإعدادات (سن الترس) -> DRAGON MOD MENU عشان تفعّل/تعطّل.")
                 end
                 Step_ScamAlert()
             end, 
@@ -1965,15 +1965,15 @@ local function ShowLexusVIPMenu()
         end
 
         local function Step_SelectLanguage()
-            Msg.Show(2, "SELECT LANGUAGE / Zuban Konsi", "Please select your preferred language.\nEnglish Krna.",
+            Msg.Show(2, "SELECT LANGUAGE / اختر اللغة", "Please select your preferred language.\nمن فضلك اختر اللغة اللي تفضّلها.",
             function()
-                _G.LexusLang = "EN"
+                _G.LexusLang = "VN"
                 Step_Welcome()
             end,
             function()
                 _G.LexusLang = "EN"
                 Step_Welcome()
-            end, "ENGLISH")
+            end, "العربية", "ENGLISH")
         end
 
         _G.LexusState.MenuStep = 1
@@ -2594,7 +2594,7 @@ local function UndoColorBodyV3(enemy, markData)
     end)
 end
 -- ==========================================
--- CHỨC NĂNG WALL MÀU NEW (ĐƯỢC ĐỒNG BỘ VÀO HỆ THỐNG CHACHA TỐI ƯU)
+-- CHỨC NĂNG WALL MÀU NEW (ĐƯỢC ĐỒNG BỘ VÀO HỆ THỐNG DRAGON TỐI ƯU)
 -- ==========================================
 local function ApplyColorBodyNew(enemy, markData)
     pcall(function()
@@ -3552,7 +3552,7 @@ local function CreateEnemyCounterWidget()
     return EnemyCounterWidget
 end
 
--- TẠO UI: Papa Ko Btao ĐỊCH NGẮM (ĐỘC LẬP)
+-- TẠO UI: CẢNH BÁO ĐỊCH NGẮM (ĐỘC LẬP)
 local function CreateWarningTargetWidget()
     if WarningTargetWidget then
         if slua.isValid(WarningTargetWidget) then return WarningTargetWidget else WarningTargetWidget = nil end
@@ -8297,10 +8297,10 @@ local function ExpiredTick()
         pcall(function()
             local Msg = require("client.slua.logic.common.logic_common_msg_box")
             if Msg and Msg.Show then
-                Msg.Show(1, "المود انتهت مدته", "نسخة المود بتاعتك خلصت!\nمن فضلك راسل الأدمن عشان التجديد.\nراسل تيليجرام @MOHSINXFILES القناة @CHACHA عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت", 
+                Msg.Show(1, "المود انتهت مدته", "نسخة المود بتاعتك خلصت!\nمن فضلك راسل الأدمن عشان التجديد.\nراسل تيليجرام @file_dragon القناة @mm_a7h عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت", 
                 function() 
                     local Web = require("client.slua.logic.url.logic_webview_sdk")
-                    if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end 
+                    if Web and Web.OpenURL then Web:OpenURL("https://t.me/file_dragon") end 
                 end, 
                 function() end, "راسل صاحب المود", "إغلاق")
                 _G.LexusNotifiedPopup = true 
@@ -8319,7 +8319,7 @@ end
 local function FastTick() 
     if isExpired then 
         if not _G.LexusNotifiedExpire then
-            Notify("المود خلص! من فضلك راسل الأدمن عشان التجديد!\nراسل تيليجرام @MOHSINXFILES القناة @CHACHA عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت")
+            Notify("المود خلص! من فضلك راسل الأدمن عشان التجديد!\nراسل تيليجرام @file_dragon القناة @mm_a7h عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت")
             _G.LexusNotifiedExpire = true
             ExpiredTick() 
         end
@@ -8347,7 +8347,7 @@ end
 
 if not isExpired then
     FastTick() 
-    Notify("MOHSINXFILES Telegram Pe Aa Jao")
+    Notify("إنت بتلعب بمود DRAGON بتاعي. لو لسه معندكش مفتاح راسل تيليجرام @file_dragon القناة @mm_a7h عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت")
 else
     FastTick() 
 end
@@ -10643,7 +10643,7 @@ function F.saveWeaponToCache(weaponID, resID, insID)
     F.perfInvalidateLobby()
     F.invalidateSocialWearCache()
     F.persistMarkDirty()
-    F.log(weaponID .. " -> " .. resID)
+    F.log("ذاكرة سكن", weaponID, "→", resID)
 end
 
 function F.cacheWeaponSkinFromIns(weaponID, insID)
@@ -12237,7 +12237,7 @@ local function GetOutfitConfigPaths(fileName)
     return paths
 end
 
-local CONFIG_PATHS = GetOutfitConfigPaths("MOHSINXFILES_outfit.json")
+local CONFIG_PATHS = GetOutfitConfigPaths("file_dragon_outfit.json")
 
 local PERSIST_SLOTS = {
     { "outfit", "outfitRes", "outfitIns", "AddOutfitLastLobbyOutfitRes" },
@@ -15428,9 +15428,9 @@ function F.matchApplyBodyWear(char)
             F.CUST_SLOT.ClothesEquipemtSlot, "تيشرت",
         }
     end
-    pieces[#pieces + 1] = { F.getDesiredWear("pantsRes", "pantsRes", "AddOutfitLastLobbyPantsRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.PantsEquipemtSlot, "شلوار" }
-    pieces[#pieces + 1] = { F.getDesiredWear("shoesRes", "shoesRes", "AddOutfitLastLobbyShoesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.ShoesEquipemtSlot, "جوتے" }
-    pieces[#pieces + 1] = { F.getDesiredWear("glovesRes", "glovesRes", "AddOutfitLastLobbyGlovesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.HandEffectEquipemtSlot, "سودا" }
+    pieces[#pieces + 1] = { F.getDesiredWear("pantsRes", "pantsRes", "AddOutfitLastLobbyPantsRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.PantsEquipemtSlot, "سروال" }
+    pieces[#pieces + 1] = { F.getDesiredWear("shoesRes", "shoesRes", "AddOutfitLastLobbyShoesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.ShoesEquipemtSlot, "حذاء" }
+    pieces[#pieces + 1] = { F.getDesiredWear("glovesRes", "glovesRes", "AddOutfitLastLobbyGlovesRes", F.syncBodyCacheFromLobby), F.CUST_SLOT.HandEffectEquipemtSlot, "قفازات" }
     local any, okAll = false, true
     for _, p in ipairs(pieces) do
         local res, slot, label = p[1], p[2], p[3]
