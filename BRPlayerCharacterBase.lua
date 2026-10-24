@@ -22,6 +22,27 @@ local function IsValid(obj)
     return true
 end
 
+-- safe wrappers: widgets can be nil
+local function SafeSetText(w, s)
+    if w and IsValid(w) then pcall(function() w:SetText(s) end) end
+end
+local function SafeSetColor(w, c)
+    if w and IsValid(w) and c then pcall(function() w:SetColorAndOpacity(c) end) end
+end
+local function SafeSetPos(slot, x, y)
+    if slot and IsValid(slot) and FVector2D then
+        pcall(function() slot:SetPosition(FVector2D(x, y)) end)
+    end
+end
+local function SafeSetSize(slot, x, y)
+    if slot and IsValid(slot) and FVector2D then
+        pcall(function() slot:SetSize(FVector2D(x, y)) end)
+    end
+end
+local function SafeSetVis(w, v)
+    if w and IsValid(w) then pcall(function() w:SetWidgetVisibility(v) end) end
+end
+
 local TempProjVec2D = FVector2D and FVector2D(0, 0) or nil
 local ColorWhite = FLinearColor and FLinearColor(1.0, 1.0, 1.0, 1.0) or nil
 local ColorRed = FLinearColor and FLinearColor(1.0, 0.15, 0.15, 1.0) or nil
@@ -403,6 +424,7 @@ function BoxESP.CreateESPWidget(ParentCanvas)
 end
 
 function BoxESP.UpdateCornerDimensions(boxData, width, height)
+    if not boxData or not boxData.CornerSlot then return end
     if boxData.lastW and boxData.lastH then
         if math.abs(width - boxData.lastW) < 1.5 and math.abs(height - boxData.lastH) < 1.5 then
             return
@@ -413,68 +435,72 @@ function BoxESP.UpdateCornerDimensions(boxData, width, height)
 
     local t = BoxESP.CornerThickness
     local cLen = math.max(7, math.min(width, height) * BoxESP.CornerLengthRatio)
-    local C = boxData.Corners
+    local C = boxData.Corners or {}
 
-    boxData.CornerSlot:SetSize(FVector2D(width, height))
+    SafeSetSize(boxData.CornerSlot, width, height)
 
     if C.TopLeft_H and C.TopLeft_H.slot then
-        C.TopLeft_H.slot:SetPosition(FVector2D(0, 0))
-        C.TopLeft_H.slot:SetSize(FVector2D(cLen, t))
+        SafeSetPos(C.TopLeft_H.slot, 0, 0)
+        SafeSetSize(C.TopLeft_H.slot, cLen, t)
     end
     if C.TopLeft_V and C.TopLeft_V.slot then
-        C.TopLeft_V.slot:SetPosition(FVector2D(0, 0))
-        C.TopLeft_V.slot:SetSize(FVector2D(t, cLen))
+        SafeSetPos(C.TopLeft_V.slot, 0, 0)
+        SafeSetSize(C.TopLeft_V.slot, t, cLen)
     end
 
     if C.TopRight_H and C.TopRight_H.slot then
-        C.TopRight_H.slot:SetPosition(FVector2D(width - cLen, 0))
-        C.TopRight_H.slot:SetSize(FVector2D(cLen, t))
+        SafeSetPos(C.TopRight_H.slot, width - cLen, 0)
+        SafeSetSize(C.TopRight_H.slot, cLen, t)
     end
     if C.TopRight_V and C.TopRight_V.slot then
-        C.TopRight_V.slot:SetPosition(FVector2D(width - t, 0))
-        C.TopRight_V.slot:SetSize(FVector2D(t, cLen))
+        SafeSetPos(C.TopRight_V.slot, width - t, 0)
+        SafeSetSize(C.TopRight_V.slot, t, cLen)
     end
 
     if C.BottomLeft_H and C.BottomLeft_H.slot then
-        C.BottomLeft_H.slot:SetPosition(FVector2D(0, height - t))
-        C.BottomLeft_H.slot:SetSize(FVector2D(cLen, t))
+        SafeSetPos(C.BottomLeft_H.slot, 0, height - t)
+        SafeSetSize(C.BottomLeft_H.slot, cLen, t)
     end
     if C.BottomLeft_V and C.BottomLeft_V.slot then
-        C.BottomLeft_V.slot:SetPosition(FVector2D(0, height - cLen))
-        C.BottomLeft_V.slot:SetSize(FVector2D(t, cLen))
+        SafeSetPos(C.BottomLeft_V.slot, 0, height - cLen)
+        SafeSetSize(C.BottomLeft_V.slot, t, cLen)
     end
 
     if C.BottomRight_H and C.BottomRight_H.slot then
-        C.BottomRight_H.slot:SetPosition(FVector2D(width - cLen, height - t))
-        C.BottomRight_H.slot:SetSize(FVector2D(cLen, t))
+        SafeSetPos(C.BottomRight_H.slot, width - cLen, height - t)
+        SafeSetSize(C.BottomRight_H.slot, cLen, t)
     end
     if C.BottomRight_V and C.BottomRight_V.slot then
-        C.BottomRight_V.slot:SetPosition(FVector2D(width - t, height - cLen))
-        C.BottomRight_V.slot:SetSize(FVector2D(t, cLen))
+        SafeSetPos(C.BottomRight_V.slot, width - t, height - cLen)
+        SafeSetSize(C.BottomRight_V.slot, t, cLen)
     end
 end
 
 function BoxESP.UpdateCanvasTransform(PC)
     if not BoxESP.ESPCanvas or not IsValid(BoxESP.ESPCanvas) then return end
+    if not FVector2D then return end
 
     local success = false
-    if SlateBlueprintLibrary and SlateBlueprintLibrary.AbsoluteToLocal then
-        local cg = BoxESP.ESPCanvas:GetCachedGeometry()
-        if cg then
-            local pt0 = SlateBlueprintLibrary.AbsoluteToLocal(cg, FVector2D(0, 0))
-            local pt1 = SlateBlueprintLibrary.AbsoluteToLocal(cg, FVector2D(100, 100))
-            if pt0 and pt1 then
-                BoxESP._CanvasScaleX = (pt1.X - pt0.X) / 100
-                BoxESP._CanvasScaleY = (pt1.Y - pt0.Y) / 100
-                BoxESP._CanvasOffsetX = pt0.X
-                BoxESP._CanvasOffsetY = pt0.Y
-                success = true
+    pcall(function()
+        if SlateBlueprintLibrary and SlateBlueprintLibrary.AbsoluteToLocal then
+            local cg = BoxESP.ESPCanvas:GetCachedGeometry()
+            if cg then
+                local pt0 = SlateBlueprintLibrary.AbsoluteToLocal(cg, FVector2D(0, 0))
+                local pt1 = SlateBlueprintLibrary.AbsoluteToLocal(cg, FVector2D(100, 100))
+                if pt0 and pt1 then
+                    BoxESP._CanvasScaleX = (pt1.X - pt0.X) / 100
+                    BoxESP._CanvasScaleY = (pt1.Y - pt0.Y) / 100
+                    BoxESP._CanvasOffsetX = pt0.X
+                    BoxESP._CanvasOffsetY = pt0.Y
+                    success = true
+                end
             end
         end
-    end
+    end)
 
     if not success and WidgetLayoutLibrary and WidgetLayoutLibrary.GetViewportScale then
-        local scale = WidgetLayoutLibrary.GetViewportScale(PC) or 1.0
+        local scale = 1.0
+        pcall(function() scale = WidgetLayoutLibrary.GetViewportScale(PC) or 1.0 end)
         BoxESP._CanvasScaleX = 1.0 / scale
         BoxESP._CanvasScaleY = 1.0 / scale
         BoxESP._CanvasOffsetX = 0
@@ -500,7 +526,7 @@ function BoxESP.GetSnapLineStartPos(PC, ParentCanvas)
     local scale = 1.0
 
     pcall(function()
-        if PC and PC.GetViewportSize then
+        if PC and PC.GetViewportSize and FVector2D then
             local vs = FVector2D(0, 0)
             PC:GetViewportSize(vs)
             if vs and vs.X and vs.X > 200 then
@@ -543,7 +569,7 @@ function BoxESP.GetSnapLineStartPos(PC, ParentCanvas)
 end
 
 function BoxESP.CreateSnapLine(ParentCanvas)
-    if not IsValid(ParentCanvas) then return nil end
+    if not IsValid(ParentCanvas) or not FVector2D then return nil end
     local border = CGame:NewObjectFromPath("/Script/UMG.Border", ParentCanvas)
     if not IsValid(border) then return nil end
 
@@ -569,7 +595,7 @@ function BoxESP.UpdateSnapLine(KeyStr, toX, toY, fromX, fromY, CustomColor, Pare
     end
 
     if not lineData.bVisible then
-        lineData.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+        SafeSetVis(lineData.Widget, UEnums.ESlateVisibility.SelfHitTestInvisible)
         lineData.bVisible = true
     end
 
@@ -583,10 +609,10 @@ function BoxESP.UpdateSnapLine(KeyStr, toX, toY, fromX, fromY, CustomColor, Pare
     local angle = (math.atan2 and math.atan2(dy, dx) or math.atan(dy, dx)) * (180.0 / math.pi)
     local t = BoxESP.SnapLineThickness or 1.0
 
-    if not lineData._CachedPosVec then
+    if not lineData._CachedPosVec and FVector2D then
         lineData._CachedPosVec = FVector2D(fromX, fromY - t * 0.5)
         lineData._CachedSizeVec = FVector2D(length, t)
-    else
+    elseif lineData._CachedPosVec then
         lineData._CachedPosVec.X = fromX
         lineData._CachedPosVec.Y = fromY - t * 0.5
         lineData._CachedSizeVec.X = length
@@ -594,8 +620,10 @@ function BoxESP.UpdateSnapLine(KeyStr, toX, toY, fromX, fromY, CustomColor, Pare
     end
 
     pcall(function()
-        lineData.Slot:SetPosition(lineData._CachedPosVec)
-        lineData.Slot:SetSize(lineData._CachedSizeVec)
+        if lineData._CachedPosVec then
+            lineData.Slot:SetPosition(lineData._CachedPosVec)
+            lineData.Slot:SetSize(lineData._CachedSizeVec)
+        end
         lineData.Widget:SetRenderAngle(angle)
     end)
 end
@@ -610,6 +638,7 @@ end
 
 -- ========== Enemy Counter with Images ==========
 function BoxESP.CreateEnemyCounter(ParentCanvas, centerX, topY)
+    if not FVector2D then return false end
     local CD = BoxESP.CounterData
     if CD.ImgPlayer and IsValid(CD.ImgPlayer) and CD.ImgBot and IsValid(CD.ImgBot) then
         return true
@@ -697,10 +726,10 @@ function BoxESP.UpdateEnemyCounterDisplay(realCount, botCount, ParentCanvas, cen
     local CD = BoxESP.CounterData
     if not BoxESP.bShowCounter then
         local col = UEnums.ESlateVisibility.Collapsed
-        if CD.ImgPlayer and IsValid(CD.ImgPlayer) then CD.ImgPlayer:SetWidgetVisibility(col) end
-        if CD.ImgBot and IsValid(CD.ImgBot) then CD.ImgBot:SetWidgetVisibility(col) end
-        if CD.TxtPlayer and IsValid(CD.TxtPlayer) then CD.TxtPlayer:SetWidgetVisibility(col) end
-        if CD.TxtBot and IsValid(CD.TxtBot) then CD.TxtBot:SetWidgetVisibility(col) end
+        SafeSetVis(CD.ImgPlayer, col)
+        SafeSetVis(CD.ImgBot, col)
+        SafeSetVis(CD.TxtPlayer, col)
+        SafeSetVis(CD.TxtBot, col)
         return
     end
 
@@ -714,36 +743,28 @@ function BoxESP.UpdateEnemyCounterDisplay(realCount, botCount, ParentCanvas, cen
     end
 
     pcall(function()
-        if CD.SlotPlayer then
-            CD.SlotPlayer:SetSize(FVector2D(BADGE_WIDTH, BADGE_HEIGHT))
-            CD.SlotPlayer:SetPosition(FVector2D(centerX - BADGE_WIDTH, topY))
-        end
-        if CD.SlotBot then
-            CD.SlotBot:SetSize(FVector2D(BADGE_WIDTH, BADGE_HEIGHT))
-            CD.SlotBot:SetPosition(FVector2D(centerX, topY))
-        end
-        if CD.SlotTxtPlayer then
-            CD.SlotTxtPlayer:SetPosition(FVector2D(centerX - (BADGE_WIDTH * 0.25), topY + (BADGE_HEIGHT * 0.5)))
-        end
-        if CD.SlotTxtBot then
-            CD.SlotTxtBot:SetPosition(FVector2D(centerX + (BADGE_WIDTH * 0.65), topY + (BADGE_HEIGHT * 0.5)))
-        end
+        SafeSetSize(CD.SlotPlayer, BADGE_WIDTH, BADGE_HEIGHT)
+        SafeSetPos(CD.SlotPlayer, centerX - BADGE_WIDTH, topY)
+        SafeSetSize(CD.SlotBot, BADGE_WIDTH, BADGE_HEIGHT)
+        SafeSetPos(CD.SlotBot, centerX, topY)
+        SafeSetPos(CD.SlotTxtPlayer, centerX - (BADGE_WIDTH * 0.25), topY + (BADGE_HEIGHT * 0.5))
+        SafeSetPos(CD.SlotTxtBot, centerX + (BADGE_WIDTH * 0.65), topY + (BADGE_HEIGHT * 0.5))
 
         if CD.LastPlayerCount ~= realCount then
-            if CD.TxtPlayer and IsValid(CD.TxtPlayer) then CD.TxtPlayer:SetText(tostring(realCount)) end
+            SafeSetText(CD.TxtPlayer, tostring(realCount))
             CD.LastPlayerCount = realCount
         end
 
         if CD.LastBotCount ~= botCount then
-            if CD.TxtBot and IsValid(CD.TxtBot) then CD.TxtBot:SetText(tostring(botCount)) end
+            SafeSetText(CD.TxtBot, tostring(botCount))
             CD.LastBotCount = botCount
         end
 
         local vis = UEnums.ESlateVisibility.SelfHitTestInvisible
-        if CD.ImgPlayer and IsValid(CD.ImgPlayer) then CD.ImgPlayer:SetWidgetVisibility(vis) end
-        if CD.ImgBot and IsValid(CD.ImgBot) then CD.ImgBot:SetWidgetVisibility(vis) end
-        if CD.TxtPlayer and IsValid(CD.TxtPlayer) then CD.TxtPlayer:SetWidgetVisibility(vis) end
-        if CD.TxtBot and IsValid(CD.TxtBot) then CD.TxtBot:SetWidgetVisibility(vis) end
+        SafeSetVis(CD.ImgPlayer, vis)
+        SafeSetVis(CD.ImgBot, vis)
+        SafeSetVis(CD.TxtPlayer, vis)
+        SafeSetVis(CD.TxtBot, vis)
     end)
 end
 
@@ -751,28 +772,28 @@ function BoxESP.HideWidget(boxData)
     if not boxData or not boxData.bVisible then return end
     boxData.bVisible = false
     local collapsed = UEnums.ESlateVisibility.Collapsed
-    if boxData.CornerContainer then boxData.CornerContainer:SetWidgetVisibility(collapsed) end
-    if boxData.BgWidget then boxData.BgWidget:SetWidgetVisibility(collapsed) end
-    if boxData.HealthWidget then boxData.HealthWidget:SetWidgetVisibility(collapsed) end
-    if boxData.WeaponWidget then boxData.WeaponWidget:SetWidgetVisibility(collapsed) end
-    if boxData.FlagWidget then boxData.FlagWidget:SetWidgetVisibility(collapsed) end
-    if boxData.NameWidget then boxData.NameWidget:SetWidgetVisibility(collapsed) end
-    if boxData.DistWidget then boxData.DistWidget:SetWidgetVisibility(collapsed) end
-    if boxData.StateWidget then boxData.StateWidget:SetWidgetVisibility(collapsed) end
+    SafeSetVis(boxData.CornerContainer, collapsed)
+    SafeSetVis(boxData.BgWidget, collapsed)
+    SafeSetVis(boxData.HealthWidget, collapsed)
+    SafeSetVis(boxData.WeaponWidget, collapsed)
+    SafeSetVis(boxData.FlagWidget, collapsed)
+    SafeSetVis(boxData.NameWidget, collapsed)
+    SafeSetVis(boxData.DistWidget, collapsed)
+    SafeSetVis(boxData.StateWidget, collapsed)
 end
 
 function BoxESP.ShowWidget(boxData)
     if not boxData or boxData.bVisible then return end
     boxData.bVisible = true
     local visible = UEnums.ESlateVisibility.SelfHitTestInvisible
-    if boxData.CornerContainer then boxData.CornerContainer:SetWidgetVisibility(visible) end
-    if boxData.BgWidget then boxData.BgWidget:SetWidgetVisibility(visible) end
-    if boxData.HealthWidget then boxData.HealthWidget:SetWidgetVisibility(visible) end
-    if boxData.WeaponWidget then boxData.WeaponWidget:SetWidgetVisibility(visible) end
-    if boxData.FlagWidget then boxData.FlagWidget:SetWidgetVisibility(visible) end
-    if boxData.NameWidget then boxData.NameWidget:SetWidgetVisibility(visible) end
-    if boxData.DistWidget then boxData.DistWidget:SetWidgetVisibility(visible) end
-    if boxData.StateWidget then boxData.StateWidget:SetWidgetVisibility(visible) end
+    SafeSetVis(boxData.CornerContainer, visible)
+    SafeSetVis(boxData.BgWidget, visible)
+    SafeSetVis(boxData.HealthWidget, visible)
+    SafeSetVis(boxData.WeaponWidget, visible)
+    SafeSetVis(boxData.FlagWidget, visible)
+    SafeSetVis(boxData.NameWidget, visible)
+    SafeSetVis(boxData.DistWidget, visible)
+    SafeSetVis(boxData.StateWidget, visible)
 end
 
 function BoxESP.UpdateESP()
@@ -836,7 +857,7 @@ function BoxESP.UpdateESP()
 
                 local Loc = Pawn.K2_GetActorLocation and Pawn:K2_GetActorLocation()
                 if not Loc and Pawn.RootComponent then
-                    Loc = Pawn.RootComponent:K2_GetComponentLocation()
+                    pcall(function() Loc = Pawn.RootComponent:K2_GetComponentLocation() end)
                 end
 
                 if Loc then
@@ -845,11 +866,13 @@ function BoxESP.UpdateESP()
 
                     local mesh = Pawn.Mesh or (Pawn.GetMesh and Pawn:GetMesh()) or Pawn.CharacterMesh0
                     if mesh and mesh.GetSocketLocation then
-                        local hLoc = mesh:GetSocketLocation("Head") or mesh:GetSocketLocation("head")
-                        if hLoc and (hLoc.X ~= 0 or hLoc.Y ~= 0 or hLoc.Z ~= 0) then
+                        local hLoc = nil
+                        pcall(function() hLoc = mesh:GetSocketLocation("Head") or mesh:GetSocketLocation("head") end)
+                        if hLoc and (hLoc.X ~= 0 or hLoc.Y ~= 0 or hLoc.Z ~= 0) and FVector then
                             topWorldPos = FVector(hLoc.X, hLoc.Y, hLoc.Z + 15)
                         end
-                        local rLoc = mesh:GetSocketLocation("root") or mesh:GetSocketLocation("Root")
+                        local rLoc = nil
+                        pcall(function() rLoc = mesh:GetSocketLocation("root") or mesh:GetSocketLocation("Root") end)
                         if rLoc and (rLoc.X ~= 0 or rLoc.Y ~= 0 or rLoc.Z ~= 0) then
                             bottomWorldPos = rLoc
                         end
@@ -863,171 +886,183 @@ function BoxESP.UpdateESP()
                         isCrouch = true
                     end
 
-                    if not topWorldPos or not bottomWorldPos then
+                    if (not topWorldPos or not bottomWorldPos) and FVector then
                         local topOffset = isProne and 18 or (isCrouch and 50 or 88)
                         local bottomOffset = isProne and -22 or (isCrouch and -68 or -90)
                         topWorldPos = topWorldPos or FVector(Loc.X, Loc.Y, Loc.Z + topOffset)
                         bottomWorldPos = bottomWorldPos or FVector(Loc.X, Loc.Y, Loc.Z + bottomOffset)
                     end
 
-                    local bTopOk, topX, topY = BoxESP.ProjectWorldToCanvasLocal(PC, topWorldPos)
-                    local bBottomOk, bottomX, bottomY = BoxESP.ProjectWorldToCanvasLocal(PC, bottomWorldPos)
+                    if topWorldPos and bottomWorldPos then
+                        local bTopOk, topX, topY = BoxESP.ProjectWorldToCanvasLocal(PC, topWorldPos)
+                        local bBottomOk, bottomX, bottomY = BoxESP.ProjectWorldToCanvasLocal(PC, bottomWorldPos)
 
-                    local boxData = BoxESP.BoxWidgets[KeyStr]
-                    if not boxData then
-                        boxData = BoxESP.CreateESPWidget(ParentCanvas)
-                        if boxData then BoxESP.BoxWidgets[KeyStr] = boxData end
-                    end
+                        local boxData = BoxESP.BoxWidgets[KeyStr]
+                        if not boxData then
+                            boxData = BoxESP.CreateESPWidget(ParentCanvas)
+                            if boxData then BoxESP.BoxWidgets[KeyStr] = boxData end
+                        end
 
-                    if boxData and IsValid(boxData.CornerContainer) then
-                        if bTopOk and bBottomOk then
-                            local boxHeight = math.max(28, math.abs(bottomY - topY))
-                            local boxWidth = math.max(15, boxHeight * (isProne and 1.1 or (isCrouch and 0.7 or 0.55)))
+                        if boxData and IsValid(boxData.CornerContainer) then
+                            if bTopOk and bBottomOk then
+                                local boxHeight = math.max(28, math.abs(bottomY - topY))
+                                local boxWidth = math.max(15, boxHeight * (isProne and 1.1 or (isCrouch and 0.7 or 0.55)))
 
-                            local centerX = (topX + bottomX) * 0.5
-                            local centerY = (topY + bottomY) * 0.5
-                            local boxTopY = centerY - (boxHeight * 0.5)
-                            local boxBottomY = centerY + (boxHeight * 0.5)
+                                local centerX = (topX + bottomX) * 0.5
+                                local centerY = (topY + bottomY) * 0.5
+                                local boxTopY = centerY - (boxHeight * 0.5)
+                                local boxBottomY = centerY + (boxHeight * 0.5)
 
-                            BoxESP.UpdateCornerDimensions(boxData, boxWidth, boxHeight)
-                            boxData.CornerSlot:SetPosition(FVector2D(centerX, centerY))
-                            BoxESP.ShowWidget(boxData)
+                                BoxESP.UpdateCornerDimensions(boxData, boxWidth, boxHeight)
+                                SafeSetPos(boxData.CornerSlot, centerX, centerY)
+                                BoxESP.ShowWidget(boxData)
 
-                            local healthBarWidth = BoxESP.HealthBarWidth or 2.0
-                            local healthCenterX = centerX - (boxWidth * 0.5) - 2.5 - (healthBarWidth * 0.5)
-                            local health = Pawn.Health or (Pawn.GetHealth and Pawn:GetHealth()) or 100
-                            local healthMax = Pawn.HealthMax or (Pawn.GetHealthMax and Pawn:GetHealthMax()) or 100
-                            if healthMax <= 0 then healthMax = 100 end
+                                local healthBarWidth = BoxESP.HealthBarWidth or 2.0
+                                local healthCenterX = centerX - (boxWidth * 0.5) - 2.5 - (healthBarWidth * 0.5)
+                                local health = Pawn.Health or (Pawn.GetHealth and Pawn:GetHealth()) or 100
+                                local healthMax = Pawn.HealthMax or (Pawn.GetHealthMax and Pawn:GetHealthMax()) or 100
+                                if healthMax <= 0 then healthMax = 100 end
 
-                            local healthPercent = math.max(0, math.min(1, health / healthMax))
-                            local currentHealthHeight = boxHeight * healthPercent
+                                local healthPercent = math.max(0, math.min(1, health / healthMax))
+                                local currentHealthHeight = boxHeight * healthPercent
 
-                            boxData.BgSlot:SetSize(FVector2D(healthBarWidth, boxHeight))
-                            boxData.BgSlot:SetPosition(FVector2D(healthCenterX, boxBottomY))
-                            boxData.HealthSlot:SetSize(FVector2D(healthBarWidth, currentHealthHeight))
-                            boxData.HealthSlot:SetPosition(FVector2D(healthCenterX, boxBottomY))
+                                SafeSetSize(boxData.BgSlot, healthBarWidth, boxHeight)
+                                SafeSetPos(boxData.BgSlot, healthCenterX, boxBottomY)
+                                SafeSetSize(boxData.HealthSlot, healthBarWidth, currentHealthHeight)
+                                SafeSetPos(boxData.HealthSlot, healthCenterX, boxBottomY)
 
-                            if bRunHeavyTasks or boxData._cachedWeapon == "" then
-                                local wep = (Pawn.GetCurrentWeapon and Pawn:GetCurrentWeapon())
-                                    or (Pawn.GetCurrentShootWeapon and Pawn:GetCurrentShootWeapon())
-                                    or (Pawn.WeaponManagerComponent and Pawn.WeaponManagerComponent.CurrentWeaponReplicated)
-                                local weaponName = "Fist"
-                                if wep and IsValid(wep) then
-                                    local wn = (type(wep.GetWeaponName) == "function" and wep:GetWeaponName()) or wep.WeaponName
-                                    if wn and wn ~= "" then
-                                        weaponName = tostring(wn):gsub("^BP_", ""):gsub("_C$", ""):gsub("_Wrapper$", "")
+                                if bRunHeavyTasks or boxData._cachedWeapon == "" then
+                                    local wep = (Pawn.GetCurrentWeapon and Pawn:GetCurrentWeapon())
+                                        or (Pawn.GetCurrentShootWeapon and Pawn:GetCurrentShootWeapon())
+                                        or (Pawn.WeaponManagerComponent and Pawn.WeaponManagerComponent.CurrentWeaponReplicated)
+                                    local weaponName = "Fist"
+                                    if wep and IsValid(wep) then
+                                        local wn = (type(wep.GetWeaponName) == "function" and wep:GetWeaponName()) or wep.WeaponName
+                                        if wn and wn ~= "" then
+                                            weaponName = tostring(wn):gsub("^BP_", ""):gsub("_C$", ""):gsub("_Wrapper$", "")
+                                        end
+                                    end
+                                    if boxData._cachedWeapon ~= weaponName then
+                                        SafeSetText(boxData.WeaponWidget, weaponName)
+                                        boxData._cachedWeapon = weaponName
                                     end
                                 end
-                                if boxData._cachedWeapon ~= weaponName then
-                                    boxData.WeaponWidget:SetText(weaponName)
-                                    boxData._cachedWeapon = weaponName
-                                end
-                            end
-                            boxData.WeaponSlot:SetPosition(FVector2D(centerX, boxTopY - 3.5))
+                                SafeSetPos(boxData.WeaponSlot, centerX, boxTopY - 3.5)
 
-                            if bRunHeavyTasks or not boxData._cachedNation then
-                                local playerNation = (Pawn.PlayerState and Pawn.PlayerState.Nation) or Pawn.Nation or ""
-                                playerNation = tostring(playerNation or "")
-                                if playerNation == "" or playerNation == "nil" or playerNation == "0" then
-                                    playerNation = "G1"
-                                end
-
-                                if boxData._cachedNation ~= playerNation then
-                                    local cfg = (CDataTable and CDataTable.GetTableData) and CDataTable.GetTableData("RegionConfig", playerNation)
-                                    if not cfg or not cfg.res_path or cfg.res_path == "" then
-                                        cfg = (CDataTable and CDataTable.GetTableData) and CDataTable.GetTableData("RegionConfig", "G1")
+                                if bRunHeavyTasks or not boxData._cachedNation then
+                                    local playerNation = (Pawn.PlayerState and Pawn.PlayerState.Nation) or Pawn.Nation or ""
+                                    playerNation = tostring(playerNation or "")
+                                    if playerNation == "" or playerNation == "nil" or playerNation == "0" then
+                                        playerNation = "G1"
                                     end
-                                    local flagPath = (cfg and cfg.res_path) or "/Game/UMG/Texture/Atlas/NationalflagUI/Frames/T_icon_flag_iland_png.T_icon_flag_iland_png"
 
-                                    if boxData.FlagWidget and IsValid(boxData.FlagWidget) then
-                                        local bSet = false
-                                        if boxData.FlagWidget.SetBrushResourceFromPathSync then
-                                            boxData.FlagWidget:SetBrushResourceFromPathSync(flagPath, false)
-                                            bSet = true
-                                        end
-                                        if not bSet and boxData.FlagWidget.SetBrushFromPathAsync then
-                                            boxData.FlagWidget:SetBrushFromPathAsync(flagPath, false)
-                                            bSet = true
-                                        end
-                                        if not bSet then
-                                            local util = package.loaded["client.slua_ui_framework.util"]
-                                            if not util then pcall(function() util = require("client.slua_ui_framework.util") end) end
-                                            if util and util.SetTexture then
-                                                util.SetTexture(boxData.FlagWidget, flagPath, { sync = true })
-                                                bSet = true
+                                    if boxData._cachedNation ~= playerNation then
+                                        local cfg = nil
+                                        pcall(function()
+                                            if CDataTable and CDataTable.GetTableData then
+                                                cfg = CDataTable.GetTableData("RegionConfig", playerNation)
+                                                if not cfg or not cfg.res_path or cfg.res_path == "" then
+                                                    cfg = CDataTable.GetTableData("RegionConfig", "G1")
+                                                end
                                             end
+                                        end)
+                                        local flagPath = (cfg and cfg.res_path) or "/Game/UMG/Texture/Atlas/NationalflagUI/Frames/T_icon_flag_iland_png.T_icon_flag_iland_png"
+
+                                        if boxData.FlagWidget and IsValid(boxData.FlagWidget) then
+                                            pcall(function()
+                                                local bSet = false
+                                                if boxData.FlagWidget.SetBrushResourceFromPathSync then
+                                                    boxData.FlagWidget:SetBrushResourceFromPathSync(flagPath, false)
+                                                    bSet = true
+                                                end
+                                                if not bSet and boxData.FlagWidget.SetBrushFromPathAsync then
+                                                    boxData.FlagWidget:SetBrushFromPathAsync(flagPath, false)
+                                                    bSet = true
+                                                end
+                                                if not bSet then
+                                                    local util = package.loaded["client.slua_ui_framework.util"]
+                                                    if not util then pcall(function() util = require("client.slua_ui_framework.util") end) end
+                                                    if util and util.SetTexture then
+                                                        util.SetTexture(boxData.FlagWidget, flagPath, { sync = true })
+                                                        bSet = true
+                                                    end
+                                                end
+                                                if not bSet then
+                                                    local asset_util = package.loaded["common.asset_util"]
+                                                    if not asset_util then pcall(function() asset_util = require("common.asset_util") end) end
+                                                    local flagTex = (asset_util and asset_util.GetAssetSync and asset_util.GetAssetSync(flagPath))
+                                                                 or (CGame and CGame.LoadObject and CGame:LoadObject(flagPath))
+                                                    if flagTex and boxData.FlagWidget.SetBrushFromTexture then
+                                                        boxData.FlagWidget:SetBrushFromTexture(flagTex, false)
+                                                    end
+                                                end
+                                                boxData.FlagWidget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+                                            end)
                                         end
-                                        if not bSet then
-                                            local asset_util = package.loaded["common.asset_util"]
-                                            if not asset_util then pcall(function() asset_util = require("common.asset_util") end) end
-                                            local flagTex = (asset_util and asset_util.GetAssetSync and asset_util.GetAssetSync(flagPath))
-                                                         or (CGame and CGame.LoadObject and CGame:LoadObject(flagPath))
-                                            if flagTex and boxData.FlagWidget.SetBrushFromTexture then
-                                                boxData.FlagWidget:SetBrushFromTexture(flagTex, false)
-                                                bSet = true
-                                            end
-                                        end
-                                        boxData.FlagWidget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+                                        boxData._cachedNation = playerNation
                                     end
-                                    boxData._cachedNation = playerNation
                                 end
-                            end
-                            if boxData.FlagSlot then
-                                boxData.FlagSlot:SetPosition(FVector2D(centerX, boxTopY - 22.0))
-                            end
-
-                            if bRunHeavyTasks or boxData._cachedName == "" then
-                                local playerName = isBot and "Bot" or (Pawn.PlayerName or Pawn.PlayerNamePublic or (Pawn.GetPlayerName and Pawn:GetPlayerName()) or "Player")
-                                playerName = tostring(playerName)
-                                if boxData._cachedName ~= playerName then
-                                    boxData.NameWidget:SetText(playerName)
-                                    boxData._cachedName = playerName
-                                end
-                            end
-                            boxData.NameSlot:SetPosition(FVector2D(centerX, boxBottomY + 4.0))
-
-                            local distVal = math.floor(LocalPlayer:GetDistanceTo(Pawn) / 100.0)
-                            local distStr = tostring(distVal) .. "m"
-                            if boxData._cachedDist ~= distStr then
-                                boxData.DistWidget:SetText(distStr)
-                                boxData._cachedDist = distStr
-                            end
-                            boxData.DistSlot:SetPosition(FVector2D(centerX, boxBottomY + 20.5))
-
-                            if bUpdateVisCheck or BoxESP._VisCheckCache[KeyStr] == nil then
-                                BoxESP._VisCheckCache[KeyStr] = (PC and PC.LineOfSightTo and PC:LineOfSightTo(Pawn)) or false
-                            end
-                            local isVisible = BoxESP._VisCheckCache[KeyStr]
-
-                            if bRunHeavyTasks or boxData._cachedState == "" then
-                                local isKnocked = (Pawn.HealthStatus == 1 or Pawn.bIsKnocked or (Pawn.IsKnocked and Pawn:IsKnocked()))
-                                local stateStr = "Open"
-                                local slateCol = SlateColorGreen
-                                if isKnocked then
-                                    stateStr = "Knocked"
-                                    slateCol = SlateColorRed
-                                elseif not isVisible then
-                                    stateStr = "Cover"
-                                    slateCol = SlateColorRed
+                                if boxData.FlagSlot then
+                                    SafeSetPos(boxData.FlagSlot, centerX, boxTopY - 22.0)
                                 end
 
-                                if boxData._cachedState ~= stateStr then
-                                    boxData.StateWidget:SetText(stateStr)
-                                    boxData.StateWidget:SetColorAndOpacity(slateCol)
-                                    boxData._cachedState = stateStr
+                                if bRunHeavyTasks or boxData._cachedName == "" then
+                                    local playerName = isBot and "Bot" or (Pawn.PlayerName or Pawn.PlayerNamePublic or (Pawn.GetPlayerName and Pawn:GetPlayerName()) or "Player")
+                                    playerName = tostring(playerName)
+                                    if boxData._cachedName ~= playerName then
+                                        SafeSetText(boxData.NameWidget, playerName)
+                                        boxData._cachedName = playerName
+                                    end
                                 end
-                            end
-                            boxData.StateSlot:SetPosition(FVector2D(centerX, boxBottomY + 37.0))
+                                SafeSetPos(boxData.NameSlot, centerX, boxBottomY + 4.0)
 
-                            if BoxESP.bShowLines then
-                                local lineColor = isVisible and ColorGreen or ColorRed
-                                BoxESP.UpdateSnapLine(KeyStr, centerX, boxTopY, fromX, fromY, lineColor, ParentCanvas)
+                                local distRaw = 0
+                                pcall(function() distRaw = LocalPlayer:GetDistanceTo(Pawn) or 0 end)
+                                local distVal = math.floor((distRaw or 0) / 100.0)
+                                local distStr = tostring(distVal) .. "m"
+                                if boxData._cachedDist ~= distStr then
+                                    SafeSetText(boxData.DistWidget, distStr)
+                                    boxData._cachedDist = distStr
+                                end
+                                SafeSetPos(boxData.DistSlot, centerX, boxBottomY + 20.5)
+
+                                if bUpdateVisCheck or BoxESP._VisCheckCache[KeyStr] == nil then
+                                    local visResult = false
+                                    pcall(function() visResult = (PC and PC.LineOfSightTo and PC:LineOfSightTo(Pawn)) or false end)
+                                    BoxESP._VisCheckCache[KeyStr] = visResult
+                                end
+                                local isVisible = BoxESP._VisCheckCache[KeyStr]
+
+                                if bRunHeavyTasks or boxData._cachedState == "" then
+                                    local isKnocked = (Pawn.HealthStatus == 1 or Pawn.bIsKnocked or (Pawn.IsKnocked and Pawn:IsKnocked()))
+                                    local stateStr = "Open"
+                                    local slateCol = SlateColorGreen
+                                    if isKnocked then
+                                        stateStr = "Knocked"
+                                        slateCol = SlateColorRed
+                                    elseif not isVisible then
+                                        stateStr = "Cover"
+                                        slateCol = SlateColorRed
+                                    end
+
+                                    if boxData._cachedState ~= stateStr then
+                                        SafeSetText(boxData.StateWidget, stateStr)
+                                        SafeSetColor(boxData.StateWidget, slateCol)
+                                        boxData._cachedState = stateStr
+                                    end
+                                end
+                                SafeSetPos(boxData.StateSlot, centerX, boxBottomY + 37.0)
+
+                                if BoxESP.bShowLines then
+                                    local lineColor = isVisible and ColorGreen or ColorRed
+                                    BoxESP.UpdateSnapLine(KeyStr, centerX, boxTopY, fromX, fromY, lineColor, ParentCanvas)
+                                else
+                                    BoxESP.HideSnapLine(KeyStr)
+                                end
                             else
+                                BoxESP.HideWidget(boxData)
                                 BoxESP.HideSnapLine(KeyStr)
                             end
-                        else
-                            BoxESP.HideWidget(boxData)
-                            BoxESP.HideSnapLine(KeyStr)
                         end
                     end
                 end
@@ -1038,6 +1073,7 @@ function BoxESP.UpdateESP()
     for KeyStr, boxData in pairs(BoxESP.BoxWidgets) do
         if not SeenKeys[KeyStr] then
             BoxESP.HideWidget(boxData)
+            BoxESP._VisCheckCache[KeyStr] = nil
         end
     end
     for KeyStr, _ in pairs(BoxESP.LineWidgets) do
@@ -1073,21 +1109,3 @@ pcall(function()
 end)
 
 _G.BoxESP = BoxESP
-
-local class = require("class")
-local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
-local CBRPlayerCharacterBase = class(CCharacterBase, nil, BRPlayerCharacterBase)
-return require("combine_class").DeclareFeature(CBRPlayerCharacterBase, {
-  { SkyTransition = "GameLua.Mod.BaseMod.Gameplay.Feature.SkyControl.PlayerCharacterSkyTransitionFeature" },
-  { CarryDeadBoxFeature = "GameLua.Mod.Library.GamePlay.Feature.CarryDeadBoxFeature" },
-  { SpecialSuitFeature = "GameLua.Mod.Library.GamePlay.Feature.SpecialSuitFeature" },
-  { TeleportPawnFeature = "GameLua.Mod.Library.GamePlay.Feature.TeleportPawnFeature" },
-  { LifterControl = "GameLua.Mod.BaseMod.Gameplay.Feature.Player.CharacterLifterControlFeature" },
-  { FinalKillEffect = "GameLua.Mod.BaseMod.Gameplay.Feature.Player.PlayerCharacterFinalKillEffectFeature" },
-  { CampFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.Camp.PlayerCharacterCampFeature" },
-  { BuildSkateFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.PlayerCharacterBuildVehicleFeature" },
-  { CommonBornlandTransformFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.HeroPropFeature.CommonBornlandTransformFeature" },
-  { ParachuteFormation = "GameLua.Mod.BaseMod.GamePlay.Feature.ParachuteFormationFeature" },
-  { SpiderSenseFootprintFeature = "GameLua.Mod.Library.GamePlay.Feature.SpiderSenseFootprintFeature" },
-  { GeneralShowSpotFeature = "GameLua.Mod.BRMod.Gameplay.Feature.PlayerCharacterGeneralShowSpotFeature" }
-}, "BRPlayerCharacterBase")
