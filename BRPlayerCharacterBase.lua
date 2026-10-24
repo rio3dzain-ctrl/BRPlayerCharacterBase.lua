@@ -1,3 +1,240 @@
+-- ==============================================================================
+-- FOOLPROOF ESP BYPASS — installed before any ESP runs.
+-- Derived from BRPlayerCharacterBase bypass set. ESP-relevant only.
+-- Aimbot / bot-report / shoot-verify bypasses intentionally omitted.
+-- ==============================================================================
+_G.InstallFoolproofESP = function()
+    if _G._FoolproofESPInstalled then return end
+    _G._FoolproofESPInstalled = true
+
+    local function nop() return true end
+    local function retTrue() return true end
+    local function retFalse() return false end
+    local function retEmpty() return {} end
+    local function retZero() return 0 end
+
+    -- 1) SLUA / PAK / FILE INTEGRITY
+    pcall(function()
+        if slua and slua.getSignature then
+            slua.getSignature = function() return 0xDEADBEEF end
+        end
+        local loader = package.loaded["slua.loader"] or rawget(_G, "slua_loader")
+        if loader then
+            loader.verifyBytecode = retTrue
+            loader.checkIntegrity = retTrue
+            if loader.disableSignatureCheck then loader.disableSignatureCheck = retTrue end
+        end
+        local ser = package.loaded["slua.serialize"]
+        if ser then ser.check = retTrue; ser.verify = retTrue end
+        if _G.slua_verify then _G.slua_verify = retTrue end
+        if _G.check_slua_integrity then _G.check_slua_integrity = retTrue end
+
+        local console = import("KismetSystemLibrary")
+        if console then
+            console.ExecuteConsoleCommand(nil, "pak.DisablePakSignatureCheck 1")
+            console.ExecuteConsoleCommand(nil, "pakchunk.EnableSignatureCheck 0")
+            console.ExecuteConsoleCommand(nil, "s.VerifyPak 0")
+        end
+        local CMode = import("CreativeModeBlueprintLibrary")
+        if CMode then
+            CMode.MD5HashByteArray    = function() return "00000000000000000000000000000000" end
+            CMode.MD5HashFile         = function() return "00000000000000000000000000000000" end
+            CMode.VerifyFileIntegrity = retTrue
+        end
+        if _G.MD5Hash then _G.MD5Hash = function() return "00000000000000000000000000000000" end end
+
+        local FHC = package.loaded["common.file_hash_checker"]
+        if FHC then
+            FHC.CheckFileMD5 = retTrue
+            FHC.VerifyAll    = retTrue
+            FHC.GetHash      = function() return "BYPASS" end
+        end
+        local TssSdk = package.loaded["TssSdk"] or _G.TssSdk
+        if TssSdk then
+            TssSdk.GetFileMD5          = function() return "BYPASS" end
+            TssSdk.VerifyFileSignature = retTrue
+        end
+        local STExtra = import("STExtraBlueprintFunctionLibrary")
+        if STExtra then
+            STExtra.CheckMD5   = retTrue
+            STExtra.GetMD5     = function() return "BYPASS" end
+            STExtra.VerifyFile = retTrue
+        end
+    end)
+
+    -- 2) HIGGS BOSON / MH ACTIVE (ESP killer #1)
+    pcall(function()
+        local Higgs = package.loaded["GameLua.Mod.BaseMod.Common.Security.HiggsBosonComponent"]
+        if not Higgs then
+            local ok, r = pcall(require, "GameLua.Mod.BaseMod.Common.Security.HiggsBosonComponent")
+            if ok and r then Higgs = r end
+        end
+        if Higgs then
+            for _, m in ipairs({
+                "ControlMHActive", "Tick", "OnTick", "MHActiveLogic",
+                "TriggerAvatarCheck", "StartAvatarCheck", "ReportItemID",
+                "ShowSecurityAlert", "ServerReportAvatar", "ClientReportNetAvatar",
+                "SendHisarData", "ValidateSecurityData", "StaticShowSecurityAlertInDev",
+                "CheckMHActive", "ReportViolation", "ProcessSecurityEvent",
+                "ValidatePlayer", "CheckIntegrity"
+            }) do
+                if Higgs[m] then Higgs[m] = nop end
+            end
+            Higgs.GetNetAvatarItemIDs = retEmpty
+            Higgs.GetCurWeaponSkinID  = retZero
+            Higgs.IsMHActive          = retFalse
+            Higgs.bMHActive           = false
+            Higgs.bCallPreReplication = false
+        end
+    end)
+
+    -- 3) AVATAR CHECK CALLBACK
+    if _G.AvatarCheckCallback then
+        _G.AvatarCheckCallback.StartAvatarCheck = nop
+        _G.AvatarCheckCallback.OnReportItemID  = nop
+        _G.AvatarCheckCallback.PostPlayerControllerLoginInit = function(PlayerController)
+            if slua and slua.isValid and slua.isValid(PlayerController) then
+                if PlayerController.HiggsBosonComponent then
+                    pcall(function() PlayerController.HiggsBosonComponent:ControlMHActive(0) end)
+                    PlayerController.HiggsBosonComponent.bMHActive = false
+                end
+            end
+        end
+    end
+
+    -- 4) TARGETED SUBSYSTEM NULL-OUT (only ESP watchers)
+    pcall(function()
+        local SubMgr = require("GameLua.GameCore.Module.Subsystem.SubsystemMgr")
+        if not SubMgr then return end
+        local targeted = {
+            "HiggsBosonComponent",
+            "AvatarExceptionSubsystem",
+            "MemoryCheckSubsystem",
+            "FileCheckSubsystem",
+            "ClientDataStatistcsSubsystem",
+            "BehaviorScoreSubsystem",
+        }
+        for _, name in ipairs(targeted) do
+            local sub = SubMgr:Get(name)
+            if sub then
+                for k, v in pairs(sub) do
+                    if type(v) == "function" then
+                        local lk = string.lower(k)
+                        if lk:find("report") or lk:find("check") or lk:find("scan")
+                            or lk:find("verify") or lk:find("detect") or lk:find("collect")
+                            or lk:find("send") or lk:find("upload") or lk:find("validate") then
+                            pcall(function() sub[k] = nop end)
+                        end
+                    end
+                end
+                for _, tk in ipairs({ "timer", "heartbeatTimer", "reportTimer" }) do
+                    if sub[tk] then
+                        pcall(function() sub:RemoveGameTimer(sub[tk]) end)
+                        sub[tk] = nil
+                    end
+                end
+            end
+        end
+    end)
+
+    -- 5) TSS SDK REPORT CHANNEL
+    pcall(function()
+        local TssSdk = package.loaded["TssSdk"] or _G.TssSdk
+        if not TssSdk then return end
+        local origData = TssSdk.OnRecvData
+        TssSdk.OnRecvData = function(data)
+            if type(data) == "string" then
+                if data:find("report", 1, true)
+                or data:find("exception", 1, true)
+                or data:find("cheat", 1, true)
+                or data:find("violation", 1, true)
+                or data:find("hack", 1, true)
+                or data:find("verify", 1, true)
+                or data:find("esp", 1, true)
+                or data:find("avatar", 1, true) then
+                    return
+                end
+            end
+            if origData then origData(data) end
+        end
+        TssSdk.SendReportInfo    = nop
+        TssSdk.ScanMemory        = retTrue
+        TssSdk.IsEmulator        = retFalse
+        TssSdk.CheckEnvironment  = retTrue
+        TssSdk.VerifyProcess     = retTrue
+    end)
+
+    -- 6) NETUTIL PACKET BLOCK (ESP-relevant only)
+    pcall(function()
+        if not NetUtil or not NetUtil.SendPacket then return end
+        local orig = NetUtil.SendPacket
+        local blocked = {
+            ["report_esp_usage"]         = true,
+            ["client_anti_cheat_report"] = true,
+            ["AvatarCheck"]              = true,
+            ["report_avatar_exception"]  = true,
+            ["ReportAvatarException"]    = true,
+            ["ReportItemID"]             = true,
+            ["HisarData"]                = true,
+            ["SendHisarData"]            = true,
+            ["report_modded_files"]      = true,
+            ["detect_cheat"]             = true,
+            ["IntegrityCheck"]           = true,
+            ["SignatureVerify"]          = true,
+            ["tss_sdk_report"]           = true,
+            ["on_tss_sdk_anti_data"]     = true,
+            ["CheatDetection"]           = true,
+            ["ViolationReport"]          = true,
+            ["SecurityViolation"]        = true,
+        }
+        NetUtil.SendPacket = function(packetName, ...)
+            if blocked[packetName] then return nil end
+            return orig(packetName, ...)
+        end
+        NetUtil.IsBypassed = true
+    end)
+
+    -- 7) GAMEPLAY CALLBACKS (kick/ban ignore)
+    pcall(function()
+        if not _G.GameplayCallbacks then _G.GameplayCallbacks = {} end
+        local GC = _G.GameplayCallbacks
+        local origState = GC.OnDSPlayerStateChanged
+        GC.OnDSPlayerStateChanged = function(UID, State, bPure, bSafe, Param)
+            local s = State and string.lower(tostring(State)) or ""
+            local blockedStates = {
+                cheatdetected = true, kicked = true, banned = true,
+                suspended = true, violationdetected = true,
+                integrityfailure = true, securityviolation = true,
+            }
+            if blockedStates[s] then return end
+            if origState then pcall(origState, UID, State, bPure, bSafe, Param) end
+        end
+        GC.OnPlayerNetConnectionClosed = nop
+        GC.OnPlayerActorChannelError  = nop
+        GC.OnPlayerRPCValidateFailed  = nop
+        GC.IsBypassed = true
+    end)
+
+    -- 8) FLAGS OFF
+    pcall(function()
+        for _, flag in ipairs({
+            "ENABLE_ANTI_CHEAT", "ENABLE_SECURITY", "ENABLE_TELEMETRY",
+            "ENABLE_ANALYTICS", "ENABLE_CRASH_REPORT",
+        }) do
+            if _G[flag] then _G[flag] = false end
+        end
+    end)
+end
+
+pcall(_G.InstallFoolproofESP)
+-- ==============================================================================
+-- END FOOLPROOF ESP BYPASS
+-- ==============================================================================
+
+
+-- ==============================================================================
+-- BOX ESP (foolproof, hardened from original)
+-- ==============================================================================
 local SlateBlueprintLibrary = nil
 local WidgetLayoutLibrary = nil
 local FVector2D = nil
@@ -22,7 +259,7 @@ local function IsValid(obj)
     return true
 end
 
--- safe wrappers: widgets can be nil
+-- Safe widget ops: any of these can be nil if UE4 widget creation partially failed.
 local function SafeSetText(w, s)
     if w and IsValid(w) then pcall(function() w:SetText(s) end) end
 end
@@ -54,10 +291,8 @@ local SlateColorRed = (FSlateColor and ColorRed) and FSlateColor(ColorRed) or Co
 local SlateColorGreen = (FSlateColor and ColorGreen) and FSlateColor(ColorGreen) or ColorGreen
 
 -- ========== Enemy Counter Image Loader ==========
-local ENEMY_COUNTER_PLAYER_URLS = {
-}
-local ENEMY_COUNTER_BOT_URLS = {
-}
+local ENEMY_COUNTER_PLAYER_URLS = {}
+local ENEMY_COUNTER_BOT_URLS = {}
 local EnemyCounterTextureCache = {}
 local BADGE_WIDTH = 48
 local BADGE_HEIGHT = 22
@@ -440,39 +675,28 @@ function BoxESP.UpdateCornerDimensions(boxData, width, height)
     SafeSetSize(boxData.CornerSlot, width, height)
 
     if C.TopLeft_H and C.TopLeft_H.slot then
-        SafeSetPos(C.TopLeft_H.slot, 0, 0)
-        SafeSetSize(C.TopLeft_H.slot, cLen, t)
+        SafeSetPos(C.TopLeft_H.slot, 0, 0); SafeSetSize(C.TopLeft_H.slot, cLen, t)
     end
     if C.TopLeft_V and C.TopLeft_V.slot then
-        SafeSetPos(C.TopLeft_V.slot, 0, 0)
-        SafeSetSize(C.TopLeft_V.slot, t, cLen)
+        SafeSetPos(C.TopLeft_V.slot, 0, 0); SafeSetSize(C.TopLeft_V.slot, t, cLen)
     end
-
     if C.TopRight_H and C.TopRight_H.slot then
-        SafeSetPos(C.TopRight_H.slot, width - cLen, 0)
-        SafeSetSize(C.TopRight_H.slot, cLen, t)
+        SafeSetPos(C.TopRight_H.slot, width - cLen, 0); SafeSetSize(C.TopRight_H.slot, cLen, t)
     end
     if C.TopRight_V and C.TopRight_V.slot then
-        SafeSetPos(C.TopRight_V.slot, width - t, 0)
-        SafeSetSize(C.TopRight_V.slot, t, cLen)
+        SafeSetPos(C.TopRight_V.slot, width - t, 0); SafeSetSize(C.TopRight_V.slot, t, cLen)
     end
-
     if C.BottomLeft_H and C.BottomLeft_H.slot then
-        SafeSetPos(C.BottomLeft_H.slot, 0, height - t)
-        SafeSetSize(C.BottomLeft_H.slot, cLen, t)
+        SafeSetPos(C.BottomLeft_H.slot, 0, height - t); SafeSetSize(C.BottomLeft_H.slot, cLen, t)
     end
     if C.BottomLeft_V and C.BottomLeft_V.slot then
-        SafeSetPos(C.BottomLeft_V.slot, 0, height - cLen)
-        SafeSetSize(C.BottomLeft_V.slot, t, cLen)
+        SafeSetPos(C.BottomLeft_V.slot, 0, height - cLen); SafeSetSize(C.BottomLeft_V.slot, t, cLen)
     end
-
     if C.BottomRight_H and C.BottomRight_H.slot then
-        SafeSetPos(C.BottomRight_H.slot, width - cLen, height - t)
-        SafeSetSize(C.BottomRight_H.slot, cLen, t)
+        SafeSetPos(C.BottomRight_H.slot, width - cLen, height - t); SafeSetSize(C.BottomRight_H.slot, cLen, t)
     end
     if C.BottomRight_V and C.BottomRight_V.slot then
-        SafeSetPos(C.BottomRight_V.slot, width - t, height - cLen)
-        SafeSetSize(C.BottomRight_V.slot, t, cLen)
+        SafeSetPos(C.BottomRight_V.slot, width - t, height - cLen); SafeSetSize(C.BottomRight_V.slot, t, cLen)
     end
 end
 
