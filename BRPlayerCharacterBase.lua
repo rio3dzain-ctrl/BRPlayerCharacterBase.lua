@@ -1938,7 +1938,7 @@ local function ShowLexusVIPMenu()
             local btn1 = _G.LexusLang == "EN" and "JOIN" or "Aa Jao"
             local btn2 = _G.LexusLang == "EN" and "CLOSE" or "Poyon Oil"
 
-            Msg.Show(1, title, content, function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/CHACHA") end end, function() end, btn1, btn2)
+            Msg.Show(1, title, content, function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end end, function() end, btn1, btn2)
             _G.LexusState.MenuStep = 99
             _G.LexusMenuAlreadyShown = true
         end
