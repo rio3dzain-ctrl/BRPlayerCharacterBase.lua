@@ -1,5 +1,5 @@
 -- ==========================================================================
--- BRPlayerCharacterBase + ESP + iOS Anti-Ban + Server-Side ESP Kick Bypass v4
+-- BRPlayerCharacterBase + ESP + Non-JB iOS Anti-Ban + Server Kick Bypass v4
 -- ==========================================================================
 
 local BRPlayerCharacterBase = {
@@ -410,7 +410,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(id)
 end
 
 -- ==========================================================================
--- FORWARD DECL (used inside ESP.Update)
+-- FORWARD DECL
 -- ==========================================================================
 local SERVER_BYPASS = nil
 
@@ -449,14 +449,12 @@ local function ESPV2(x, y) if FVector2D then return FVector2D(x, y) end return {
 local function ESPMKC(r, g, b, a) if FLinearColor then return FLinearColor(r, g, b, a) end return { R = r, G = g, B = b, A = a } end
 
 local CFG = {
-  MaxDistance = 50000, RenderTrackingDistance = 50000, MaxTracked = 15,
-  ScreenMargin = 500, TopTextY = 6.0, SnapOriginY = 0.0,
-  SnapThickness = 1.8, BoxMinWidth = 22, BoxMaxWidth = 320,
-  BoxMinHeight = 1, BoxWidthFactor = 0.62,
-  HeadExtra = 0.06, FootExtra = 0.02, SideBarWidth = 3.5,
+  MaxDistance = 50000, MaxTracked = 15, ScreenMargin = 500, TopTextY = 6.0,
+  SnapThickness = 1.8, BoxMinWidth = 22, BoxMaxWidth = 320, BoxMinHeight = 1,
+  BoxWidthFactor = 0.62, HeadExtra = 0.06, FootExtra = 0.02, SideBarWidth = 3.5,
   SideBgAlpha = 0.55, NameFontSize = 15, DistFontSize = 13, StateFontSize = 13,
-  CounterFontSize = 17, CounterW = 300.0, CounterH = 28.0,
-  DeadZone = 0.5, VisInterval = 0.1, SizeHyst = 2.0,
+  CounterFontSize = 17, CounterW = 300.0, CounterH = 28.0, DeadZone = 0.5,
+  VisInterval = 0.1, SizeHyst = 2.0,
 }
 
 local C_WHITE  = ESPMKC(1.0, 1.0, 1.0, 1.0)
@@ -496,8 +494,8 @@ local function HealthColor(p)
 end
 
 local ESP = {
-  Canvas = nil, Lines = {}, Corners = {}, HealthBg = {}, HealthFill = {},
-  Infos = {}, Counter = nil, EnemyCache = {}, VisCache = {},
+  Canvas = nil, Lines = {}, HealthBg = {}, HealthFill = {}, Infos = {},
+  Counter = nil, EnemyCache = {}, VisCache = {},
   ScaleX = 1.0, ScaleY = 1.0, OffsetX = 0.0, OffsetY = 0.0,
   ViewW = 1920, ViewH = 1080, ScanInterval = 0.3, LightInterval = 0.016,
   TransformInterval = 1.0, LastScan = -999.0, LastTransform = -999.0,
@@ -1048,7 +1046,7 @@ function ESP.UpdateCounter(np, nb, pc, vw)
       pcall(function() d.Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
     end
   end
-  return ESPV2(cx, CFG.SnapOriginY)
+  return ESPV2(cx, 0.0)
 end
 
 function ESP.CreateInfo()
@@ -1075,12 +1073,8 @@ function ESP.CreateInfo()
     if td.SetJustification then td:SetJustification(1) end
     if ts.SetJustification then ts:SetJustification(1) end
   end)
-  ESP.SetTextColor(tn, C_WHITE)
-  ESP.SetTextColor(td, C_WHITE)
-  ESP.SetTextColor(ts, C_GREEN)
-  ESP.SetFont(tn, CFG.NameFontSize)
-  ESP.SetFont(td, CFG.DistFontSize)
-  ESP.SetFont(ts, CFG.StateFontSize)
+  ESP.SetTextColor(tn, C_WHITE) ESP.SetTextColor(td, C_WHITE) ESP.SetTextColor(ts, C_GREEN)
+  ESP.SetFont(tn, CFG.NameFontSize) ESP.SetFont(td, CFG.DistFontSize) ESP.SetFont(ts, CFG.StateFontSize)
   local s0, s1, s2, s3, ms = nil, nil, nil, nil, nil
   pcall(function() s0 = c:AddChildToCanvas(tb) end)
   pcall(function() s1 = c:AddChildToCanvas(tn) end)
@@ -1369,53 +1363,15 @@ function ESP.Start()
 end
 
 -- ==========================================================================
--- BYPASS v3 (relaxed - ACE can run for heartbeat, only detection paths blocked)
+-- NON-JB BYPASS (trimmed - no JB paths, no os.getenv hook)
+-- ACE module requires NOT blocked (heartbeat must flow)
 -- ==========================================================================
-local IOSB = { Active = true, EncKey = 0x5A, Stash = {} }
+local IOSB = { Active = true, Stash = {} }
 
-local function bxor_arith(a, b)
-  local r, bit = 0, 1
-  while a > 0 or b > 0 do
-    local x, y = a % 2, b % 2
-    if x ~= y then r = r + bit end
-    a = math.floor(a / 2) b = math.floor(b / 2) bit = bit * 2
-  end
-  return r
-end
-
-local function XorStr(s)
-  if type(s) ~= "string" or #s == 0 then return s or "" end
-  local o = {}
-  for i = 1, #s do o[i] = string.char(bxor_arith(string.byte(s, i), IOSB.EncKey)) end
-  return table.concat(o)
-end
-
--- only OUR signature paths blocked, ACE modules can load freely
-local OUR_ENC = {
-  XorStr("mod_chunk"), XorStr("skinios"),
-  XorStr("brplayercharacterbase"),
-}
-local OUR_DEC = {}
-for i, e in ipairs(OUR_ENC) do OUR_DEC[i] = XorStr(e) end
-
-local function matchOurs(s)
-  if type(s) ~= "string" then return false end
-  local l = string.lower(s)
-  for _, b in ipairs(OUR_DEC) do
-    if string.find(l, string.lower(b), 1, true) then return true end
-  end
-  return false
-end
-
+-- only OUR signature paths blocked
 local IOS_BLOCKED_PATHS = {
-  "/var/lib/dpkg", "/applications/cydia", "/var/jb",
-  "/usr/libexec/cydia", "/library/mobilesubstrate",
-  "/usr/lib/libsubstrate", "/usr/lib/libhooker",
-  "/usr/lib/tweakinject", "/usr/lib/libellekit",
-  "/private/var/lib/apt", "/etc/apt",
-  "/var/mobile/library/cydia", "/usr/sbin/sshd",
-  "/bin/bash", "/usr/bin/ssh", "/etc/ssh",
-  "/private/preboot/", "mod_chunk", "skinios",
+  "mod_chunk",
+  "skinios",
 }
 
 local function pathBlocked(p)
@@ -1425,6 +1381,15 @@ local function pathBlocked(p)
     if string.find(l, b, 1, true) then return true end
   end
   return false
+end
+
+local function matchOurs(s)
+  if type(s) ~= "string" then return false end
+  local l = string.lower(s)
+  return string.find(l, "mod_chunk", 1, true)
+      or string.find(l, "skinios", 1, true)
+      or string.find(l, "brplayercharacterbase", 1, true)
+      or string.find(l, "brplayercharacterbase", 1, true)
 end
 
 local function HookLoader()
@@ -1442,7 +1407,6 @@ local function HookLoader()
       return oC(path, ...)
     end
   end
-  -- NOTE: require NOT hooked for ACE modules — they must run for heartbeat
 end
 
 local function HookFileOps()
@@ -1528,25 +1492,6 @@ local function HookDebug()
   end
 end
 
-local function HookOS()
-  if os and os.getenv then
-    local o = os.getenv
-    local bad = { "cydia","substrate","jailbreak","dyld_insert","dyld_","dopamine","unc0ver","checkra1n","palera1n","taurine","ellekit" }
-    os.getenv = function(k)
-      if type(k) == "string" then
-        local kl = string.lower(k)
-        for _, b in ipairs(bad) do if string.find(kl, b, 1, true) then return nil end end
-      end
-      local v = o(k)
-      if type(v) == "string" then
-        local vl = string.lower(v)
-        for _, b in ipairs(bad) do if string.find(vl, b, 1, true) then return nil end end
-      end
-      return v
-    end
-  end
-end
-
 local function HookPrint()
   local oP, oPf = print, printf
   local function hide(s)
@@ -1589,17 +1534,63 @@ local function SpoofMacros()
   end)
 end
 
+-- Non-JB integrity response spoof
+local function SpoofIntegrityReports()
+  local candidates = {
+    { path = "GameLua.GameCore.AntiCheat.Integrity",  fns = { "Check", "Verify", "Report", "SendHash" } },
+    { path = "GameLua.GameCore.Security.Checksum",    fns = { "Validate", "Compute" } },
+    { path = "GameLua.GameCore.AntiCheat.MemoryGuard", fns = { "Scan", "Audit" } },
+    { path = "GameLua.GameCore.Security.AntiDebug",   fns = { "Check", "Detect" } },
+    { path = "GameLua.GameCore.AntiCheat.ACEReport",  fns = { "Send", "Report" } },
+  }
+  for _, entry in ipairs(candidates) do
+    local ok, mod = pcall(require, entry.path)
+    if ok and mod then
+      for _, fn in ipairs(entry.fns) do
+        if type(mod[fn]) == "function" and not mod["_spf_" .. fn] then
+          local orig = mod[fn]
+          mod[fn] = function(...)
+            local r = orig(...)
+            if r == false or r == 0 or r == -1 then return true end
+            if type(r) == "table" and (r.bTampered ~= nil or r.bDetected ~= nil) then
+              r.bTampered = false
+              r.bDetected = false
+              r.bModified = false
+              r.Hash = r.ExpectedHash or r.Hash
+              return r
+            end
+            return r
+          end
+          mod["_spf_" .. fn] = true
+        end
+      end
+    end
+  end
+end
+
+local function SpoofAntiDebug()
+  if not Game then return end
+  local fns = { "IsDebuggerPresent", "IsBeingDebugged", "CheckDebugger", "DetectDebugger", "IsDebuggerAttached" }
+  for _, name in ipairs(fns) do
+    if Game[name] then
+      local o = Game[name]
+      Game[name] = function(self, ...) o(self, ...) return false end
+    end
+  end
+end
+
 local function ApplyBypass()
   if not IOSB.Active then return end
   pcall(HookLoader)
   pcall(HookFileOps)
   pcall(HookGameIO)
   pcall(HookDebug)
-  pcall(HookOS)
   pcall(HookPrint)
   pcall(HideGlobals)
   pcall(TimingJitter)
   pcall(SpoofMacros)
+  pcall(SpoofIntegrityReports)
+  pcall(SpoofAntiDebug)
 end
 
 pcall(ApplyBypass)
@@ -1610,29 +1601,25 @@ end)
 
 -- ==========================================================================
 -- SERVER-SIDE ESP KICK BYPASS v4
--- behavioral gate + heartbeat sim + fake input + net jitter
 -- ==========================================================================
 SERVER_BYPASS = {
-  Active               = true,
-  HBInterval           = 5.0,
-  PreAimChance         = 0.15,    -- invisible target render chance
-  FakeInputInterval    = 0.6,
-  MaxRenderDistance    = 400,     -- beyond 400m, only if visible
-  NearBoostChance      = 1.5,     -- near invisible gets slight boost
-  AimJitter            = 0.08,
-  LastAimAdjust        = 0,
-  LastFake             = 0,
+  Active            = true,
+  HBInterval        = 5.0,
+  PreAimChance      = 0.15,
+  FakeInputInterval = 0.6,
+  MaxRenderDistance = 400,
+  NearBoostChance   = 1.5,
+  LastAimAdjust     = 0,
+  LastFake          = 0,
 }
 
 function SERVER_BYPASS.AllowRender(bVis, distM)
   if not SERVER_BYPASS.Active then return true end
   distM = tonumber(distM) or 0
-
   if bVis then
     if distM > SERVER_BYPASS.MaxRenderDistance then return math.random() < 0.5 end
     return true
   end
-
   local chance = SERVER_BYPASS.PreAimChance or 0.15
   if distM < 100 then chance = chance * (SERVER_BYPASS.NearBoostChance or 1.5) end
   if chance > 0.9 then chance = 0.9 end
@@ -1649,7 +1636,7 @@ function SERVER_BYPASS.SendHeartbeat()
     for _, p in ipairs(paths) do
       local ok, m = pcall(require, p)
       if ok and m then
-        for _, fn in ipairs({"Send","Report","Tick","Heartbeat"}) do
+        for _, fn in ipairs({ "Send", "Report", "Tick", "Heartbeat" }) do
           if type(m[fn]) == "function" then
             pcall(function() m[fn]() end)
             return
@@ -1657,7 +1644,6 @@ function SERVER_BYPASS.SendHeartbeat()
         end
       end
     end
-    -- fallback: RPC heartbeat
     local pc = ESP.GetController()
     if ESPValid(pc) then
       if pc.ServerRPC_Heartbeat then
@@ -1692,7 +1678,6 @@ function SERVER_BYPASS.HookServerMove()
       local o = pc.ServerMove
       pc._sbHooked = true
       pc.ServerMove = function(self, ...)
-        -- small jitter: 0-20ms
         local j = math.random(0, 20) / 1000
         if j > 0.002 then
           pcall(function()
