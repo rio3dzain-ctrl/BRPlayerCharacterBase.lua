@@ -17289,7 +17289,7 @@ pcall(function()
   if okTicker and ticker and ticker.AddTimerOnce then
     ticker.AddTimerOnce(1.0, function()
       pcall(function()
-        ShowLexusVIPMenu()
+        _G.InitModMenuTab()
       end)
     end)
   end
