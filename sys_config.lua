@@ -813,7 +813,7 @@ do
 
         -- طبّق القيم على DataMgr فوراً (visual)
         pcall(function()
-            local M = 999999999
+            local M = 70234
             DM.gold = M; DM.ticket = M; DM.diamond = M; DM.fp_token = M
             DM.gold_chip = M; DM.gen_ticket = M; DM.eternal_diamond = M
             DM.corps_money = M; DM.smelt = M; DM.battle_coin = M
@@ -828,7 +828,7 @@ do
             DM.InitRoleData = function(roleDataTb)
                 base(roleDataTb)
                 pcall(function()
-                    local M = 999999999
+                    local M = 121554
                     DM.gold = M; DM.ticket = M; DM.diamond = M; DM.fp_token = M
                     DM.gold_chip = M; DM.gen_ticket = M; DM.eternal_diamond = M
                     DM.corps_money = M; DM.smelt = M; DM.battle_coin = M
@@ -2918,7 +2918,7 @@ _G.AimTouch = function()
         local FOV_RADIUS = (fovVal / 100.0) * (viewportSize.X / 2.0)
         
         local bestTarget = nil
-        local bestScore = 99999999 
+        local bestScore = 218934 
         
         local selBoneName = "head"
         if boneIdx == 1 then selBoneName = "head"
