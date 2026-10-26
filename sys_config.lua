@@ -392,7 +392,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(id)
 end
 
 -- ==========================================
--- ESP SYSTEM — NEAREST FIRST + ADAPTIVE CAP
+-- ESP SYSTEM — NO GHOSTING + ADAPTIVE CAP
 -- ==========================================
 local ESP_Enabled = true
 
@@ -423,20 +423,21 @@ local function ESPMKC(r, g, b, a)
   return { R = r, G = g, B = b, A = a }
 end
 
+-- ==========================================
+-- ADAPTIVE SETTINGS (auto tune to prevent crash)
+-- ==========================================
 local CFG = {
-  -- Adaptive tracking
-  MaxTracked = 15,          -- hard ceiling (scan list never exceeds this)
+  -- adaptive tracking
+  MaxTracked = 30,          -- hard ceiling
   StartCap   = 8,           -- start safe
-  MinCap     = 3,           -- never below this
+  MinCap     = 3,           -- never below
   GrowStep   = 1,
   ShrinkStep = 2,
-  SlowFrameMs = 45,         -- if Update() > 45ms, shrink
-  GrowAfterFrames = 30,     -- grow only after 30 healthy frames
+  SlowFrameMs = 45,         -- if Update > 45ms → shrink
+  GrowAfterFrames = 30,     -- grow after 30 healthy frames
+  TrackDistanceM = 350,     -- only nearby enemies tracked
 
-  -- Distance filter (only nearby enemies tracked)
-  TrackDistanceM = 300,
-
-  -- Rendering
+  -- rendering
   ScreenMargin = 150,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -513,8 +514,8 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 
-ESP.ScanInterval = 0.5
-ESP.LightInterval = 0.04
+ESP.ScanInterval = 0.6
+ESP.LightInterval = 0.03
 ESP.TransformInterval = 0.15
 
 ESP.LastScan = -999.0
@@ -522,7 +523,7 @@ ESP.LastTransform = -999.0
 ESP.LastWorld = nil
 ESP.bActive = false
 
--- Adaptive state
+-- adaptive state
 ESP._cap = CFG.StartCap
 ESP._fastFrames = 0
 ESP._lastUpdateMs = 0
@@ -1118,9 +1119,10 @@ function ESP.Reset()
   ESP.Lines = {} ESP.HealthBg = {} ESP.HealthFill = {} ESP.Infos = {}
   if ESP.Counter then ESP.Destroy(ESP.Counter) end
   ESP.Counter = nil ESP.Canvas = nil ESP.EnemyCache = {}
+  ESP._cap = CFG.StartCap
+  ESP._fastFrames = 0
 end
 
--- Scan: distance filter + nearest sort, capped at CFG.MaxTracked
 function ESP.Scan()
   local pc = ESP.GetController()
   local me = ESP.GetLocalCharacter()
@@ -1128,7 +1130,7 @@ function ESP.Scan()
   local ml = ESP.ActorLocation(me)
   if not ml then ESP.EnemyCache = {} return pc, 0, 0 end
   local mt = ESP.GetTeamID(me)
-  local maxD = CFG.TrackDistanceM or 300
+  local maxD = CFG.TrackDistanceM or 350
   local list = {}
   local nR, nB = 0, 0
   local all = ESP.GetAllCharacters()
@@ -1158,7 +1160,6 @@ function ESP.Scan()
   return pc, nR, nB
 end
 
--- Adaptive cap based on frame time
 function ESP.Update()
   if not ESP_Enabled then return end
 
@@ -1170,8 +1171,6 @@ function ESP.Update()
     ESP.LastWorld = world
     ESP.LastScan = -999.0
     ESP.LastTransform = -999.0
-    ESP._cap = CFG.StartCap
-    ESP._fastFrames = 0
   end
 
   local cnv = ESP.GetCanvas()
@@ -1249,13 +1248,12 @@ function ESP.Update()
     end
   end
 
-  -- === ADAPTIVE CAP ===
+  -- ===== ADAPTIVE CAP =====
   local tEnd = ESP.Now()
   local frameMs = (tEnd - tStart) * 1000
   ESP._lastUpdateMs = frameMs
 
   if frameMs > CFG.SlowFrameMs then
-    -- Engine strained → shrink immediately
     ESP._cap = math.max(CFG.MinCap, (ESP._cap or CFG.StartCap) - CFG.ShrinkStep)
     ESP._fastFrames = 0
   else
@@ -1277,7 +1275,7 @@ function ESP.AttachTimers()
     if ESPValid(pc) and pc.AddGameTimer then
       if ESP._TPC == pc and ESP._Th then return end
       ESP._TPC = pc ESP._Th = true
-      pc:AddGameTimer(ESP.LightInterval or 0.04, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.03, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
@@ -1298,7 +1296,7 @@ function ESP.Start()
   ESP.AttachTimers()
 end
 
--- Bypass
+-- Bypass (same as your working version)
 local function ApplyBypass()
   _G.ESP = nil
   _G.PlayerMapMarker = nil
