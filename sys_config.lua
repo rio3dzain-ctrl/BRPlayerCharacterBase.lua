@@ -34,6 +34,11 @@ BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = {
 }
 local ENetRole = import("ENetRole")
 local EPawnState = import("EPawnState")
+
+-- Safe import (Main ke missing piece #1)
+local ECharacterHideMovementAcive = nil
+pcall(function() ECharacterHideMovementAcive = import("ECharacterHideMovementAcive") end)
+
 local ESpecialMovementType = import("ESpecialMovementType")
 local ESpiderSwingMoveState = import("ESpiderSwingMoveState")
 local ESurviveWeaponPropSlot = import("ESurviveWeaponPropSlot")
@@ -88,6 +93,8 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
     self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, {
       [1] = "FinishedState"
     }, self.HandleFinishedState, self)
+    -- Main ke missing piece #2 registration
+    self:AddControlEvent(self, "OnPawnRespawnDelegate", self.OnRespawnRehideCheck, self)
   end
 end
 
@@ -120,6 +127,24 @@ function BRPlayerCharacterBase:HandleFinishedState()
     local EDynamicSimpleQueryConfigDisableMask = import("EDynamicSimpleQueryConfigDisableMask")
     self.STCharacterMovement:SetDynamicSimpleQueryConfigDisable(EDynamicSimpleQueryConfigDisableMask.Bit0, true)
   end
+end
+
+-- Main ke missing piece #3
+function BRPlayerCharacterBase:OnRespawnRehideCheck()
+  if not self:GetEnsure() then
+    return
+  end
+  self:AddGameTimer(0.5, false, function()
+    if not slua.isValid(self.Object) then
+      return
+    end
+    if self:HasState(EPawnState.InPlane) then
+      if ECharacterHideMovementAcive and ECharacterHideMovementAcive.Normal then
+        self:SetCharacterHideInGame(true, true, true, 1, ECharacterHideMovementAcive.Normal)
+        print(bWriteLog and "BRPlayerCharacterBase:OnRespawnRehideCheck re-hide AI on plane, PlayerKey:", self.PlayerKey)
+      end
+    end
+  end)
 end
 
 function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
@@ -499,6 +524,83 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
   return self.Super:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
+-- ==========================================
+-- Main ke missing piece #4 — Emote resolve (safe)
+-- ==========================================
+local VICTORY_DANCE_FX_MAP = {
+  [12219601] = 22010089
+}
+
+local isFitVersion = false
+pcall(function()
+  local P = require("client.slua.config.ClientMacros.PublishRegionMacros")
+  if P and type(P.IsFITVersion) == "function" then
+    isFitVersion = P.IsFITVersion()
+  end
+end)
+
+local ResolveEmoteResID = function(ItemID)
+  local FxID = VICTORY_DANCE_FX_MAP[ItemID]
+  if not FxID or FxID == ItemID then
+    return ItemID
+  end
+  local model_util = nil
+  pcall(function() model_util = require("client.common.model_util") end)
+  if not model_util then return ItemID end
+  local FxBPID = nil
+  pcall(function() FxBPID = model_util.GetBPID(FxID) end)
+  local ResID = ItemID
+  if FxBPID and 0 < FxBPID and model_util.IsBattleItemHandleExist
+     and model_util.IsBattleItemHandleExist("Emote", FxBPID, false, false) then
+    ResID = FxID
+  end
+  print(bWriteLog and string.format("BRPlayerCharacterBase 11 ResolveEmoteResID ItemID:%s, FxID:%s, FxBPID:%s, ResID:%s", tostring(ItemID), tostring(FxID), tostring(FxBPID), tostring(ResID)))
+  if isFitVersion and ResID == 12219601 then
+    print(bWriteLog and "BRPlayerCharacterBase ResolveEmoteResID 12219601 to 12222069")
+    return 12222069
+  end
+  return ResID
+end
+
+function BRPlayerCharacterBase:GetEmoteHandlePath(ItemID)
+  local ResID = ResolveEmoteResID(ItemID)
+  if self.Super then
+    return self.Super:GetEmoteHandlePath(ResID)
+  end
+  local model_util = nil
+  pcall(function() model_util = require("client.common.model_util") end)
+  if not model_util then return "" end
+  local BPID = nil
+  pcall(function() BPID = model_util.GetBPID(ResID) end)
+  if not BPID or BPID <= 0 then return "" end
+  local p = nil
+  pcall(function() p = model_util.GetPath("Emote", BPID, false, false) end)
+  return p or ""
+end
+
+function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
+  local ResID = ResolveEmoteResID(ItemID)
+  if self.Super then
+    return self.Super:GetEmoteHandle(ResID)
+  end
+  local model_util = nil
+  pcall(function() model_util = require("client.common.model_util") end)
+  if not model_util then return nil end
+  local BPID = nil
+  pcall(function() BPID = model_util.GetBPID(ResID) end)
+  if not BPID or BPID <= 0 then return nil end
+  local HandleClass = nil
+  pcall(function() HandleClass = model_util.GetClass("Emote", BPID, false, false) end)
+  if not HandleClass then return nil end
+  local Handle = nil
+  pcall(function() Handle = HandleClass() end)
+  if not Handle or not slua.isValid(Handle) then return nil end
+  return Handle
+end
+
+-- ==========================================
+-- ESP SYSTEM (UNCHANGED — working)
+-- ==========================================
 local ESP_Enabled = true
 
 local FVector2D = _G.FVector2D or import("Vector2D")
@@ -538,11 +640,10 @@ local function ESPMKC(r, g, b, a)
   return { R = r, G = g, B = b, A = a }
 end
 
--- OPTIMIZED CONFIG FOR SMOOTH 60 FPS
 local CFG = {
   MaxDistance = 50000,
   RenderTrackingDistance = 50000,
-  MaxTracked = 15,         -- 128 se 15 (Memory crash fix)
+  MaxTracked = 15,
   ScreenMargin = 500,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -574,7 +675,7 @@ local CFG = {
   CounterW = 300.0,
   CounterH = 28.0,
   DeadZone = 0.5,
-  VisInterval = 0.1,       -- 120 FPS se 10 FPS (LineTrace crash fix)
+  VisInterval = 0.1,
   SizeHyst = 2.0,
 }
 
@@ -658,10 +759,9 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 
--- 60 FPS SMOOTH SETTINGS
-ESP.ScanInterval = 0.3        -- Player list scan 1 sec me 3 baar
-ESP.LightInterval = 0.016     -- 60 FPS (UI/Boxes ekdum smooth move karenge)
-ESP.TransformInterval = 1.0   -- Screen scale check 1 sec me 1 baar
+ESP.ScanInterval = 0.3
+ESP.LightInterval = 0.016
+ESP.TransformInterval = 1.0
 
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
@@ -1830,25 +1930,22 @@ function ESP.Start()
 end
 
 -- ==========================================
--- BYPASS INJECTION (LUA TRACE HIDER)
+-- BYPASS INJECTION (UNCHANGED — working)
 -- ==========================================
 local function ApplyBypass()
-  -- 1. Global references hide karo taaki scanner na pakde
   _G.ESP = nil
   _G.PlayerMapMarker = nil
-  
-  -- 2. File read hook karo taaki anti-cheat ko local files na dikhein
+
   if io and io.open then
     local orig_io_open = io.open
     io.open = function(path, mode)
       if path and (string.find(path, "mod_chunk") or string.find(path, "skinios")) then
-        return nil -- Fake "file not found"
+        return nil
       end
       return orig_io_open(path, mode)
     end
   end
 
-  -- 3. UE4 read hook
   if Game and Game.ReadFile then
     local orig_GameRead = Game.ReadFile
     Game.ReadFile = function(self, path)
@@ -1857,7 +1954,6 @@ local function ApplyBypass()
     end
   end
 
-  -- 4. Environment variables me root traces hide karo
   if os and os.getenv then
     local orig_getenv = os.getenv
     os.getenv = function(key)
@@ -1869,13 +1965,12 @@ local function ApplyBypass()
     end
   end
 
-  -- 5. Print logs filter karo taaki console me traces na aayein
   local orig_print = print
   print = function(...)
     local args = {...}
     if args[1] and type(args[1]) == "string" then
       if string.find(args[1], "ESP") or string.find(args[1], "PlayerMapMarker") then
-        return -- Logs ko suppress karo
+        return
       end
     end
     orig_print(...)
