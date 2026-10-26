@@ -759,9 +759,9 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 
-ESP.ScanInterval = 0.3
+ESP.ScanInterval = 0.016
 ESP.LightInterval = 0.016
-ESP.TransformInterval = 1.0
+ESP.TransformInterval = 0.016
 
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
