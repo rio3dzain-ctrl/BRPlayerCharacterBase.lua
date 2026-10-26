@@ -35,7 +35,6 @@ BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = {
 local ENetRole = import("ENetRole")
 local EPawnState = import("EPawnState")
 
--- Safe import (Main ke missing piece #1)
 local ECharacterHideMovementAcive = nil
 pcall(function() ECharacterHideMovementAcive = import("ECharacterHideMovementAcive") end)
 
@@ -93,7 +92,6 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
     self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, {
       [1] = "FinishedState"
     }, self.HandleFinishedState, self)
-    -- Main ke missing piece #2 registration
     self:AddControlEvent(self, "OnPawnRespawnDelegate", self.OnRespawnRehideCheck, self)
   end
 end
@@ -129,7 +127,6 @@ function BRPlayerCharacterBase:HandleFinishedState()
   end
 end
 
--- Main ke missing piece #3
 function BRPlayerCharacterBase:OnRespawnRehideCheck()
   if not self:GetEnsure() then
     return
@@ -524,13 +521,10 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
   return self.Super:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
--- ==========================================
--- Main ke missing piece #4 — Emote resolve (safe)
--- ==========================================
+-- Emote resolve (safe)
 local VICTORY_DANCE_FX_MAP = {
   [12219601] = 22010089
 }
-
 local isFitVersion = false
 pcall(function()
   local P = require("client.slua.config.ClientMacros.PublishRegionMacros")
@@ -599,7 +593,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
 end
 
 -- ==========================================
--- ESP SYSTEM (UNCHANGED — working)
+-- ESP SYSTEM (with crash prevention)
 -- ==========================================
 local ESP_Enabled = true
 
@@ -643,7 +637,7 @@ end
 local CFG = {
   MaxDistance = 50000,
   RenderTrackingDistance = 50000,
-  MaxTracked = 15,
+  MaxTracked = 8,
   ScreenMargin = 500,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -677,6 +671,10 @@ local CFG = {
   DeadZone = 0.5,
   VisInterval = 0.1,
   SizeHyst = 2.0,
+  RenderLimit = 6,
+  MaxVisChecks = 2,
+  SilentModeThreshold = 10,
+  SilentModeDuration = 2.0,
 }
 
 local C_WHITE  = ESPMKC(1.0, 1.0, 1.0, 1.0)
@@ -759,14 +757,15 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 
-ESP.ScanInterval = 0.016
+ESP.ScanInterval = 0.4
 ESP.LightInterval = 0.016
-ESP.TransformInterval = 0.016
+ESP.TransformInterval = 1.0
 
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
 ESP.bActive = false
+ESP.SilentUntil = 0
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -1777,7 +1776,7 @@ function ESP.Scan()
   end
   table.sort(list, function(a, b) return (a.Distance or 99999) < (b.Distance or 99999) end)
   local trimmed = {}
-  local maxR = CFG.MaxTracked or 15
+  local maxR = CFG.MaxTracked or 8
   for i, it in ipairs(list) do
     if i > maxR then break end
     trimmed[#trimmed + 1] = it
@@ -1786,6 +1785,7 @@ function ESP.Scan()
   return pc, nReal, nBot
 end
 
+-- CRASH PREVENTION CORE: silent mode + dynamic interval + renderLimit + visLimit
 function ESP.Update()
   if not ESP_Enabled then ESP.ResetWidgets() return end
   local world = ESP.World()
@@ -1799,7 +1799,28 @@ function ESP.Update()
   if not canvas then return end
   local now = ESP.Now()
   local pc = ESP.GetController()
-  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.3) then
+  if not pc then return end
+
+  -- Silent mode: agar 10+ enemies nearby ho to 2 sec ke liye band
+  local enemyCount = #ESP.EnemyCache
+  if enemyCount > (CFG.SilentModeThreshold or 10) then
+    ESP.SilentUntil = now + (CFG.SilentModeDuration or 2.0)
+    ESP.ResetWidgets()
+    return
+  end
+  if now < (ESP.SilentUntil or 0) then
+    return
+  end
+
+  -- Dynamic scan interval + jitter
+  local dynamicInterval = ESP.ScanInterval or 0.4
+  if enemyCount > 5 then
+    dynamicInterval = 0.65
+  end
+  dynamicInterval = dynamicInterval + (math.random() * 0.2 - 0.1)
+  if dynamicInterval < 0.25 then dynamicInterval = 0.25 end
+
+  if (now - ESP.LastScan) >= dynamicInterval then
     local r, b
     pc, r, b = ESP.Scan()
     ESP.LastScan = now
@@ -1823,7 +1844,13 @@ function ESP.Update()
   local camLoc = ESP.GetCamLoc(pc)
 
   local active = {}
+  local renderLimit = CFG.RenderLimit or 6
+  local renderedCount = 0
+  local visCheckCount = 0
+  local maxVisChecks = CFG.MaxVisChecks or 2
+
   for _, item in ipairs(ESP.EnemyCache) do
+    if renderedCount >= renderLimit then break end
     local c = item.Character
     local key = item.Key
     if ESPValid(c) and ESP.IsAlive(c) then
@@ -1864,9 +1891,22 @@ function ESP.Update()
               ESP.DrawLine(ESP.EnsureSnap(key), origin.X, origin.Y, headS.X, headS.Y,
                            CFG.SnapThickness or 1.8)
 
-              local bVis = ESP.IsVisible(key, pc, camLoc, c)
+              -- Limited vis checks per frame
+              local bVis
+              if visCheckCount < maxVisChecks then
+                bVis = ESP.IsVisible(key, pc, camLoc, c)
+                visCheckCount = visCheckCount + 1
+              else
+                local cached = ESP.VisCache[key]
+                if cached and type(cached.b) == "boolean" then
+                  bVis = cached.b
+                else
+                  bVis = true
+                end
+              end
               ESP.UpdateInfo(key, c, item.IsBot, item.TeamID, item.Distance, bVis,
                             headS.X, headS.Y, cx, B, L, R)
+              renderedCount = renderedCount + 1
             else
               ESP.HideTarget(key)
             end
@@ -1930,7 +1970,7 @@ function ESP.Start()
 end
 
 -- ==========================================
--- BYPASS INJECTION (UNCHANGED — working)
+-- BYPASS INJECTION (LUA TRACE HIDER)
 -- ==========================================
 local function ApplyBypass()
   _G.ESP = nil
