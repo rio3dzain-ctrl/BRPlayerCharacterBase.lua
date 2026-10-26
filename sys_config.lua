@@ -538,11 +538,10 @@ local function ESPMKC(r, g, b, a)
   return { R = r, G = g, B = b, A = a }
 end
 
--- OPTIMIZED CONFIG FOR SMOOTH 60 FPS
 local CFG = {
   MaxDistance = 50000,
   RenderTrackingDistance = 50000,
-  MaxTracked = 15,         -- 128 se 15 (Memory crash fix)
+  MaxTracked = 128,
   ScreenMargin = 500,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -574,7 +573,7 @@ local CFG = {
   CounterW = 300.0,
   CounterH = 28.0,
   DeadZone = 0.5,
-  VisInterval = 0.1,       -- 120 FPS se 10 FPS (LineTrace crash fix)
+  VisInterval = 0.008333,
   SizeHyst = 2.0,
 }
 
@@ -657,12 +656,9 @@ ESP.OffsetX = 0.0
 ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
-
--- 60 FPS SMOOTH SETTINGS
-ESP.ScanInterval = 0.3        -- Player list scan 1 sec me 3 baar
-ESP.LightInterval = 0.016     -- 60 FPS (UI/Boxes ekdum smooth move karenge)
-ESP.TransformInterval = 1.0   -- Screen scale check 1 sec me 1 baar
-
+ESP.ScanInterval = 0.008333
+ESP.LightInterval = 0.008333
+ESP.TransformInterval = 0.008333
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
@@ -1677,7 +1673,7 @@ function ESP.Scan()
   end
   table.sort(list, function(a, b) return (a.Distance or 99999) < (b.Distance or 99999) end)
   local trimmed = {}
-  local maxR = CFG.MaxTracked or 15
+  local maxR = CFG.MaxTracked or 16
   for i, it in ipairs(list) do
     if i > maxR then break end
     trimmed[#trimmed + 1] = it
@@ -1699,7 +1695,7 @@ function ESP.Update()
   if not canvas then return end
   local now = ESP.Now()
   local pc = ESP.GetController()
-  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.3) then
+  if (now - ESP.LastScan) >= (ESP.ScanInterval or 0.35) then
     local r, b
     pc, r, b = ESP.Scan()
     ESP.LastScan = now
@@ -1707,7 +1703,7 @@ function ESP.Update()
   end
   pc = pc or ESP.GetController()
   if not pc then return end
-  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 1.0) then
+  if (now - (ESP.LastTransform or -999.0)) >= (ESP.TransformInterval or 0.50) then
     ESP.UpdateCanvasTransform(pc)
     ESP.LastTransform = now
   end
@@ -1807,7 +1803,7 @@ function ESP.AttachTimers()
       if ESP._TimerPC == pc and ESP._TimerHooked then return end
       ESP._TimerPC = pc
       ESP._TimerHooked = true
-      pc:AddGameTimer(ESP.LightInterval or 0.016, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.033, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
@@ -1882,6 +1878,7 @@ local function ApplyBypass()
   end
 end
 
+-- Bypass ko safely initialize karo
 pcall(ApplyBypass)
 
 local function ESPLater(sec, fn)
