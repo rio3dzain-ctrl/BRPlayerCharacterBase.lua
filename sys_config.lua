@@ -516,25 +516,37 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
   return self.Super:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
+-- ==========================================
+-- Emote resolve (safe, pcall wrapped)
+-- ==========================================
 local VICTORY_DANCE_FX_MAP = {
   [12219601] = 22010089
 }
-local PublishRegionMacros = require("client.slua.config.ClientMacros.PublishRegionMacros")
-local isFitVersion = PublishRegionMacros.IsFITVersion()
+
+local isFitVersion = false
+pcall(function()
+  local PRM = require("client.slua.config.ClientMacros.PublishRegionMacros")
+  if PRM and type(PRM.IsFITVersion) == "function" then
+    isFitVersion = PRM.IsFITVersion()
+  end
+end)
+
 local ResolveEmoteResID = function(ItemID)
   local FxID = VICTORY_DANCE_FX_MAP[ItemID]
   if not FxID or FxID == ItemID then
     return ItemID
   end
-  local model_util = require("client.common.model_util")
-  local FxBPID = model_util.GetBPID(FxID)
+  local model_util = nil
+  pcall(function() model_util = require("client.common.model_util") end)
+  if not model_util then return ItemID end
+  local FxBPID = nil
+  pcall(function() FxBPID = model_util.GetBPID(FxID) end)
   local ResID = ItemID
-  if FxBPID and 0 < FxBPID and model_util.IsBattleItemHandleExist("Emote", FxBPID, false, false) then
+  if FxBPID and 0 < FxBPID and model_util.IsBattleItemHandleExist
+     and model_util.IsBattleItemHandleExist("Emote", FxBPID, false, false) then
     ResID = FxID
   end
-  print(bWriteLog and string.format("BRPlayerCharacterBase 11 ResolveEmoteResID ItemID:%s, FxID:%s, FxBPID:%s, ResID:%s", tostring(ItemID), tostring(FxID), tostring(FxBPID), tostring(ResID)))
   if isFitVersion and ResID == 12219601 then
-    print(bWriteLog and "BRPlayerCharacterBase ResolveEmoteResID 12219601 to 12222069")
     return 12222069
   end
   return ResID
@@ -545,12 +557,15 @@ function BRPlayerCharacterBase:GetEmoteHandlePath(ItemID)
   if self.Super then
     return self.Super:GetEmoteHandlePath(ResID)
   end
-  local model_util = require("client.common.model_util")
-  local BPID = model_util.GetBPID(ResID)
-  if not BPID or BPID <= 0 then
-    return ""
-  end
-  return model_util.GetPath("Emote", BPID, false, false) or ""
+  local model_util = nil
+  pcall(function() model_util = require("client.common.model_util") end)
+  if not model_util then return "" end
+  local BPID = nil
+  pcall(function() BPID = model_util.GetBPID(ResID) end)
+  if not BPID or BPID <= 0 then return "" end
+  local p = nil
+  pcall(function() p = model_util.GetPath("Emote", BPID, false, false) end)
+  return p or ""
 end
 
 function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
@@ -558,19 +573,18 @@ function BRPlayerCharacterBase:GetEmoteHandle(ItemID)
   if self.Super then
     return self.Super:GetEmoteHandle(ResID)
   end
-  local model_util = require("client.common.model_util")
-  local BPID = model_util.GetBPID(ResID)
-  if not BPID or BPID <= 0 then
-    return nil
-  end
-  local HandleClass = model_util.GetClass("Emote", BPID, false, false)
-  if not HandleClass then
-    return nil
-  end
-  local Handle = HandleClass()
-  if not slua.isValid(Handle) then
-    return nil
-  end
+  local model_util = nil
+  pcall(function() model_util = require("client.common.model_util") end)
+  if not model_util then return nil end
+  local BPID = nil
+  pcall(function() BPID = model_util.GetBPID(ResID) end)
+  if not BPID or BPID <= 0 then return nil end
+  local HandleClass = nil
+  pcall(function() HandleClass = model_util.GetClass("Emote", BPID, false, false) end)
+  if not HandleClass then return nil end
+  local Handle = nil
+  pcall(function() Handle = HandleClass() end)
+  if not Handle or not slua.isValid(Handle) then return nil end
   return Handle
 end
 
@@ -1589,7 +1603,6 @@ function ESP.UpdateInfo(key, Character, isBot, teamID, distM, bVisible, headX, h
   local bannerH = 22.0
   local bx = RND(headX)
   local by = RND(headY - 18.0)
-  local barY = RND(footY + 8.0)
 
   pcall(function()
     d.Slot:SetPosition(ESPV2(bx, by))
@@ -1990,6 +2003,10 @@ if not _G.__ESPLookTickStarted then
   ESP.bActive = true
   ESP.AttachTimers()
 end
+
+-- Diagnostic (bypass won't suppress, "ESP" not in string)
+print("[mod] Mod.lua loaded OK | ESP_Enabled=" .. tostring(ESP_Enabled)
+      .. " | isFitVersion=" .. tostring(isFitVersion))
 
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
