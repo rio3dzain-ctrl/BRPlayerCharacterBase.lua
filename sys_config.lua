@@ -392,7 +392,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(id)
 end
 
 -- ==========================================
--- ESP SYSTEM — smooth, no ghosting
+-- ESP SYSTEM — NO GHOSTING
 -- ==========================================
 local ESP_Enabled = true
 
@@ -425,15 +425,13 @@ end
 
 local CFG = {
   MaxTracked = 30,
-  ScreenMargin = 500,
+  ScreenMargin = 150,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
   SnapThickness = 1.8,
   BoxMinWidth = 22,
   BoxMaxWidth = 320,
   BoxWidthFactor = 0.62,
-  HeadExtra = 0.06,
-  FootExtra = 0.02,
   SideBarWidth = 3.5,
   SideBgAlpha = 0.55,
   NameFontSize = 15,
@@ -442,7 +440,7 @@ local CFG = {
   CounterFontSize = 17,
   CounterW = 300.0,
   CounterH = 28.0,
-  DeadZone = 0.5,
+  DeadZone = 0.05,
   SizeHyst = 2.0,
 }
 
@@ -503,9 +501,10 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 
-ESP.ScanInterval = 0.8
-ESP.LightInterval = 0.1
-ESP.TransformInterval = 2.0
+-- CRITICAL FIXES
+ESP.ScanInterval = 0.6
+ESP.LightInterval = 0.03        -- 33fps update
+ESP.TransformInterval = 0.15    -- 6-7x/sec scale refresh (was 2s — root ghost cause)
 
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
@@ -745,6 +744,7 @@ function ESP.GetCanvas()
   return nil
 end
 
+-- CRITICAL: refresh scale every 0.15s — stale scale = ghosting
 function ESP.UpdateCanvasTransform(pc)
   local cnv = ESP.GetCanvas()
   if not ESPValid(cnv) then return false end
@@ -756,10 +756,16 @@ function ESP.UpdateCanvasTransform(pc)
         local p0 = SlateBlueprintLibrary.AbsoluteToLocal(geo, ESPV2(0,0))
         local p1 = SlateBlueprintLibrary.AbsoluteToLocal(geo, ESPV2(100,100))
         if p0 and p1 and tonumber(p0.X) and tonumber(p1.X) and p1.X ~= p0.X and p1.Y ~= p0.Y then
-          ESP.ScaleX = (p1.X-p0.X)/100.0
-          ESP.ScaleY = (p1.Y-p0.Y)/100.0
-          ESP.OffsetX = p0.X
-          ESP.OffsetY = p0.Y
+          local nx = (p1.X-p0.X)/100.0
+          local ny = (p1.Y-p0.Y)/100.0
+          if math.abs(nx - ESP.ScaleX) > 0.001 or math.abs(ny - ESP.ScaleY) > 0.001 then
+            ESP.ScaleX = nx ESP.ScaleY = ny
+            ESP.OffsetX = p0.X ESP.OffsetY = p0.Y
+            -- invalidate cached positions so every widget re-projects
+            for _, d in pairs(ESP.Lines) do d.x1 = nil end
+            for _, d in pairs(ESP.HealthBg) do d.x1 = nil end
+            for _, d in pairs(ESP.HealthFill) do d.x1 = nil end
+          end
           ok = true
         end
       end
@@ -773,7 +779,13 @@ function ESP.UpdateCanvasTransform(pc)
         if tonumber(v) and v > 0 then s = v end
       end
     end)
-    ESP.ScaleX = 1.0/s ESP.ScaleY = 1.0/s ESP.OffsetX = 0 ESP.OffsetY = 0
+    local ns = 1.0/s
+    if math.abs(ns - ESP.ScaleX) > 0.001 then
+      ESP.ScaleX = ns ESP.ScaleY = ns ESP.OffsetX = 0 ESP.OffsetY = 0
+      for _, d in pairs(ESP.Lines) do d.x1 = nil end
+      for _, d in pairs(ESP.HealthBg) do d.x1 = nil end
+      for _, d in pairs(ESP.HealthFill) do d.x1 = nil end
+    end
   end
   return true
 end
@@ -845,16 +857,17 @@ function ESP.NewLine(c, z)
   return { W = b, S = s }
 end
 
+-- CRITICAL: always re-set visibility + always update when position changed
 function ESP.Line(d, x1, y1, x2, y2, th)
   if not d or not ESPValid(d.W) or not d.S then return false end
   if x1~=x1 or y1~=y1 or x2~=x2 or y2~=y2 then return false end
   x1, y1, x2, y2 = RND(x1), RND(y1), RND(x2), RND(y2)
   local dz = CFG.DeadZone
-  if d.x1 and d.th == th then
-    if math.abs((d.x1 or 0)-x1) < dz and math.abs((d.y1 or 0)-y1) < dz
-    and math.abs((d.x2 or 0)-x2) < dz and math.abs((d.y2 or 0)-y2) < dz then
-      if d.hid ~= true then return true end
-    end
+  local same = (d.x1==x1 and d.y1==y1 and d.x2==x2 and d.y2==y2 and d.th==th)
+  if same and d.hid ~= true then
+    -- still force visibility in case game hid it
+    pcall(function() d.W:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
+    return true
   end
   local dx, dy = x2-x1, y2-y1
   local ln = math.sqrt(dx*dx+dy*dy)
@@ -862,13 +875,6 @@ function ESP.Line(d, x1, y1, x2, y2, th)
   local ang = ((math.atan2 and math.atan2(dy,dx)) or math.atan(dy,dx))*180.0/math.pi
   ang = math.floor(ang*10+0.5)/10
   ln = RND(ln)
-  if d.x1==x1 and d.y1==y1 and d.x2==x2 and d.y2==y2 and d.th==th then
-    if d.hid == true then
-      pcall(function() d.W:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
-      d.hid = false
-    end
-    return true
-  end
   local ok = pcall(function()
     d.S:SetPosition(ESPV2(x1, y1-th*0.5))
     d.S:SetSize(ESPV2(ln, th))
@@ -957,7 +963,6 @@ function ESP.UpdateCounter(np, nb, viewW)
     ESP.Counter = d
   end
   if not d then
-    -- fallback origin: viewport center
     local cx = RND((viewW * 0.5) * (ESP.ScaleX or 1) + (ESP.OffsetX or 0))
     return ESPV2(cx, CFG.SnapOriginY)
   end
@@ -966,19 +971,13 @@ function ESP.UpdateCounter(np, nb, viewW)
     if d.L ~= lab then d.T:SetText(lab) d.L = lab end
   end)
   local cx = ESP.CenterX(viewW)
-  if not cx then
-    cx = (viewW * 0.5) * (ESP.ScaleX or 1) + (ESP.OffsetX or 0)
-  end
+  if not cx then cx = (viewW * 0.5) * (ESP.ScaleX or 1) + (ESP.OffsetX or 0) end
   cx = RND(cx)
   if d.px == nil or math.abs(d.px - cx) >= 1.0 then
     d.px = cx
-    pcall(function()
-      d.S:SetPosition(ESPV2(cx, CFG.TopTextY))
-    end)
+    pcall(function() d.S:SetPosition(ESPV2(cx, CFG.TopTextY)) end)
   end
-  pcall(function()
-    d.C:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
-  end)
+  pcall(function() d.C:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
   return ESPV2(cx, CFG.SnapOriginY)
 end
 
@@ -1144,7 +1143,6 @@ function ESP.Scan()
   return pc, nR, nB
 end
 
--- Smooth render: no skip, no silent, no cap, no early return
 function ESP.Update()
   if not ESP_Enabled then return end
 
@@ -1171,6 +1169,7 @@ function ESP.Update()
   end
   if not pc then return end
 
+  -- CRITICAL: 0.15s interval — stale scale = ghost
   if (now - (ESP.LastTransform or -999.0)) >= ESP.TransformInterval then
     ESP.UpdateCanvasTransform(pc)
     ESP.LastTransform = now
@@ -1216,7 +1215,6 @@ function ESP.Update()
     end
   end
 
-  -- Hide any widget whose key is not in active. Never Release mid-session.
   for k in pairs(ESP.Lines) do if not active[k] then ESP.HideTarget(k) end end
   for k in pairs(ESP.HealthBg) do if not active[k] then ESP.HideTarget(k) end end
   for k in pairs(ESP.Infos) do
@@ -1237,7 +1235,7 @@ function ESP.AttachTimers()
     if ESPValid(pc) and pc.AddGameTimer then
       if ESP._TPC == pc and ESP._Th then return end
       ESP._TPC = pc ESP._Th = true
-      pc:AddGameTimer(ESP.LightInterval or 0.1, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.03, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
