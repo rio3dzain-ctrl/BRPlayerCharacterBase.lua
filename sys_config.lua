@@ -392,7 +392,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(id)
 end
 
 -- ==========================================
--- ESP SYSTEM — NO GHOSTING
+-- ESP SYSTEM — NEAREST FIRST + ADAPTIVE CAP
 -- ==========================================
 local ESP_Enabled = true
 
@@ -424,7 +424,19 @@ local function ESPMKC(r, g, b, a)
 end
 
 local CFG = {
-  MaxTracked = 30,
+  -- Adaptive tracking
+  MaxTracked = 15,          -- hard ceiling (scan list never exceeds this)
+  StartCap   = 8,           -- start safe
+  MinCap     = 3,           -- never below this
+  GrowStep   = 1,
+  ShrinkStep = 2,
+  SlowFrameMs = 45,         -- if Update() > 45ms, shrink
+  GrowAfterFrames = 30,     -- grow only after 30 healthy frames
+
+  -- Distance filter (only nearby enemies tracked)
+  TrackDistanceM = 300,
+
+  -- Rendering
   ScreenMargin = 150,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -501,15 +513,19 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 
--- CRITICAL FIXES
-ESP.ScanInterval = 0.6
-ESP.LightInterval = 0.03        -- 33fps update
-ESP.TransformInterval = 0.15    -- 6-7x/sec scale refresh (was 2s — root ghost cause)
+ESP.ScanInterval = 0.5
+ESP.LightInterval = 0.04
+ESP.TransformInterval = 0.15
 
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
 ESP.bActive = false
+
+-- Adaptive state
+ESP._cap = CFG.StartCap
+ESP._fastFrames = 0
+ESP._lastUpdateMs = 0
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -744,7 +760,6 @@ function ESP.GetCanvas()
   return nil
 end
 
--- CRITICAL: refresh scale every 0.15s — stale scale = ghosting
 function ESP.UpdateCanvasTransform(pc)
   local cnv = ESP.GetCanvas()
   if not ESPValid(cnv) then return false end
@@ -761,7 +776,6 @@ function ESP.UpdateCanvasTransform(pc)
           if math.abs(nx - ESP.ScaleX) > 0.001 or math.abs(ny - ESP.ScaleY) > 0.001 then
             ESP.ScaleX = nx ESP.ScaleY = ny
             ESP.OffsetX = p0.X ESP.OffsetY = p0.Y
-            -- invalidate cached positions so every widget re-projects
             for _, d in pairs(ESP.Lines) do d.x1 = nil end
             for _, d in pairs(ESP.HealthBg) do d.x1 = nil end
             for _, d in pairs(ESP.HealthFill) do d.x1 = nil end
@@ -857,15 +871,12 @@ function ESP.NewLine(c, z)
   return { W = b, S = s }
 end
 
--- CRITICAL: always re-set visibility + always update when position changed
 function ESP.Line(d, x1, y1, x2, y2, th)
   if not d or not ESPValid(d.W) or not d.S then return false end
   if x1~=x1 or y1~=y1 or x2~=x2 or y2~=y2 then return false end
   x1, y1, x2, y2 = RND(x1), RND(y1), RND(x2), RND(y2)
-  local dz = CFG.DeadZone
   local same = (d.x1==x1 and d.y1==y1 and d.x2==x2 and d.y2==y2 and d.th==th)
   if same and d.hid ~= true then
-    -- still force visibility in case game hid it
     pcall(function() d.W:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
     return true
   end
@@ -966,7 +977,7 @@ function ESP.UpdateCounter(np, nb, viewW)
     local cx = RND((viewW * 0.5) * (ESP.ScaleX or 1) + (ESP.OffsetX or 0))
     return ESPV2(cx, CFG.SnapOriginY)
   end
-  local lab = string.format("Players: %d | Bots: %d", np or 0, nb or 0)
+  local lab = string.format("Players: %d | Bots: %d [%d]", np or 0, nb or 0, math.floor(ESP._cap or CFG.StartCap))
   pcall(function()
     if d.L ~= lab then d.T:SetText(lab) d.L = lab end
   end)
@@ -1109,6 +1120,7 @@ function ESP.Reset()
   ESP.Counter = nil ESP.Canvas = nil ESP.EnemyCache = {}
 end
 
+-- Scan: distance filter + nearest sort, capped at CFG.MaxTracked
 function ESP.Scan()
   local pc = ESP.GetController()
   local me = ESP.GetLocalCharacter()
@@ -1116,6 +1128,7 @@ function ESP.Scan()
   local ml = ESP.ActorLocation(me)
   if not ml then ESP.EnemyCache = {} return pc, 0, 0 end
   local mt = ESP.GetTeamID(me)
+  local maxD = CFG.TrackDistanceM or 300
   local list = {}
   local nR, nB = 0, 0
   local all = ESP.GetAllCharacters()
@@ -1128,10 +1141,12 @@ function ESP.Scan()
         if not (mt ~= nil and t ~= nil and tostring(t) == tostring(mt)) then
           local l = ESP.ActorLocation(ch)
           local dm = ESP.DistMeters(ml, l)
-          seen[k] = true
-          local b = ESP.IsBot(ch)
-          if b then nB = nB+1 else nR = nR+1 end
-          list[#list+1] = { C=ch, K=k, B=b, T=t, D=dm }
+          if dm <= maxD then
+            seen[k] = true
+            local b = ESP.IsBot(ch)
+            if b then nB = nB+1 else nR = nR+1 end
+            list[#list+1] = { C=ch, K=k, B=b, T=t, D=dm }
+          end
         end
       end
     end
@@ -1143,8 +1158,11 @@ function ESP.Scan()
   return pc, nR, nB
 end
 
+-- Adaptive cap based on frame time
 function ESP.Update()
   if not ESP_Enabled then return end
+
+  local tStart = ESP.Now()
 
   local world = ESP.World()
   if world ~= ESP.LastWorld then
@@ -1152,6 +1170,8 @@ function ESP.Update()
     ESP.LastWorld = world
     ESP.LastScan = -999.0
     ESP.LastTransform = -999.0
+    ESP._cap = CFG.StartCap
+    ESP._fastFrames = 0
   end
 
   local cnv = ESP.GetCanvas()
@@ -1169,7 +1189,6 @@ function ESP.Update()
   end
   if not pc then return end
 
-  -- CRITICAL: 0.15s interval — stale scale = ghost
   if (now - (ESP.LastTransform or -999.0)) >= ESP.TransformInterval then
     ESP.UpdateCanvasTransform(pc)
     ESP.LastTransform = now
@@ -1184,8 +1203,11 @@ function ESP.Update()
   local origin = ESP.UpdateCounter(ESP.RC or 0, ESP.BC or 0, vw)
 
   local active = {}
+  local cap = math.floor(ESP._cap or CFG.StartCap)
+  local rendered = 0
 
   for _, it in ipairs(ESP.EnemyCache) do
+    if rendered >= cap then break end
     local c = it.C local k = it.K
     if ESPValid(c) and ESP.IsAlive(c) then
       local hd, ft = ESP.GetHeadFeet(c)
@@ -1208,6 +1230,7 @@ function ESP.Update()
               ESP.HBar(k, ESP.GetHealthPct(c), L, hs.Y+8, R-L)
               ESP.Line(ESP.Snap(k), origin.X, origin.Y, hs.X, hs.Y, CFG.SnapThickness)
               ESP.UpdateInfo(k, c, it.B, it.T, it.D, hs.X, hs.Y)
+              rendered = rendered + 1
             end
           end
         end
@@ -1225,6 +1248,25 @@ function ESP.Update()
       end
     end
   end
+
+  -- === ADAPTIVE CAP ===
+  local tEnd = ESP.Now()
+  local frameMs = (tEnd - tStart) * 1000
+  ESP._lastUpdateMs = frameMs
+
+  if frameMs > CFG.SlowFrameMs then
+    -- Engine strained → shrink immediately
+    ESP._cap = math.max(CFG.MinCap, (ESP._cap or CFG.StartCap) - CFG.ShrinkStep)
+    ESP._fastFrames = 0
+  else
+    ESP._fastFrames = (ESP._fastFrames or 0) + 1
+    if ESP._fastFrames >= CFG.GrowAfterFrames then
+      ESP._fastFrames = 0
+      if (ESP._cap or 0) < CFG.MaxTracked then
+        ESP._cap = math.min(CFG.MaxTracked, (ESP._cap or CFG.StartCap) + CFG.GrowStep)
+      end
+    end
+  end
 end
 
 function ESP.Tick() pcall(ESP.Update) end
@@ -1235,7 +1277,7 @@ function ESP.AttachTimers()
     if ESPValid(pc) and pc.AddGameTimer then
       if ESP._TPC == pc and ESP._Th then return end
       ESP._TPC = pc ESP._Th = true
-      pc:AddGameTimer(ESP.LightInterval or 0.03, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.04, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
