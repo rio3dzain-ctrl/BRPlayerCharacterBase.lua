@@ -1,43 +1,16 @@
 local BRPlayerCharacterBase = {
-  ServerRPC = {},
-  ClientRPC = {},
-  MulticastRPC = {},
-  LuaEventContainer = {}
+  ServerRPC = {}, ClientRPC = {}, MulticastRPC = {}, LuaEventContainer = {}
 }
-BRPlayerCharacterBase.ServerRPC.ServerRPC_NearDeathGiveupRescue = {
-  Reliable = true,
-  Params = {}
-}
-BRPlayerCharacterBase.ServerRPC.ServerRPC_CarryDeadBox = {
-  Reliable = true,
-  Params = {
-    UEnums.EPropertyClass.Object
-  }
-}
-BRPlayerCharacterBase.ServerRPC.RPC_Server_GmPlayAction = {
-  Reliable = true,
-  Params = {
-    UEnums.EPropertyClass.Int
-  }
-}
-BRPlayerCharacterBase.MulticastRPC.MulticastRPC_GmPlayAction = {
-  Reliable = true,
-  Params = {
-    UEnums.EPropertyClass.Int
-  }
-}
-BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = {
-  Reliable = true,
-  Params = {
-    UEnums.EPropertyClass.Bool
-  }
-}
+BRPlayerCharacterBase.ServerRPC.ServerRPC_NearDeathGiveupRescue = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ServerRPC.ServerRPC_CarryDeadBox = { Reliable = true, Params = { UEnums.EPropertyClass.Object } }
+BRPlayerCharacterBase.ServerRPC.RPC_Server_GmPlayAction = { Reliable = true, Params = { UEnums.EPropertyClass.Int } }
+BRPlayerCharacterBase.MulticastRPC.MulticastRPC_GmPlayAction = { Reliable = true, Params = { UEnums.EPropertyClass.Int } }
+BRPlayerCharacterBase.ClientRPC.RPC_Client_SetShouldCheckPassWall = { Reliable = true, Params = { UEnums.EPropertyClass.Bool } }
+
 local ENetRole = import("ENetRole")
 local EPawnState = import("EPawnState")
-
 local ECharacterHideMovementAcive = nil
 pcall(function() ECharacterHideMovementAcive = import("ECharacterHideMovementAcive") end)
-
 local ESpecialMovementType = import("ESpecialMovementType")
 local ESpiderSwingMoveState = import("ESpiderSwingMoveState")
 local ESurviveWeaponPropSlot = import("ESurviveWeaponPropSlot")
@@ -59,36 +32,27 @@ function BRPlayerCharacterBase:_PostConstruct()
   BRPlayerCharacterBase.__super._PostConstruct(self)
   self:InitAddSpecialMoveInfo()
   self.bCanNearDeathGiveup = true
-  print(bWriteLog and "BRPlayerCharacterBase:_PostConstruct bCanNearDeathGiveup true")
 end
 
 function BRPlayerCharacterBase:ReceiveBeginPlay()
   BRPlayerCharacterBase.__super.ReceiveBeginPlay(self)
   self:AddControlEvent(self, "MovementModeChangedDelegate", self.HandleOnMovementModeChangedNew, self)
   if self:HasAuthority() and self:CheckAddCheckFallingDistanceComponent() then
-    local CheckFallingDistanceComponent_C = import("CheckFallingDistanceComponent")
-    if slua.isValid(CheckFallingDistanceComponent_C) and not slua.isValid(self:GetComponentByClass(CheckFallingDistanceComponent_C)) then
-      print(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay Add CheckFallingDistanceComponent")
-      Game:AddComponent(CheckFallingDistanceComponent_C, self, "CheckFallingDistanceComponent")
+    local C = import("CheckFallingDistanceComponent")
+    if slua.isValid(C) and not slua.isValid(self:GetComponentByClass(C)) then
+      Game:AddComponent(C, self, "CheckFallingDistanceComponent")
     end
   end
-  if slua.isValid(self.STCharacterMovement) then
-    self.STCharacterMovement.bPositiveBlowUp = true
-  end
+  if slua.isValid(self.STCharacterMovement) then self.STCharacterMovement.bPositiveBlowUp = true end
   if self.Role == ENetRole.ROLE_AutonomousProxy then
     self:AddControlEvent(self, "OnPawnStateDisabled", self.OnPawnStateChange, self)
     self:AddControlEvent(self, "OnPawnStateEnabled", self.OnPawnStateChange, self)
-    self:AddControlEventConditionOnly(self, "OnAttrChangeEventDelegate", {
-      AttrName = { "bCanSelfRescue" }
-    }, self.CharacterAttrChangeEvent, self)
+    self:AddControlEventConditionOnly(self, "OnAttrChangeEventDelegate", { AttrName = { "bCanSelfRescue" } }, self.CharacterAttrChangeEvent, self)
   end
   if Client then
-    printf(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay, PlayerKey:%u ", self.PlayerKey)
     GameplayData.AddCharacter(self.Object)
   else
-    self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, {
-      [1] = "FinishedState"
-    }, self.HandleFinishedState, self)
+    self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, { [1] = "FinishedState" }, self.HandleFinishedState, self)
     self:AddControlEvent(self, "OnPawnRespawnDelegate", self.OnRespawnRehideCheck, self)
   end
 end
@@ -97,21 +61,19 @@ function BRPlayerCharacterBase:CharacterAttrChangeEvent(uPawn, AttrName, AttrVal
   BRPlayerCharacterBase.__super.CharacterAttrChangeEvent(self, uPawn, AttrName, AttrVal)
   if self.Object ~= uPawn then return end
   if self.Role == ENetRole.ROLE_AutonomousProxy and AttrName == "bCanSelfRescue" then
-    local uPC = self:GetPlayerControllerSafety()
-    if slua.isValid(uPC) then uPC:BroadcastUIMessage("UIMsg_CanSelfRescue", 0, "", "") end
+    local pc = self:GetPlayerControllerSafety()
+    if slua.isValid(pc) then pc:BroadcastUIMessage("UIMsg_CanSelfRescue", 0, "", "") end
   end
 end
 
-function BRPlayerCharacterBase:OnPawnStateChange(PawnState)
-  print("BRPlayerCharacterBase:OnPawnStateChange:", PawnState)
-  if PawnState == EPawnState.SwitchPP then
-    local uPC = self:GetPlayerControllerSafety()
-    if slua.isValid(uPC) then uPC:BroadcastUIMessage("UIMsg_FPPModeChange", 0, "", "") end
+function BRPlayerCharacterBase:OnPawnStateChange(s)
+  if s == EPawnState.SwitchPP then
+    local pc = self:GetPlayerControllerSafety()
+    if slua.isValid(pc) then pc:BroadcastUIMessage("UIMsg_FPPModeChange", 0, "", "") end
   end
 end
 
 function BRPlayerCharacterBase:HandleFinishedState()
-  print(bWriteLog and "BRPlayerCharacterBase:HandleFinishedState", self.STCharacterMovement)
   if slua.isValid(self.STCharacterMovement) and self.STCharacterMovement.SetDynamicSimpleQueryConfigDisable then
     local M = import("EDynamicSimpleQueryConfigDisableMask")
     self.STCharacterMovement:SetDynamicSimpleQueryConfigDisable(M.Bit0, true)
@@ -134,8 +96,8 @@ function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
   if CGameMode and CGameMode.GameModeType and CGameState and CGameState.GameModeID then
     local t = CGameMode.GameModeType
     local id = tonumber(CGameState.GameModeID)
-    local tOk = t == EGameModeType.ETypicalGameMode or t == EGameModeType.EFourInOneGameMode or t == EGameModeType.EHeavyWeaponGameMode
-    return tOk and not MatchModeIds[id]
+    local ok = t == EGameModeType.ETypicalGameMode or t == EGameModeType.EFourInOneGameMode or t == EGameModeType.EHeavyWeaponGameMode
+    return ok and not MatchModeIds[id]
   end
   return false
 end
@@ -143,13 +105,13 @@ end
 function BRPlayerCharacterBase:LuaHandleParachuteStateChanged(L, N)
   BRPlayerCharacterBase.__super.LuaHandleParachuteStateChanged(self, L, N)
   if not Client then
-    local uPC = self:GetPlayerControllerSafety()
-    if slua.isValid(uPC) and uPC.CheckParachuteOpenFeature then
-      if N == EParachuteState.PS_Opening and uPC.CheckParachuteOpenFeature.SatrtCheckShowParachuteCloseUI then
-        uPC.CheckParachuteOpenFeature:SatrtCheckShowParachuteCloseUI()
+    local pc = self:GetPlayerControllerSafety()
+    if slua.isValid(pc) and pc.CheckParachuteOpenFeature then
+      if N == EParachuteState.PS_Opening and pc.CheckParachuteOpenFeature.SatrtCheckShowParachuteCloseUI then
+        pc.CheckParachuteOpenFeature:SatrtCheckShowParachuteCloseUI()
       elseif N == EParachuteState.PS_None then
-        if uPC.CheckParachuteOpenFeature.RecoverParachuteOpenParam then uPC.CheckParachuteOpenFeature:RecoverParachuteOpenParam() end
-        if uPC.CheckParachuteOpenFeature.ClearTimerAndState then uPC.CheckParachuteOpenFeature:ClearTimerAndState() end
+        if pc.CheckParachuteOpenFeature.RecoverParachuteOpenParam then pc.CheckParachuteOpenFeature:RecoverParachuteOpenParam() end
+        if pc.CheckParachuteOpenFeature.ClearTimerAndState then pc.CheckParachuteOpenFeature:ClearTimerAndState() end
       end
     end
   end
@@ -158,10 +120,10 @@ end
 function BRPlayerCharacterBase:OnLanded()
   if self.HandleOnLanded then self:HandleOnLanded(-1) end
   if not Client then
-    local uPC = self:GetPlayerControllerSafety()
-    if slua.isValid(uPC) and uPC.CheckParachuteOpenFeature then
-      if uPC.CheckParachuteOpenFeature.ClearTimerAndState then uPC.CheckParachuteOpenFeature:ClearTimerAndState() end
-      if uPC.CheckParachuteOpenFeature.ResetCheckShowUI then uPC.CheckParachuteOpenFeature:ResetCheckShowUI() end
+    local pc = self:GetPlayerControllerSafety()
+    if slua.isValid(pc) and pc.CheckParachuteOpenFeature then
+      if pc.CheckParachuteOpenFeature.ClearTimerAndState then pc.CheckParachuteOpenFeature:ClearTimerAndState() end
+      if pc.CheckParachuteOpenFeature.ResetCheckShowUI then pc.CheckParachuteOpenFeature:ResetCheckShowUI() end
     end
   end
 end
@@ -183,25 +145,19 @@ function BRPlayerCharacterBase:BPOnRecycled() if Client then self:ResetMeshRelat
 function BRPlayerCharacterBase:BPOnRespawned() if Client then self:ResetMeshRelativeLocationAndRotation() end end
 
 function BRPlayerCharacterBase:ReceiveOnRecycle()
-  if Client then
-    self:ResetMeshRelativeLocationAndRotation()
-    GameplayData.RemoveCharacter(self.Object)
-  end
+  if Client then self:ResetMeshRelativeLocationAndRotation() GameplayData.RemoveCharacter(self.Object) end
 end
 
 function BRPlayerCharacterBase:ReceiveOnSpawn()
-  if Client then
-    self:ResetMeshRelativeLocationAndRotation()
-    GameplayData.AddCharacter(self.Object)
-  end
+  if Client then self:ResetMeshRelativeLocationAndRotation() GameplayData.AddCharacter(self.Object) end
 end
 
 function BRPlayerCharacterBase:ResetMeshRelativeLocationAndRotation()
   if Game:IsValid(self.Object) and Game:IsValid(self.Mesh) then
-    local rot = FRotator(0, -90, 0)
-    local loc = FVector(0, 0, 0)
-    if self.Mesh.K2_SetRelativeRotation then self.Mesh:K2_SetRelativeRotation(rot, false, nil, false) end
-    self:CacheInitialMeshOffset(loc, rot)
+    local r = FRotator(0, -90, 0)
+    local l = FVector(0, 0, 0)
+    if self.Mesh.K2_SetRelativeRotation then self.Mesh:K2_SetRelativeRotation(r, false, nil, false) end
+    self:CacheInitialMeshOffset(l, r)
   end
 end
 
@@ -310,9 +266,7 @@ function BRPlayerCharacterBase:MulticastRPC_GmPlayAction(id)
 end
 
 function BRPlayerCharacterBase:RPC_Client_SetShouldCheckPassWall(v)
-  if slua.isValid(self.ParachuteComponent) then
-    self.ParachuteComponent.bServerSyncShouldCheckPassWall = v
-  end
+  if slua.isValid(self.ParachuteComponent) then self.ParachuteComponent.bServerSyncShouldCheckPassWall = v end
 end
 
 function BRPlayerCharacterBase:OnPlayerEnterCarryBoxState()
@@ -438,7 +392,7 @@ function BRPlayerCharacterBase:GetEmoteHandle(id)
 end
 
 -- ==========================================
--- ESP SYSTEM - AGGRESSIVE CRASH PREVENTION
+-- ESP SYSTEM — smooth, no ghosting
 -- ==========================================
 local ESP_Enabled = true
 
@@ -470,7 +424,7 @@ local function ESPMKC(r, g, b, a)
 end
 
 local CFG = {
-  MaxTracked = 4,
+  MaxTracked = 30,
   ScreenMargin = 500,
   TopTextY = 6.0,
   SnapOriginY = 0.0,
@@ -508,13 +462,13 @@ local TEAM_COLORS = {
   ESPMKC(0.72, 0.82, 0.92, 1.00),
 }
 
-local function TeamColor(teamID, isBot, fb)
-  local n = tonumber(teamID)
+local function TeamColor(tid, bot, fb)
+  local n = tonumber(tid)
   if n then n = math.abs(math.floor(n))
   else
     local s = tostring(fb or "x")
     local h = 0
-    for i = 1, #s do h = (h * 31 + string.byte(s, i)) % 2147483647 end
+    for i = 1, #s do h = (h*31 + string.byte(s, i)) % 2147483647 end
     n = h
   end
   return TEAM_COLORS[(n % #TEAM_COLORS) + 1]
@@ -523,14 +477,14 @@ end
 local function RND(v) if v ~= v then return 0 end return math.floor(v + 0.5) end
 local function Lerp(a, b, t) return a + (b - a) * t end
 
-local function HealthColor(pct)
-  pct = tonumber(pct) or 1.0
-  if pct < 0 then pct = 0 end
-  if pct > 1 then pct = 1 end
+local function HealthColor(p)
+  p = tonumber(p) or 1.0
+  if p < 0 then p = 0 end
+  if p > 1 then p = 1 end
   local r, g, b
-  if pct >= 0.7 then local t=(pct-0.7)/0.3 r=Lerp(0.75,0.12,t) g=1.0 b=Lerp(0.15,0.25,t)
-  elseif pct >= 0.4 then local t=(pct-0.4)/0.3 r=1.0 g=Lerp(0.45,0.95,t) b=Lerp(0.45,0.20,t)
-  else local t=pct/0.4 r=1.0 g=Lerp(0.15,0.45,t) b=Lerp(0.15,0.45,t) end
+  if p >= 0.7 then local t=(p-0.7)/0.3 r=Lerp(0.75,0.12,t) g=1.0 b=Lerp(0.15,0.25,t)
+  elseif p >= 0.4 then local t=(p-0.4)/0.3 r=1.0 g=Lerp(0.45,0.95,t) b=Lerp(0.45,0.20,t)
+  else local t=p/0.4 r=1.0 g=Lerp(0.15,0.45,t) b=Lerp(0.15,0.45,t) end
   return ESPMKC(r, g, b, 1.0)
 end
 
@@ -549,16 +503,14 @@ ESP.OffsetY = 0.0
 ESP.ViewW = 1920
 ESP.ViewH = 1080
 
-ESP.ScanInterval = 2.0
-ESP.LightInterval = 0.2
+ESP.ScanInterval = 0.8
+ESP.LightInterval = 0.1
 ESP.TransformInterval = 2.0
-ESP.SkipChance = 0.4
 
 ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
 ESP.bActive = false
-ESP.SilentUntil = 0
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -961,7 +913,7 @@ function ESP.CreateCounter()
   pcall(function() t = CGame:NewObjectFromPath("/Script/UMG.TextBlock", c) end)
   if not ESPValid(t) then ESP.Destroy({ W = c }) return nil end
   pcall(function()
-    t:SetText("")
+    t:SetText("Players: 0 | Bots: 0")
     t:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
     if t.SetJustification then t:SetJustification(1) end
   end)
@@ -1004,22 +956,29 @@ function ESP.UpdateCounter(np, nb, viewW)
     d = ESP.CreateCounter()
     ESP.Counter = d
   end
-  if not d then return nil end
-  local lab = ""
+  if not d then
+    -- fallback origin: viewport center
+    local cx = RND((viewW * 0.5) * (ESP.ScaleX or 1) + (ESP.OffsetX or 0))
+    return ESPV2(cx, CFG.SnapOriginY)
+  end
+  local lab = string.format("Players: %d | Bots: %d", np or 0, nb or 0)
   pcall(function()
     if d.L ~= lab then d.T:SetText(lab) d.L = lab end
   end)
   local cx = ESP.CenterX(viewW)
-  if cx then
-    cx = RND(cx)
-    if d.px == nil or math.abs(d.px - cx) >= 1.0 then
-      d.px = cx
-      pcall(function()
-        d.S:SetPosition(ESPV2(cx, CFG.TopTextY))
-        d.C:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
-      end)
-    end
+  if not cx then
+    cx = (viewW * 0.5) * (ESP.ScaleX or 1) + (ESP.OffsetX or 0)
   end
+  cx = RND(cx)
+  if d.px == nil or math.abs(d.px - cx) >= 1.0 then
+    d.px = cx
+    pcall(function()
+      d.S:SetPosition(ESPV2(cx, CFG.TopTextY))
+    end)
+  end
+  pcall(function()
+    d.C:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
+  end)
   return ESPV2(cx, CFG.SnapOriginY)
 end
 
@@ -1185,12 +1144,9 @@ function ESP.Scan()
   return pc, nR, nB
 end
 
--- CRITICAL: no release, no line trace, no churn
+-- Smooth render: no skip, no silent, no cap, no early return
 function ESP.Update()
   if not ESP_Enabled then return end
-
-  -- random skip 40% frames
-  if math.random() < ESP.SkipChance then return end
 
   local world = ESP.World()
   if world ~= ESP.LastWorld then
@@ -1206,17 +1162,6 @@ function ESP.Update()
   local now = ESP.Now()
   local pc = ESP.GetController()
   if not pc then return end
-
-  -- silent mode: 5+ enemies = 3s off
-  if #ESP.EnemyCache >= 5 then
-    ESP.SilentUntil = now + 3.0
-    for k in pairs(ESP.Lines) do ESP.HideTarget(k) end
-    for k in pairs(ESP.HealthBg) do ESP.HideTarget(k) end
-    return
-  end
-  if now < (ESP.SilentUntil or 0) then
-    return
-  end
 
   if (now - ESP.LastScan) >= ESP.ScanInterval then
     local r, b
@@ -1238,9 +1183,9 @@ function ESP.Update()
   else vw, vh = ESP.ViewW, ESP.ViewH end
 
   local origin = ESP.UpdateCounter(ESP.RC or 0, ESP.BC or 0, vw)
-  if not origin then return end
 
   local active = {}
+
   for _, it in ipairs(ESP.EnemyCache) do
     local c = it.C local k = it.K
     if ESPValid(c) and ESP.IsAlive(c) then
@@ -1264,16 +1209,24 @@ function ESP.Update()
               ESP.HBar(k, ESP.GetHealthPct(c), L, hs.Y+8, R-L)
               ESP.Line(ESP.Snap(k), origin.X, origin.Y, hs.X, hs.Y, CFG.SnapThickness)
               ESP.UpdateInfo(k, c, it.B, it.T, it.D, hs.X, hs.Y)
-            else ESP.HideTarget(k) end
-          else ESP.HideTarget(k) end
-        else ESP.HideTarget(k) end
-      else ESP.HideTarget(k) end
+            end
+          end
+        end
+      end
     end
   end
 
-  -- NEVER release mid-session. Only hide unrendered.
+  -- Hide any widget whose key is not in active. Never Release mid-session.
   for k in pairs(ESP.Lines) do if not active[k] then ESP.HideTarget(k) end end
   for k in pairs(ESP.HealthBg) do if not active[k] then ESP.HideTarget(k) end end
+  for k in pairs(ESP.Infos) do
+    if not active[k] then
+      local inf = ESP.Infos[k]
+      if inf and ESPValid(inf.C) then
+        pcall(function() inf.C:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
+      end
+    end
+  end
 end
 
 function ESP.Tick() pcall(ESP.Update) end
@@ -1284,7 +1237,7 @@ function ESP.AttachTimers()
     if ESPValid(pc) and pc.AddGameTimer then
       if ESP._TPC == pc and ESP._Th then return end
       ESP._TPC = pc ESP._Th = true
-      pc:AddGameTimer(ESP.LightInterval or 0.2, true, function()
+      pc:AddGameTimer(ESP.LightInterval or 0.1, true, function()
         if ESP.bActive then pcall(ESP.Tick) end
       end)
     else
