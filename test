@@ -1943,7 +1943,7 @@ local function RadarTeamColor(teamID)
         if ok and c then col = c end
     end
     if not col then
-        if id == 0 then col = _FLC(0.2, 0.4, 1.0, 1.0)
+        if id == 0 then col = _FLC(0.2, 0.4, 1.0, 0.5)
         else
             local palette = {
                 {1.0, 0.2, 0.2}, {0.2, 1.0, 0.2}, {0.2, 0.4, 1.0}, {1.0, 1.0, 0.2},
@@ -1953,7 +1953,7 @@ local function RadarTeamColor(teamID)
             }
             local idx = (id % 15); if idx == 0 then idx = 15 end
             local p = palette[idx]
-            col = _FLC(p[1], p[2], p[3], 1.0)
+            col = _FLC(p[1], p[2], p[3], 0.5)
         end
     end
     RadarSystem._ColorCache[id] = col
