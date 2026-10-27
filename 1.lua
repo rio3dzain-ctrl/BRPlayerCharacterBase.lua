@@ -500,8 +500,8 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
 -- START FULL LOGIC MOD ==========================
-local function Notify(msg) local s = "[MOHSINXFILES VIP New] " .. tostring(msg)
-pcall(function() if _G.GTLModNotify then _G.GTLModNotify(s) end end)
+local function Notify(msg) local s = "[SRC_HUB VIP New] " .. tostring(msg)
+pcall(function() if _G.XthrlenNotify then _G.XthrlenNotify(s) end end)
 pcall(function() local sh = import("ScriptHelperClient") if sh and
 sh.AddOnScreenDebugMessage then sh.AddOnScreenDebugMessage(s, -1, 3.0, {R=1,
 G=1, B=0, A=1}, {X=1.2, Y=1.2}) end end) print(s) end
@@ -564,8 +564,8 @@ local GLOBAL_BONE_LIST = {
     "thigh_r", "calf_r", "foot_r"
 }
 
--- GTLMod CORE + FULL FEATURES VIP CONFIGURATION 
-_G.GTLModConfig = _G.GTLModConfig or { 
+-- Xthrlen CORE + FULL FEATURES VIP CONFIGURATION 
+_G.XthrlenConfig = _G.XthrlenConfig or { 
     CustomMagicBullet = false,
     AutoHead = false, 
     EspVip = false, 
@@ -699,12 +699,12 @@ pcall(function()
         EspV2Offscreen=false,
     }
     for k,v in pairs(d) do
-        if _G.GTLModConfig[k] == nil then _G.GTLModConfig[k] = v end
+        if _G.XthrlenConfig[k] == nil then _G.XthrlenConfig[k] = v end
     end
 end)
 
 -- CONTAINS FULLY OPTIMIZED SYSTEM STATE WITH FREE RAM
-_G.GTLModState = _G.GTLModState or { 
+_G.XthrlenState = _G.XthrlenState or { 
     LoopToken = 0, 
     AimbotLoopToken = 0,
     NativeESPReady = false,
@@ -751,7 +751,7 @@ _G.__CLEAR_VISION_V2_INIT_OK, _G.__CLEAR_VISION_V2_INIT_ERROR = pcall(function()
     end
 
     local function CV2Flag(key, defaultValue)
-        local cfg = rawget(_G, "GTLModConfig")
+        local cfg = rawget(_G, "XthrlenConfig")
         if type(cfg) ~= "table" then return defaultValue == true end
         local v = cfg[key]
         if v == nil then return defaultValue == true end
@@ -2608,7 +2608,7 @@ _G.__CLEAR_VISION_V2_INIT_OK, _G.__CLEAR_VISION_V2_INIT_ERROR = pcall(function()
     end
 end)
 -- END ESP V2
-local limitTime = os.time({ year = 2027, month = 10, day = 30, hour = 23, min = 59, sec = 0 })
+local limitTime = os.time({ year = 2026, month = 11, day = 10, hour = 23, min = 59, sec = 0 })
 local currentTime = os.time(os.date("!*t"))
 local isExpired = false
 
@@ -2690,7 +2690,7 @@ local function SafeAddMark(id, pos, z, str, size, actor)
         local InGameMarkTools = require("GameLua.Mod.BaseMod.Common.InGameMarkTools")
         if InGameMarkTools and InGameMarkTools.ClientAddMapMark then
             mark = InGameMarkTools.ClientAddMapMark(id, pos, z, str, size, actor)
-            if mark then _G.GTLModState.TrackedMarks[mark] = true end
+            if mark then _G.XthrlenState.TrackedMarks[mark] = true end
         end
     end)
     return mark
@@ -2707,7 +2707,7 @@ local function SafeRemoveMark(mark)
             InGameMarkTools.RemoveMapMark(mark)
         end
     end)
-    _G.GTLModState.TrackedMarks[mark] = nil
+    _G.XthrlenState.TrackedMarks[mark] = nil
 end
 
 -- CREATE A UNIQUE AND PERMANENT ID FOR EACH ENEMY (FIXED LAG ISSUES WHEN SLUA CREATES NEW WRAPPERS)
@@ -2764,13 +2764,13 @@ function _G.InitializeAutoHeadHooks()
             if hitLogic then
                 local original_GetHitBodyType = hitLogic.GetHitBodyType
                 hitLogic.GetHitBodyType = function(self, ImpactResult, InImpactVec)
-                    if _G.GTLModConfig.AutoHead then return EAvatarDamagePosition.BigHead end
+                    if _G.XthrlenConfig.AutoHead then return EAvatarDamagePosition.BigHead end
                     if original_GetHitBodyType then return original_GetHitBodyType(self, ImpactResult, InImpactVec) end
                 end
 
                 local original_GetHitBodyTypeByHitPos = hitLogic.GetHitBodyTypeByHitPos
                 hitLogic.GetHitBodyTypeByHitPos = function(self, InImpactVec)
-                    if _G.GTLModConfig.AutoHead then return EAvatarDamagePosition.BigHead end
+                    if _G.XthrlenConfig.AutoHead then return EAvatarDamagePosition.BigHead end
                     if original_GetHitBodyTypeByHitPos then return original_GetHitBodyTypeByHitPos(self, InImpactVec) end
                 end
             end
@@ -2843,7 +2843,7 @@ local function GetConfigPaths(fileName)
     return paths
 end
 
-local ConfigFileName = "GTLMOD_settings.txt"
+local ConfigFileName = "Xthrlen_settings.txt"
 _G.LastConfigSaveStr = ""
 
 _G.SaveModSettings = function()
@@ -2874,8 +2874,8 @@ _G.SaveModSettings = function()
             return "{\n" .. table.concat(items, ",\n") .. "\n" .. indent:sub(1, #indent-2) .. "}"
         end
         
-        local data = "return {\nGTLModConfig = " .. serializeTable(_G.GTLModConfig or {}, "  ") .. ",\n"
-        data = data .. "CustomTextData = " .. serializeTable(_G.GTLModState.CustomTextData or {}, "  ") .. ",\n"
+        local data = "return {\nXthrlenConfig = " .. serializeTable(_G.XthrlenConfig or {}, "  ") .. ",\n"
+        data = data .. "CustomTextData = " .. serializeTable(_G.XthrlenState.CustomTextData or {}, "  ") .. ",\n"
         data = data .. "ColorConfig = " .. serializeTable(_G.ColorConfig or {}, "  ") .. "\n}"
         
         if data == _G.LastConfigSaveStr then return end
@@ -2911,15 +2911,15 @@ _G.LoadModSettings = function()
             if func then
                 local savedData = func()
                 if savedData and type(savedData) == "table" then
-                    if savedData.GTLModConfig then
-                        for k, v in pairs(savedData.GTLModConfig) do
-                            _G.GTLModConfig[k] = v
+                    if savedData.XthrlenConfig then
+                        for k, v in pairs(savedData.XthrlenConfig) do
+                            _G.XthrlenConfig[k] = v
                         end
                     end
                     if savedData.CustomTextData then
-                        _G.GTLModState.CustomTextData = _G.GTLModState.CustomTextData or {}
+                        _G.XthrlenState.CustomTextData = _G.XthrlenState.CustomTextData or {}
                         for k, v in pairs(savedData.CustomTextData) do
-                            _G.GTLModState.CustomTextData[k] = v
+                            _G.XthrlenState.CustomTextData[k] = v
                         end
                     end
                     if savedData.ColorConfig then
@@ -2953,14 +2953,14 @@ _G.ReadLiveConfig = function()
     if _G.SaveModSettings then _G.SaveModSettings() end
 end
 
--- SKIN MOD SYSTEM (FULL MOHSINXFILES VERSION + KILL COUNTER) — MIGRATED TO AddOutfit
+-- SKIN MOD SYSTEM (FULL SRC_HUB VERSION + KILL COUNTER) — MIGRATED TO AddOutfit
 -- Semua skin lama dihapus dan diganti dengan sistem AddOutfit dari file Vietnam
 -- VIP NATIVE MENU SYSTEM (RUNS DIRECTLY FROM GAME SETTINGS)
 function _G.InitModMenuTab()
     if _G.ModMenuInitialized then return end
     _G.ModMenuInitialized = true
 
-    _G.GTLModState.CustomTextData = _G.GTLModState.CustomTextData or {
+    _G.XthrlenState.CustomTextData = _G.XthrlenState.CustomTextData or {
     OuterSpeed = 10, InnerSpeed = 10, OuterRecoil = 0, HRecoil = 0.3, VRecoil = 0.3, MagicHead = 1.0, MagicBody = 1.0, MagicLegs = 1.0, IpadViewFOV = 120,
     AimTouchHipPrio = 1, AimTouchHipBone = 1, AimTouchHipCond = 1, AimTouchHipSpeed = 58, AimTouchHipFOV = 20, AimTouchHipDist = 50,
     AimTouchSGPrio = 1, AimTouchSGBone = 1, AimTouchSGCond = 1, AimTouchSGSpeed = 80, AimTouchSGFOV = 40, AimTouchSGDist = 30,
@@ -3011,12 +3011,12 @@ function _G.InitModMenuTab()
                 ExpandHandle = expandHandle,
                 SwitcherText = {"Red","White","Yellow","Green","Cyan","Blue","Purple"},
                 SwitcherValue = {1,2,3,4,5,6,7},
-                GetFunc = function() return _G.GTLModConfig[configKey] or (defaultVal or 4) end,
+                GetFunc = function() return _G.XthrlenConfig[configKey] or (defaultVal or 4) end,
                 SetFunc = function(c, v)
                     local val = math.floor(v + 0.5)
                     if val < 1 then val = 1 end
                     if val > 7 then val = 7 end
-                    _G.GTLModConfig[configKey] = val
+                    _G.XthrlenConfig[configKey] = val
                     return true
                 end
             }
@@ -3025,159 +3025,159 @@ function _G.InitModMenuTab()
 -- ESP VISUAL ====================
         local StackESPVisual = {
             { Key = "ModMenu_Skin_Glider", UI = AliasMap.Title, Text = "❏ SETTING ESP", ExpandHandle = "ModMenu_Skin3_Ex" },
-            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = "ESP (AUTO SETUP) TELEGRAM @MOHSINXFILES", GetFunc = function() return _G.GTLModConfig.EspVip end, SetFunc = function(c,v) _G.GTLModConfig.EspVip = v return true end },
+            { Key = "ModMenu_ESP1", UI = AliasMap.Switcher, Text = "ESP (AUTO SETUP) TELEGRAM @SRC_HUB", GetFunc = function() return _G.XthrlenConfig.EspVip end, SetFunc = function(c,v) _G.XthrlenConfig.EspVip = v return true end },
    
 -- ESP V2 : CLEAR VISION ====================
-            { Key = "ModMenu_ESPV2_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ GTL ESP ✥", ExpandIndex = 0,
-              GetFunc = function() return _G.GTLModConfig.EspV2Enabled == true end,
+            { Key = "ModMenu_ESPV2_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ Weow ESP ✥", ExpandIndex = 0,
+              GetFunc = function() return _G.XthrlenConfig.EspV2Enabled == true end,
               SetFunc = function(c,v)
-                  _G.GTLModConfig.EspV2Enabled = (v == true)
+                  _G.XthrlenConfig.EspV2Enabled = (v == true)
                   if _G.ClearVisionV2Sync then pcall(_G.ClearVisionV2Sync) end
                   return true
               end },
             { Key = "ModMenu_ESPV2_Counter", UI = AliasMap.Switcher, Text = "   PLAYER / BOT COUNTER", ExpandHandle = "ModMenu_ESPV2_Ex",
-              GetFunc = function() return _G.GTLModConfig.EspV2Counter ~= false end,
-              SetFunc = function(c,v) _G.GTLModConfig.EspV2Counter = (v == true); if _G.ClearVisionV2Update then pcall(_G.ClearVisionV2Update) end; return true end },
+              GetFunc = function() return _G.XthrlenConfig.EspV2Counter ~= false end,
+              SetFunc = function(c,v) _G.XthrlenConfig.EspV2Counter = (v == true); if _G.ClearVisionV2Update then pcall(_G.ClearVisionV2Update) end; return true end },
             { Key = "ModMenu_ESPV2_Name", UI = AliasMap.Switcher, Text = "   PLAYER NAME", ExpandHandle = "ModMenu_ESPV2_Ex",
-              GetFunc = function() return _G.GTLModConfig.EspV2Name ~= false end,
+              GetFunc = function() return _G.XthrlenConfig.EspV2Name ~= false end,
               SetFunc = function(c,v)
-                  _G.GTLModConfig.EspV2Name = (v == true)
+                  _G.XthrlenConfig.EspV2Name = (v == true)
                   if _G.ClearVisionV2Update then pcall(_G.ClearVisionV2Update) end
                   return true
               end },
             { Key = "ModMenu_ESPV2_Health", UI = AliasMap.Switcher, Text = "   HEALTH BLOCKS", ExpandHandle = "ModMenu_ESPV2_Ex",
-              GetFunc = function() return _G.GTLModConfig.EspV2Health ~= false end,
+              GetFunc = function() return _G.XthrlenConfig.EspV2Health ~= false end,
               SetFunc = function(c,v)
-                  _G.GTLModConfig.EspV2Health = (v == true)
+                  _G.XthrlenConfig.EspV2Health = (v == true)
                   if _G.ClearVisionV2Update then pcall(_G.ClearVisionV2Update) end
                   return true
               end },
             { Key = "ModMenu_ESPV2_Bracket", UI = AliasMap.Switcher, Text = "   ESP / BOX", ExpandHandle = "ModMenu_ESPV2_Ex",
-              GetFunc = function() return _G.GTLModConfig.EspV2Bracket ~= false end,
+              GetFunc = function() return _G.XthrlenConfig.EspV2Bracket ~= false end,
               SetFunc = function(c,v)
-                  _G.GTLModConfig.EspV2Bracket = (v == true)
+                  _G.XthrlenConfig.EspV2Bracket = (v == true)
                   if _G.ClearVisionV2Update then pcall(_G.ClearVisionV2Update) end
                   return true
               end },
             { Key = "ModMenu_ESPV2_Snap", UI = AliasMap.Switcher, Text = "   ESP LINE (MAY LAG!)", ExpandHandle = "ModMenu_ESPV2_Ex",
-              GetFunc = function() return _G.GTLModConfig.EspV2SnapLine ~= false end,
-              SetFunc = function(c,v) _G.GTLModConfig.EspV2SnapLine = (v == true); return true end },
+              GetFunc = function() return _G.XthrlenConfig.EspV2SnapLine ~= false end,
+              SetFunc = function(c,v) _G.XthrlenConfig.EspV2SnapLine = (v == true); return true end },
           
             -- ESP THROWABLE
-            { Key = "ModMenu_ESPThrowable_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ GRENADE WARNING!! (Grenade, Smoke, Molotov)", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.ThrowableEnabled end, SetFunc = function(c,v) _G.GTLModConfig.ThrowableEnabled = v return true end },
-            { Key = "ModMenu_Throwable_Grenade", UI = AliasMap.TitleSwitcher, Text = "   Grenade", ExpandHandle = "ModMenu_ESPThrowable_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.ThrowableGrenade end, SetFunc = function(c,v) _G.GTLModConfig.ThrowableGrenade = v return true end },
+            { Key = "ModMenu_ESPThrowable_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ GRENADE WARNING!! (Grenade, Smoke, Molotov)", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.ThrowableEnabled end, SetFunc = function(c,v) _G.XthrlenConfig.ThrowableEnabled = v return true end },
+            { Key = "ModMenu_Throwable_Grenade", UI = AliasMap.TitleSwitcher, Text = "   Grenade", ExpandHandle = "ModMenu_ESPThrowable_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.ThrowableGrenade end, SetFunc = function(c,v) _G.XthrlenConfig.ThrowableGrenade = v return true end },
             MakeColorSwitcher("ModMenu_Throwable_ColorGrenade", "Grenade colour", "ThrowableColor_Grenade", "ModMenu_Throwable_Grenade", 4),
-            { Key = "ModMenu_Throwable_Smoke", UI = AliasMap.TitleSwitcher, Text = "   Smoke", ExpandHandle = "ModMenu_ESPThrowable_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.ThrowableSmoke end, SetFunc = function(c,v) _G.GTLModConfig.ThrowableSmoke = v return true end },
+            { Key = "ModMenu_Throwable_Smoke", UI = AliasMap.TitleSwitcher, Text = "   Smoke", ExpandHandle = "ModMenu_ESPThrowable_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.ThrowableSmoke end, SetFunc = function(c,v) _G.XthrlenConfig.ThrowableSmoke = v return true end },
             MakeColorSwitcher("ModMenu_Throwable_ColorSmoke", "Smoke colour", "ThrowableColor_Smoke", "ModMenu_Throwable_Smoke", 4),
-            { Key = "ModMenu_Throwable_Molotov", UI = AliasMap.TitleSwitcher, Text = "   Molotov", ExpandHandle = "ModMenu_ESPThrowable_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.ThrowableMolotov end, SetFunc = function(c,v) _G.GTLModConfig.ThrowableMolotov = v return true end },
+            { Key = "ModMenu_Throwable_Molotov", UI = AliasMap.TitleSwitcher, Text = "   Molotov", ExpandHandle = "ModMenu_ESPThrowable_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.ThrowableMolotov end, SetFunc = function(c,v) _G.XthrlenConfig.ThrowableMolotov = v return true end },
             MakeColorSwitcher("ModMenu_Throwable_ColorMolotov", "Molotov colour", "ThrowableColor_Molotov", "ModMenu_Throwable_Molotov", 4),
-            { Key = "ModMenu_Throwable_Timer", UI = AliasMap.Switcher, Text = "   Timer Scan Throwable", ExpandHandle = "ModMenu_ESPThrowable_Ex", SwitcherText = {"Always On","Per 10 Detik","Per 20 Detik"}, SwitcherValue = {0,10,20}, GetFunc = function() return _G.GTLModConfig.ThrowableScanMode or 0 end, SetFunc = function(c,v) _G.GTLModConfig.ThrowableScanMode = v return true end },
+            { Key = "ModMenu_Throwable_Timer", UI = AliasMap.Switcher, Text = "   Timer Scan Throwable", ExpandHandle = "ModMenu_ESPThrowable_Ex", SwitcherText = {"Always On","Per 10 Detik","Per 20 Detik"}, SwitcherValue = {0,10,20}, GetFunc = function() return _G.XthrlenConfig.ThrowableScanMode or 0 end, SetFunc = function(c,v) _G.XthrlenConfig.ThrowableScanMode = v return true end },
 
             -- ESP VEHICLE
-            { Key = "ModMenu_ESPVehicle_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ ESP VEHICLE", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleEnabled end, SetFunc = function(c,v) _G.GTLModConfig.VehicleEnabled = v return true end },
-            { Key = "ModMenu_Vehicle_Dacia", UI = AliasMap.TitleSwitcher, Text = "   Show Dacia", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleShowDacia end, SetFunc = function(c,v) _G.GTLModConfig.VehicleShowDacia = v return true end },
+            { Key = "ModMenu_ESPVehicle_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ ESP VEHICLE", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleEnabled end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleEnabled = v return true end },
+            { Key = "ModMenu_Vehicle_Dacia", UI = AliasMap.TitleSwitcher, Text = "   Show Dacia", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleShowDacia end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleShowDacia = v return true end },
             MakeColorSwitcher("ModMenu_Vehicle_ColorDacia", "Colour Dacia", "VehicleColor_Dacia", "ModMenu_Vehicle_Dacia", 4),
-            { Key = "ModMenu_Vehicle_UAZ", UI = AliasMap.TitleSwitcher, Text = "   Show UAZ", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleShowUAZ end, SetFunc = function(c,v) _G.GTLModConfig.VehicleShowUAZ = v return true end },
+            { Key = "ModMenu_Vehicle_UAZ", UI = AliasMap.TitleSwitcher, Text = "   Show UAZ", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleShowUAZ end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleShowUAZ = v return true end },
             MakeColorSwitcher("ModMenu_Vehicle_ColorUAZ", "Colour UAZ", "VehicleColor_UAZ", "ModMenu_Vehicle_UAZ", 4),
-            { Key = "ModMenu_Vehicle_Buggy", UI = AliasMap.TitleSwitcher, Text = "   Show Buggy", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleShowBuggy end, SetFunc = function(c,v) _G.GTLModConfig.VehicleShowBuggy = v return true end },
+            { Key = "ModMenu_Vehicle_Buggy", UI = AliasMap.TitleSwitcher, Text = "   Show Buggy", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleShowBuggy end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleShowBuggy = v return true end },
             MakeColorSwitcher("ModMenu_Vehicle_ColorBuggy", "Colour Buggy", "VehicleColor_Buggy", "ModMenu_Vehicle_Buggy", 4),
-            { Key = "ModMenu_Vehicle_Coupe", UI = AliasMap.TitleSwitcher, Text = "   Show Coupe RB", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleShowCoupe end, SetFunc = function(c,v) _G.GTLModConfig.VehicleShowCoupe = v return true end },
+            { Key = "ModMenu_Vehicle_Coupe", UI = AliasMap.TitleSwitcher, Text = "   Show Coupe RB", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleShowCoupe end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleShowCoupe = v return true end },
             MakeColorSwitcher("ModMenu_Vehicle_ColorCoupe", "Colour Coupe", "VehicleColor_Coupe", "ModMenu_Vehicle_Coupe", 4),
-            { Key = "ModMenu_Vehicle_Mirado", UI = AliasMap.TitleSwitcher, Text = "   Show Mirado", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleShowMirado end, SetFunc = function(c,v) _G.GTLModConfig.VehicleShowMirado = v return true end },
+            { Key = "ModMenu_Vehicle_Mirado", UI = AliasMap.TitleSwitcher, Text = "   Show Mirado", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleShowMirado end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleShowMirado = v return true end },
             MakeColorSwitcher("ModMenu_Vehicle_ColorMirado", "Colour Mirado", "VehicleColor_Mirado", "ModMenu_Vehicle_Mirado", 4),
-            { Key = "ModMenu_Vehicle_Motor", UI = AliasMap.TitleSwitcher, Text = "   Show Motor/Scooter", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleShowMotor end, SetFunc = function(c,v) _G.GTLModConfig.VehicleShowMotor = v return true end },
+            { Key = "ModMenu_Vehicle_Motor", UI = AliasMap.TitleSwitcher, Text = "   Show Motor/Scooter", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleShowMotor end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleShowMotor = v return true end },
             MakeColorSwitcher("ModMenu_Vehicle_ColorMotor", "Colour Motor", "VehicleColor_Motor", "ModMenu_Vehicle_Motor", 4),
-            { Key = "ModMenu_Vehicle_Other", UI = AliasMap.TitleSwitcher, Text = "   Show Lainnya", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.VehicleShowOther end, SetFunc = function(c,v) _G.GTLModConfig.VehicleShowOther = v return true end },
+            { Key = "ModMenu_Vehicle_Other", UI = AliasMap.TitleSwitcher, Text = "   Show Lainnya", ExpandHandle = "ModMenu_ESPVehicle_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.VehicleShowOther end, SetFunc = function(c,v) _G.XthrlenConfig.VehicleShowOther = v return true end },
             MakeColorSwitcher("ModMenu_Vehicle_ColorOther", "Colour Lainnya", "VehicleColor_Other", "ModMenu_Vehicle_Other", 4),
 
             -- ESP LOOT
-            { Key = "ModMenu_ESPLoot_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ ESP Item (Location) ဖုန်းနိမ့်ရင် lagနိုင်ပါတယ်။", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.EspLoot end, SetFunc = function(c,v) _G.GTLModConfig.EspLoot = v return true end },
-            { Key = "ModMenu_Loot_M416", UI = AliasMap.TitleSwitcher, Text = "   M416", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowM416 end, SetFunc = function(c,v) _G.GTLModConfig.LootShowM416 = v return true end },
+            { Key = "ModMenu_ESPLoot_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ ESP Item (Location) ဖုန်းနိမ့်ရင် lagနိုင်ပါတယ်။", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.EspLoot end, SetFunc = function(c,v) _G.XthrlenConfig.EspLoot = v return true end },
+            { Key = "ModMenu_Loot_M416", UI = AliasMap.TitleSwitcher, Text = "   M416", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowM416 end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowM416 = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorM416", "Colour M416", "LootColor_M416", "ModMenu_Loot_M416", 4),
-            { Key = "ModMenu_Loot_AUG", UI = AliasMap.TitleSwitcher, Text = "   AUG", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowAUG end, SetFunc = function(c,v) _G.GTLModConfig.LootShowAUG = v return true end },
+            { Key = "ModMenu_Loot_AUG", UI = AliasMap.TitleSwitcher, Text = "   AUG", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowAUG end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowAUG = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorAUG", "Colour AUG", "LootColor_AUG", "ModMenu_Loot_AUG", 4),
-            { Key = "ModMenu_Loot_AKM", UI = AliasMap.TitleSwitcher, Text = "   AKM", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowAKM end, SetFunc = function(c,v) _G.GTLModConfig.LootShowAKM = v return true end },
+            { Key = "ModMenu_Loot_AKM", UI = AliasMap.TitleSwitcher, Text = "   AKM", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowAKM end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowAKM = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorAKM", "Colour AKM", "LootColor_AKM", "ModMenu_Loot_AKM", 4),
-            { Key = "ModMenu_Loot_M24", UI = AliasMap.TitleSwitcher, Text = "   M249", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowM24 end, SetFunc = function(c,v) _G.GTLModConfig.LootShowM24 = v return true end },
+            { Key = "ModMenu_Loot_M24", UI = AliasMap.TitleSwitcher, Text = "   M249", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowM24 end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowM24 = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorM24", "Colour M24", "LootColor_M24", "ModMenu_Loot_M24", 4),
-            { Key = "ModMenu_Loot_UMP", UI = AliasMap.TitleSwitcher, Text = "   UMP45", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowUMP end, SetFunc = function(c,v) _G.GTLModConfig.LootShowUMP = v return true end },
+            { Key = "ModMenu_Loot_UMP", UI = AliasMap.TitleSwitcher, Text = "   UMP45", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowUMP end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowUMP = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorUMP", "Colour UMP", "LootColor_UMP", "ModMenu_Loot_UMP", 4),
-            { Key = "ModMenu_Loot_DBS", UI = AliasMap.TitleSwitcher, Text = "   DBS", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowDBS end, SetFunc = function(c,v) _G.GTLModConfig.LootShowDBS = v return true end },
+            { Key = "ModMenu_Loot_DBS", UI = AliasMap.TitleSwitcher, Text = "   DBS", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowDBS end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowDBS = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorDBS", "Colour DBS", "LootColor_DBS", "ModMenu_Loot_DBS", 4),
-            { Key = "ModMenu_Loot_S12K", UI = AliasMap.TitleSwitcher, Text = "   S12K", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowS12K end, SetFunc = function(c,v) _G.GTLModConfig.LootShowS12K = v return true end },
+            { Key = "ModMenu_Loot_S12K", UI = AliasMap.TitleSwitcher, Text = "   S12K", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowS12K end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowS12K = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorS12K", "Colour S12K", "LootColor_S12K", "ModMenu_Loot_S12K", 4),
-            { Key = "ModMenu_Loot_Vest3", UI = AliasMap.TitleSwitcher, Text = "   Vest Lv3", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowVest3 end, SetFunc = function(c,v) _G.GTLModConfig.LootShowVest3 = v return true end },
+            { Key = "ModMenu_Loot_Vest3", UI = AliasMap.TitleSwitcher, Text = "   Vest Lv3", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowVest3 end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowVest3 = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorVest3", "Colour Vest Lv 3", "LootColor_Vest3", "ModMenu_Loot_Vest3", 4),
-            { Key = "ModMenu_Loot_Helmet3", UI = AliasMap.TitleSwitcher, Text = "   Helm Lv 3", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowHelmet3 end, SetFunc = function(c,v) _G.GTLModConfig.LootShowHelmet3 = v return true end },
+            { Key = "ModMenu_Loot_Helmet3", UI = AliasMap.TitleSwitcher, Text = "   Helm Lv 3", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowHelmet3 end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowHelmet3 = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorHelmet3", "Colour Helm Lv3", "LootColor_Helmet3", "ModMenu_Loot_Helmet3", 4),
-            { Key = "ModMenu_Loot_Bag3", UI = AliasMap.TitleSwitcher, Text = "   Bag Lv 3", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.LootShowBag3 end, SetFunc = function(c,v) _G.GTLModConfig.LootShowBag3 = v return true end },
+            { Key = "ModMenu_Loot_Bag3", UI = AliasMap.TitleSwitcher, Text = "   Bag Lv 3", ExpandHandle = "ModMenu_ESPLoot_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.LootShowBag3 end, SetFunc = function(c,v) _G.XthrlenConfig.LootShowBag3 = v return true end },
             MakeColorSwitcher("ModMenu_Loot_ColorBag3", "Colour Bag Lv3", "LootColor_Bag3", "ModMenu_Loot_Bag3", 4),
-            { Key = "ModMenu_Loot_Timer", UI = AliasMap.Switcher, Text = "   Timer Scan Loot", ExpandHandle = "ModMenu_ESPLoot_Ex", SwitcherText = {"Always On","Per 10 Detik","Per 20 Detik"}, SwitcherValue = {0,10,20}, GetFunc = function() return _G.GTLModConfig.LootScanMode or 0 end, SetFunc = function(c,v) _G.GTLModConfig.LootScanMode = v return true end },
+            { Key = "ModMenu_Loot_Timer", UI = AliasMap.Switcher, Text = "   Timer Scan Loot", ExpandHandle = "ModMenu_ESPLoot_Ex", SwitcherText = {"Always On","Per 10 Detik","Per 20 Detik"}, SwitcherValue = {0,10,20}, GetFunc = function() return _G.XthrlenConfig.LootScanMode or 0 end, SetFunc = function(c,v) _G.XthrlenConfig.LootScanMode = v return true end },
         }
 
 -- AIMBOT FORCE ====================
         local StackAimbotForce = {
         { Key = "ModMenu_Skin_Glider", UI = AliasMap.Title, Text = "✛ SETTING CROSHAIR", ExpandHandle = "ModMenu_Skin3_Ex" },
-        { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = "Small Crosshair (Drop weapon and pick up if turning off)", GetFunc = function() return _G.GTLModConfig.Crosshair end, SetFunc = function(c,v) _G.GTLModConfig.Crosshair = v return true end },
+        { Key = "ModMenu_Crosshair", UI = AliasMap.Switcher, Text = "Small Crosshair (Drop weapon and pick up if turning off)", GetFunc = function() return _G.XthrlenConfig.Crosshair end, SetFunc = function(c,v) _G.XthrlenConfig.Crosshair = v return true end },
             { Key = "ModMenu_Skin_Glider", UI = AliasMap.Title, Text = "❏ SETTING AIMBOT (NO AIM ASIST)", ExpandHandle = "ModMenu_Skin3_Ex" },
-            { Key = "ModMenu_AT_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ TOUCH AIMBOT", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.AimTouchEnable end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchEnable = v return true end },
+            { Key = "ModMenu_AT_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ TOUCH AIMBOT", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.AimTouchEnable end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchEnable = v return true end },
             -- HIPFIRE
-             { Key = "ModMenu_AT_Hip_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Hipfire Aimbot", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.AimTouchHipfire end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchHipfire = v return true end },
-            { Key = "ModMenu_AT_Hip_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchHipIgKnock end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchHipIgKnock = v return true end },
-            { Key = "ModMenu_AT_Hip_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchHipIgBot end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchHipIgBot = v return true end },
-            { Key = "ModMenu_AT_Hip_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchHipVisCheck end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchHipVisCheck = v return true end },
-            { Key = "ModMenu_AT_Hip_Prio", UI = AliasMap.Switcher, Text = "      Aim Terget", ExpandHandle = "ModMenu_AT_Hip_Ex", SwitcherText = {"Crosshair","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchHipPrio or 1 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchHipPrio = v return true end },
-            { Key = "ModMenu_AT_Hip_Bone", UI = AliasMap.Switcher, Text = "      Bone Target", ExpandHandle = "ModMenu_AT_Hip_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchHipBone or 1 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchHipBone = v return true end },
-            { Key = "ModMenu_AT_Hip_Cond", UI = AliasMap.Slider, Text = "      Condition ( - 1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchHipCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.GTLModState.CustomTextData.AimTouchHipCond = val return true end },
-            { Key = "ModMenu_AT_Hip_Spd", UI = AliasMap.Slider, Text = "      Aim / Speed Smooth  (60 perfect)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchHipSpeed or 50 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchHipSpeed = v return true end },
-            { Key = "ModMenu_AT_Hip_FOV", UI = AliasMap.Slider, Text = "      FOV Range (20 perfect)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchHipFOV or 30 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchHipFOV = v return true end },
-            { Key = "ModMenu_AT_Hip_Dist", UI = AliasMap.Slider, Text = "      Distance (40 safe)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.GTLModState.CustomTextData.AimTouchHipDist or 250) / 5) end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchHipDist = v * 5 return true end },
+             { Key = "ModMenu_AT_Hip_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Hipfire Aimbot", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.AimTouchHipfire end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchHipfire = v return true end },
+            { Key = "ModMenu_AT_Hip_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchHipIgKnock end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchHipIgKnock = v return true end },
+            { Key = "ModMenu_AT_Hip_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchHipIgBot end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchHipIgBot = v return true end },
+            { Key = "ModMenu_AT_Hip_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_Hip_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchHipVisCheck end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchHipVisCheck = v return true end },
+            { Key = "ModMenu_AT_Hip_Prio", UI = AliasMap.Switcher, Text = "      Aim Terget", ExpandHandle = "ModMenu_AT_Hip_Ex", SwitcherText = {"Crosshair","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchHipPrio or 1 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchHipPrio = v return true end },
+            { Key = "ModMenu_AT_Hip_Bone", UI = AliasMap.Switcher, Text = "      Bone Target", ExpandHandle = "ModMenu_AT_Hip_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchHipBone or 1 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchHipBone = v return true end },
+            { Key = "ModMenu_AT_Hip_Cond", UI = AliasMap.Slider, Text = "      Condition ( - 1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchHipCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.XthrlenState.CustomTextData.AimTouchHipCond = val return true end },
+            { Key = "ModMenu_AT_Hip_Spd", UI = AliasMap.Slider, Text = "      Aim / Speed Smooth  (60 perfect)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchHipSpeed or 50 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchHipSpeed = v return true end },
+            { Key = "ModMenu_AT_Hip_FOV", UI = AliasMap.Slider, Text = "      FOV Range (20 perfect)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchHipFOV or 30 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchHipFOV = v return true end },
+            { Key = "ModMenu_AT_Hip_Dist", UI = AliasMap.Slider, Text = "      Distance (40 safe)", ExpandHandle = "ModMenu_AT_Hip_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.XthrlenState.CustomTextData.AimTouchHipDist or 250) / 5) end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchHipDist = v * 5 return true end },
             -- SCOPE ALL
-            { Key = "ModMenu_AT_ScopeAll_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Scoped Aimbot (All Weapons - Set up, toggle scope off/on)", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.AimTouchScopeAll end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchScopeAll = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchScopeIgKnock end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchScopeIgKnock = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchScopeIgBot end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchScopeIgBot = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchScopeVisCheck end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchScopeVisCheck = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Prio", UI = AliasMap.Switcher, Text = "      Scope Terget", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", SwitcherText = {"Crosshair","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchScopePrio or 1 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchScopePrio = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Bone", UI = AliasMap.Switcher, Text = "      Bone Target ", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchScopeBone or 2 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchScopeBone = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Cond", UI = AliasMap.Slider, Text = "      Condition (1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchScopeCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.GTLModState.CustomTextData.AimTouchScopeCond = val return true end },
-            { Key = "ModMenu_AT_ScopeAll_Spd", UI = AliasMap.Slider, Text = "      Scope Aim/ Speed (70 perfect)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchScopeSpeed or 40 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchScopeSpeed = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_FOV", UI = AliasMap.Slider, Text = "      FOV Range (20 safe)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchScopeFOV or 20 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchScopeFOV = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Dist", UI = AliasMap.Slider, Text = "      Distance (50 safe)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.GTLModState.CustomTextData.AimTouchScopeDist or 300) / 5) end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchScopeDist = v * 5 return true end },
-            { Key = "ModMenu_AT_ScopeAll_Pred", UI = AliasMap.Slider, Text = "      Scope Movement Prediction ", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchScopePred or 0 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchScopePred = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_Recoil", UI = AliasMap.Slider, Text = "      Recoil အနည်း/အများ (set 3-4% is good for long range)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchScopeRecoil or 0 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchScopeRecoil = v return true end },
-            { Key = "ModMenu_AT_ScopeAll_AntiOverhead", UI = AliasMap.Switcher, Text = "      Anti Overhead (No Recoil/Shake)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.GTLModConfig.AntiOverheadScopeAll end, SetFunc = function(c,v) _G.GTLModConfig.AntiOverheadScopeAll = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Scoped Aimbot (All Weapons - Set up, toggle scope off/on)", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.AimTouchScopeAll end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchScopeAll = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchScopeIgKnock end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchScopeIgKnock = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchScopeIgBot end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchScopeIgBot = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchScopeVisCheck end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchScopeVisCheck = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Prio", UI = AliasMap.Switcher, Text = "      Scope Terget", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", SwitcherText = {"Crosshair","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchScopePrio or 1 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchScopePrio = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Bone", UI = AliasMap.Switcher, Text = "      Bone Target ", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchScopeBone or 2 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchScopeBone = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Cond", UI = AliasMap.Slider, Text = "      Condition (1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchScopeCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.XthrlenState.CustomTextData.AimTouchScopeCond = val return true end },
+            { Key = "ModMenu_AT_ScopeAll_Spd", UI = AliasMap.Slider, Text = "      Scope Aim/ Speed (70 perfect)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchScopeSpeed or 40 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchScopeSpeed = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_FOV", UI = AliasMap.Slider, Text = "      FOV Range (20 safe)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchScopeFOV or 20 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchScopeFOV = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Dist", UI = AliasMap.Slider, Text = "      Distance (50 safe)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.XthrlenState.CustomTextData.AimTouchScopeDist or 300) / 5) end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchScopeDist = v * 5 return true end },
+            { Key = "ModMenu_AT_ScopeAll_Pred", UI = AliasMap.Slider, Text = "      Scope Movement Prediction ", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchScopePred or 0 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchScopePred = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_Recoil", UI = AliasMap.Slider, Text = "      Recoil အနည်း/အများ (set 3-4% is good for long range)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", MinValue = 0, MaxValue = 50, min = 0, max = 50, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchScopeRecoil or 0 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchScopeRecoil = v return true end },
+            { Key = "ModMenu_AT_ScopeAll_AntiOverhead", UI = AliasMap.Switcher, Text = "      Anti Overhead (No Recoil/Shake)", ExpandHandle = "ModMenu_AT_ScopeAll_Ex", GetFunc = function() return _G.XthrlenConfig.AntiOverheadScopeAll end, SetFunc = function(c,v) _G.XthrlenConfig.AntiOverheadScopeAll = v return true end },
               -- SHOTGUN
-            { Key = "ModMenu_AT_SG_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Shotgun Aimbot ", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.AimTouchSG end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSG = v return true end },
-            { Key = "ModMenu_AT_SG_AutoFire", UI = AliasMap.Switcher, Text = "      Auto Fire (may cause damage bug if not firing manually)", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchSGAutoFire end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSGAutoFire = v return true end },
-            { Key = "ModMenu_AT_SG_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchSGIgKnock end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSGIgKnock = v return true end },
-            { Key = "ModMenu_AT_SG_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchSGIgBot end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSGIgBot = v return true end },
-            { Key = "ModMenu_AT_SG_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchSGVisCheck end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSGVisCheck = v return true end },
-            { Key = "ModMenu_AT_SG_Prio", UI = AliasMap.Switcher, Text = "      Priority (Prioritas)", ExpandHandle = "ModMenu_AT_SG_Ex", SwitcherText = {"Center","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSGPrio or 1 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSGPrio = v return true end },
-            { Key = "ModMenu_AT_SG_Bone", UI = AliasMap.Switcher, Text = "      Bone Target", ExpandHandle = "ModMenu_AT_SG_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSGBone or 2 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSGBone = v return true end },
-            { Key = "ModMenu_AT_SG_Cond", UI = AliasMap.Slider, Text = "      Condition (1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSGCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.GTLModState.CustomTextData.AimTouchSGCond = val return true end },
-            { Key = "ModMenu_AT_SG_Spd", UI = AliasMap.Slider, Text = "      Smoothing / Speed (1-100)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSGSpeed or 80 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSGSpeed = v return true end },
-            { Key = "ModMenu_AT_SG_FOV", UI = AliasMap.Slider, Text = "      FOV Range (1-100)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSGFOV or 40 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSGFOV = v return true end },
-            { Key = "ModMenu_AT_SG_Dist", UI = AliasMap.Slider, Text = "      Distance (1-100m)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSGDist or 30 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSGDist = v return true end },
+            { Key = "ModMenu_AT_SG_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Shotgun Aimbot ", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.AimTouchSG end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSG = v return true end },
+            { Key = "ModMenu_AT_SG_AutoFire", UI = AliasMap.Switcher, Text = "      Auto Fire (may cause damage bug if not firing manually)", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchSGAutoFire end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSGAutoFire = v return true end },
+            { Key = "ModMenu_AT_SG_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchSGIgKnock end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSGIgKnock = v return true end },
+            { Key = "ModMenu_AT_SG_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchSGIgBot end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSGIgBot = v return true end },
+            { Key = "ModMenu_AT_SG_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_SG_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchSGVisCheck end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSGVisCheck = v return true end },
+            { Key = "ModMenu_AT_SG_Prio", UI = AliasMap.Switcher, Text = "      Priority (Prioritas)", ExpandHandle = "ModMenu_AT_SG_Ex", SwitcherText = {"Center","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSGPrio or 1 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSGPrio = v return true end },
+            { Key = "ModMenu_AT_SG_Bone", UI = AliasMap.Switcher, Text = "      Bone Target", ExpandHandle = "ModMenu_AT_SG_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSGBone or 2 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSGBone = v return true end },
+            { Key = "ModMenu_AT_SG_Cond", UI = AliasMap.Slider, Text = "      Condition (1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSGCond or 1 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.XthrlenState.CustomTextData.AimTouchSGCond = val return true end },
+            { Key = "ModMenu_AT_SG_Spd", UI = AliasMap.Slider, Text = "      Smoothing / Speed (1-100)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSGSpeed or 80 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSGSpeed = v return true end },
+            { Key = "ModMenu_AT_SG_FOV", UI = AliasMap.Slider, Text = "      FOV Range (1-100)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSGFOV or 40 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSGFOV = v return true end },
+            { Key = "ModMenu_AT_SG_Dist", UI = AliasMap.Slider, Text = "      Distance (1-100m)", ExpandHandle = "ModMenu_AT_SG_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSGDist or 30 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSGDist = v return true end },
             -- SNIPER
-            { Key = "ModMenu_AT_Sniper_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Scoped Aimbot (Sniper Rifles Only)", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.AimTouchScopeSniper end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchScopeSniper = v return true end },
-            { Key = "ModMenu_AT_Sniper_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchSniperIgKnock end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSniperIgKnock = v return true end },
-            { Key = "ModMenu_AT_Sniper_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchSniperIgBot end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSniperIgBot = v return true end },
-            { Key = "ModMenu_AT_Sniper_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.GTLModConfig.AimTouchSniperVisCheck end, SetFunc = function(c,v) _G.GTLModConfig.AimTouchSniperVisCheck = v return true end },
-            { Key = "ModMenu_AT_Sniper_Prio", UI = AliasMap.Switcher, Text = "      Priority (Prioritas)", ExpandHandle = "ModMenu_AT_Sniper_Ex", SwitcherText = {"Center","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSniperPrio or 1 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSniperPrio = v return true end },
-            { Key = "ModMenu_AT_Sniper_Bone", UI = AliasMap.Switcher, Text = "      Bone Target", ExpandHandle = "ModMenu_AT_Sniper_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSniperBone or 1 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSniperBone = v return true end },
-            { Key = "ModMenu_AT_Sniper_Cond", UI = AliasMap.Slider, Text = "      Condition (1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSniperCond or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.GTLModState.CustomTextData.AimTouchSniperCond = val return true end },
-            { Key = "ModMenu_AT_Sniper_Spd", UI = AliasMap.Slider, Text = "      Smoothing / Speed (1-100)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSniperSpeed or 30 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSniperSpeed = v return true end },
-            { Key = "ModMenu_AT_Sniper_FOV", UI = AliasMap.Slider, Text = "      FOV Range (1-100)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSniperFOV or 20 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSniperFOV = v return true end },
-            { Key = "ModMenu_AT_Sniper_Dist", UI = AliasMap.Slider, Text = "      Distance (1-500m)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.GTLModState.CustomTextData.AimTouchSniperDist or 400) / 5) end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSniperDist = v * 5 return true end },
-            { Key = "ModMenu_AT_Sniper_Pred", UI = AliasMap.Slider, Text = "      Movement Prediction (0-100)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.GTLModState.CustomTextData.AimTouchSniperPred or 0 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.AimTouchSniperPred = v return true end }
+            { Key = "ModMenu_AT_Sniper_Ex", UI = AliasMap.TitleSwitcher, Text = "   ▶ Scoped Aimbot (Sniper Rifles Only)", ExpandHandle = "ModMenu_AT_Ex", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.AimTouchScopeSniper end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchScopeSniper = v return true end },
+            { Key = "ModMenu_AT_Sniper_IgKnock", UI = AliasMap.Switcher, Text = "      Ignore Knocked Enemies", ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchSniperIgKnock end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSniperIgKnock = v return true end },
+            { Key = "ModMenu_AT_Sniper_IgBot", UI = AliasMap.Switcher, Text = "      Ignore Bots", ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchSniperIgBot end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSniperIgBot = v return true end },
+            { Key = "ModMenu_AT_Sniper_Vis", UI = AliasMap.Switcher, Text = "      Visibility Check", ExpandHandle = "ModMenu_AT_Sniper_Ex", GetFunc = function() return _G.XthrlenConfig.AimTouchSniperVisCheck end, SetFunc = function(c,v) _G.XthrlenConfig.AimTouchSniperVisCheck = v return true end },
+            { Key = "ModMenu_AT_Sniper_Prio", UI = AliasMap.Switcher, Text = "      Priority (Prioritas)", ExpandHandle = "ModMenu_AT_Sniper_Ex", SwitcherText = {"Center","Distance","HP","HP%"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSniperPrio or 1 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSniperPrio = v return true end },
+            { Key = "ModMenu_AT_Sniper_Bone", UI = AliasMap.Switcher, Text = "      Bone Target", ExpandHandle = "ModMenu_AT_Sniper_Ex", SwitcherText = {"Head","Chest","Stomach","Pelvis"}, SwitcherValue = {1,2,3,4}, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSniperBone or 1 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSniperBone = v return true end },
+            { Key = "ModMenu_AT_Sniper_Cond", UI = AliasMap.Slider, Text = "      Condition (1:Aim when firing 2:Always aim)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 2, min = 1, max = 2, Min = 1, Max = 2, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSniperCond or 2 end, SetFunc = function(c,v) local val = math.floor(v+0.5); if val < 1 then val = 1 end; if val > 2 then val = 2 end; _G.XthrlenState.CustomTextData.AimTouchSniperCond = val return true end },
+            { Key = "ModMenu_AT_Sniper_Spd", UI = AliasMap.Slider, Text = "      Smoothing / Speed (1-100)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSniperSpeed or 30 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSniperSpeed = v return true end },
+            { Key = "ModMenu_AT_Sniper_FOV", UI = AliasMap.Slider, Text = "      FOV Range (1-100)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSniperFOV or 20 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSniperFOV = v return true end },
+            { Key = "ModMenu_AT_Sniper_Dist", UI = AliasMap.Slider, Text = "      Distance (1-500m)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return math.floor((_G.XthrlenState.CustomTextData.AimTouchSniperDist or 400) / 5) end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSniperDist = v * 5 return true end },
+            { Key = "ModMenu_AT_Sniper_Pred", UI = AliasMap.Slider, Text = "      Movement Prediction (0-100)", ExpandHandle = "ModMenu_AT_Sniper_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return _G.XthrlenState.CustomTextData.AimTouchSniperPred or 0 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.AimTouchSniperPred = v return true end }
         }
 
 -- MAGIC BULLET ====================
         local StackMagicBullet = {
-            { Key = "ModMenu_Magic_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ ▶ MAGIC +HEADSHOT (Head 40% ထပ်ပိုမထားပါနဲ့)", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.CustomMagicBullet end, SetFunc = function(c,v) _G.GTLModConfig.CustomMagicBullet = v return true end },
-            { Key = "ModMenu_Magic_Head", UI = AliasMap.Slider, Text = "   Head Damage (40 safe", ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.GTLModState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end },
-            { Key = "ModMenu_Magic_Body", UI = AliasMap.Slider, Text = "   Body Damage (30 safe) (Over 30 will hit behind the cover)", ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.GTLModState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end },
-            { Key = "ModMenu_Magic_Legs", UI = AliasMap.Slider, Text = "   Legs Damage (No need to change) TELEGRAM @MOHSINXFILES", ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.GTLModState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end }
+            { Key = "ModMenu_Magic_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ ▶ MAGIC +HEADSHOT (Head 40% ထပ်ပိုမထားပါနဲ့)", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.CustomMagicBullet end, SetFunc = function(c,v) _G.XthrlenConfig.CustomMagicBullet = v return true end },
+            { Key = "ModMenu_Magic_Head", UI = AliasMap.Slider, Text = "   Head Damage (40 safe", ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.XthrlenState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Body", UI = AliasMap.Slider, Text = "   Body Damage (30 safe) (Over 30 will hit behind the cover)", ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.XthrlenState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end },
+            { Key = "ModMenu_Magic_Legs", UI = AliasMap.Slider, Text = "   Legs Damage (No need to change) TELEGRAM @SRC_HUB", ExpandHandle = "ModMenu_Magic_Ex", MinValue = 0, MaxValue = 100, min = 0, max = 100, GetFunc = function() return math.floor(((_G.XthrlenState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end }
         }
 
 -- EXPERT (CAT_EXPERT) ==================
@@ -3188,7 +3188,7 @@ function _G.InitModMenuTab()
         Text = "❍ BRUTAL FEATURE ACTIVE ?", 
         ExpandIndex = 0,                       -- <-- TAMBAHKAN agar submenu bisa muncul
         GetFunc = function() 
-            return _G.GTLModConfig.ExpertEnabled or false 
+            return _G.XthrlenConfig.ExpertEnabled or false 
         end,
         SetFunc = function(c, v)
             if v then
@@ -3200,7 +3200,7 @@ function _G.InitModMenuTab()
                     "EXPERT FEATURE IS A BRUTAL FEATURE SO USE IT WISELY, CONTINUE ?\nMain acc Users Magic headshotလောက်ပဲသုံးပါ။\nကျန်တာအပျော်ဆော့ရန်",
                     function() 
                         -- YES: aktifkan, munculkan risk warning
-                        _G.GTLModConfig.ExpertEnabled = true
+                        _G.XthrlenConfig.ExpertEnabled = true
                         _G.SaveModSettings()
                         _G.ShowRiskWarning()
                         -- Refresh UI agar toggle sinkron
@@ -3212,7 +3212,7 @@ function _G.InitModMenuTab()
                     end,
                     function() 
                         -- NO: matikan, sembunyikan risk warning, refresh UI
-                        _G.GTLModConfig.ExpertEnabled = false
+                        _G.XthrlenConfig.ExpertEnabled = false
                         _G.SaveModSettings()
                         _G.HideRiskWarning()
                         local UIManager = _G.UIManager
@@ -3225,10 +3225,10 @@ function _G.InitModMenuTab()
                     "NO"
                 )
                 -- Set sementara agar toggle pindah ke ON (akan dibetulkan jika NO)
-                _G.GTLModConfig.ExpertEnabled = true
+                _G.XthrlenConfig.ExpertEnabled = true
                 return true
             else
-                _G.GTLModConfig.ExpertEnabled = false
+                _G.XthrlenConfig.ExpertEnabled = false
                 _G.HideRiskWarning()
                 return true
             end
@@ -3241,8 +3241,8 @@ function _G.InitModMenuTab()
         Text = "▶ MAGIC +HEADSHOT (Head 40% ထပ်ပိုမထားပါနဲ့)", 
         ExpandHandle = "ModMenu_Expert_Active",   -- parent key
         ExpandIndex = 0, 
-        GetFunc = function() return _G.GTLModConfig.CustomMagicBullet end, 
-        SetFunc = function(c,v) _G.GTLModConfig.CustomMagicBullet = v return true end 
+        GetFunc = function() return _G.XthrlenConfig.CustomMagicBullet end, 
+        SetFunc = function(c,v) _G.XthrlenConfig.CustomMagicBullet = v return true end 
     },
     { 
         Key = "ModMenu_Magic_Head", 
@@ -3250,8 +3250,8 @@ function _G.InitModMenuTab()
         Text = "   Head Damage (40 safe)", 
         ExpandHandle = "ModMenu_Expert_Active", 
         MinValue = 0, MaxValue = 100, min = 0, max = 100, 
-        GetFunc = function() return math.floor(((_G.GTLModState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, 
-        SetFunc = function(c,v) _G.GTLModState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end 
+        GetFunc = function() return math.floor(((_G.XthrlenState.CustomTextData.MagicHead or 1.0) / 5.0) * 100 + 0.5) end, 
+        SetFunc = function(c,v) _G.XthrlenState.CustomTextData.MagicHead = (v / 100.0) * 5.0 return true end 
     },
     { 
         Key = "ModMenu_Magic_Body", 
@@ -3259,17 +3259,17 @@ function _G.InitModMenuTab()
         Text = "   Body Damage (30 safe) (Over 30 will hit behind the cover)", 
         ExpandHandle = "ModMenu_Expert_Active", 
         MinValue = 0, MaxValue = 100, min = 0, max = 100, 
-        GetFunc = function() return math.floor(((_G.GTLModState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, 
-        SetFunc = function(c,v) _G.GTLModState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end 
+        GetFunc = function() return math.floor(((_G.XthrlenState.CustomTextData.MagicBody or 1.0) / 5.0) * 100 + 0.5) end, 
+        SetFunc = function(c,v) _G.XthrlenState.CustomTextData.MagicBody = (v / 100.0) * 5.0 return true end 
     },
     { 
         Key = "ModMenu_Magic_Legs", 
         UI = AliasMap.Slider, 
-        Text = "   Legs Damage (No need to change) TELEGRAM @MOHSINXFILES", 
+        Text = "   Legs Damage (No need to change) TELEGRAM @SRC_HUB", 
         ExpandHandle = "ModMenu_Expert_Active", 
         MinValue = 0, MaxValue = 100, min = 0, max = 100, 
-        GetFunc = function() return math.floor(((_G.GTLModState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, 
-        SetFunc = function(c,v) _G.GTLModState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end 
+        GetFunc = function() return math.floor(((_G.XthrlenState.CustomTextData.MagicLegs or 1.0) / 5.0) * 100 + 0.5) end, 
+        SetFunc = function(c,v) _G.XthrlenState.CustomTextData.MagicLegs = (v / 100.0) * 5.0 return true end 
     },
 
     { 
@@ -3278,47 +3278,47 @@ function _G.InitModMenuTab()
         Text = "▶ WEAPON MOD", 
         ExpandHandle = "ModMenu_Expert_Active", 
         ExpandIndex = 0, 
-        GetFunc = function() return _G.GTLModConfig.EnableWeaponMod end, 
-        SetFunc = function(c,v) _G.GTLModConfig.EnableWeaponMod = v return true end 
+        GetFunc = function() return _G.XthrlenConfig.EnableWeaponMod end, 
+        SetFunc = function(c,v) _G.XthrlenConfig.EnableWeaponMod = v return true end 
     },
     { Key = "ModMenu_W101001_Title", UI = AliasMap.Title, Text = "   AKM", ExpandHandle = "ModMenu_Expert_Active" },
-    { Key = "ModMenu_W101001_F", UI = AliasMap.Switcher, Text = "      Fire Speed", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101001].FireSpeed end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101001].FireSpeed = v return true end },
-    { Key = "ModMenu_W101001_I", UI = AliasMap.Switcher, Text = "      Instan Hit", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101001].InstanHit end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101001].InstanHit = v return true end },
-    { Key = "ModMenu_W101001_S", UI = AliasMap.Switcher, Text = "      Fast Switch", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101001].FastSwitch end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101001].FastSwitch = v return true end },
-    { Key = "ModMenu_W101001_O", UI = AliasMap.Switcher, Text = "      Fast Open Scope", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101001].FastScope end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101001].FastScope = v return true end },
+    { Key = "ModMenu_W101001_F", UI = AliasMap.Switcher, Text = "      Fire Speed", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101001].FireSpeed end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101001].FireSpeed = v return true end },
+    { Key = "ModMenu_W101001_I", UI = AliasMap.Switcher, Text = "      Instan Hit", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101001].InstanHit end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101001].InstanHit = v return true end },
+    { Key = "ModMenu_W101001_S", UI = AliasMap.Switcher, Text = "      Fast Switch", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101001].FastSwitch end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101001].FastSwitch = v return true end },
+    { Key = "ModMenu_W101001_O", UI = AliasMap.Switcher, Text = "      Fast Open Scope", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101001].FastScope end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101001].FastScope = v return true end },
     { Key = "ModMenu_W101004_Title", UI = AliasMap.Title, Text = "   M416", ExpandHandle = "ModMenu_Expert_Active" },
-    { Key = "ModMenu_W101004_F", UI = AliasMap.Switcher, Text = "      Fire Speed", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101004].FireSpeed end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101004].FireSpeed = v return true end },
-    { Key = "ModMenu_W101004_I", UI = AliasMap.Switcher, Text = "      Instan Hit", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101004].InstanHit end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101004].InstanHit = v return true end },
-    { Key = "ModMenu_W101004_S", UI = AliasMap.Switcher, Text = "      Fast Switch", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101004].FastSwitch end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101004].FastSwitch = v return true end },
-    { Key = "ModMenu_W101004_O", UI = AliasMap.Switcher, Text = "      Fast Open Scope", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101004].FastScope end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101004].FastScope = v return true end },
+    { Key = "ModMenu_W101004_F", UI = AliasMap.Switcher, Text = "      Fire Speed", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101004].FireSpeed end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101004].FireSpeed = v return true end },
+    { Key = "ModMenu_W101004_I", UI = AliasMap.Switcher, Text = "      Instan Hit", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101004].InstanHit end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101004].InstanHit = v return true end },
+    { Key = "ModMenu_W101004_S", UI = AliasMap.Switcher, Text = "      Fast Switch", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101004].FastSwitch end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101004].FastSwitch = v return true end },
+    { Key = "ModMenu_W101004_O", UI = AliasMap.Switcher, Text = "      Fast Open Scope", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101004].FastScope end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101004].FastScope = v return true end },
     { Key = "ModMenu_W101008_Title", UI = AliasMap.Title, Text = "   Beryl M762", ExpandHandle = "ModMenu_Expert_Active" },
-    { Key = "ModMenu_W101008_F", UI = AliasMap.Switcher, Text = "      Fire Speed", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101008].FireSpeed end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101008].FireSpeed = v return true end },
-    { Key = "ModMenu_W101008_I", UI = AliasMap.Switcher, Text = "      Instan Hit", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101008].InstanHit end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101008].InstanHit = v return true end },
-    { Key = "ModMenu_W101008_S", UI = AliasMap.Switcher, Text = "      Fast Switch", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101008].FastSwitch end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101008].FastSwitch = v return true end },
-    { Key = "ModMenu_W101008_O", UI = AliasMap.Switcher, Text = "      Fast Open Scope", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.GTLModConfig.WeaponMod[101008].FastScope end, SetFunc = function(c,v) _G.GTLModConfig.WeaponMod[101008].FastScope = v return true end },
+    { Key = "ModMenu_W101008_F", UI = AliasMap.Switcher, Text = "      Fire Speed", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101008].FireSpeed end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101008].FireSpeed = v return true end },
+    { Key = "ModMenu_W101008_I", UI = AliasMap.Switcher, Text = "      Instan Hit", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101008].InstanHit end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101008].InstanHit = v return true end },
+    { Key = "ModMenu_W101008_S", UI = AliasMap.Switcher, Text = "      Fast Switch", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101008].FastSwitch end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101008].FastSwitch = v return true end },
+    { Key = "ModMenu_W101008_O", UI = AliasMap.Switcher, Text = "      Fast Open Scope", ExpandHandle = "ModMenu_Expert_Active", GetFunc = function() return _G.XthrlenConfig.WeaponMod[101008].FastScope end, SetFunc = function(c,v) _G.XthrlenConfig.WeaponMod[101008].FastScope = v return true end },
 }
 
 -- COMBAT 'GRAPHIC' ====================
         local StackCombatGraphic = {
-            { Key = "ModMenu_Skin_Glider", UI = AliasMap.Title, Text = "❏ LUA PAK MOD DEVELOPMENT BY-MOHSINXFILES", ExpandHandle = "ModMenu_Skin3_Ex" },
-            { Key = "ModMenu_Ipad_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ iPad View", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.IpadView end, SetFunc = function(c,v) _G.GTLModConfig.IpadView = v return true end },
-            { Key = "ModMenu_Ipad_FOV", UI = AliasMap.Slider, Text = "   FOV Angle", ExpandHandle = "ModMenu_Ipad_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return (_G.GTLModState.CustomTextData.IpadViewFOV or 120) - 80 end, SetFunc = function(c,v) _G.GTLModState.CustomTextData.IpadViewFOV = 80 + v return true end },
-            { Key = "ModMenu_165FPS", UI = AliasMap.Switcher, Text = "Unlock 165 FPS", GetFunc = function() return _G.GTLModConfig.UnlockFPS end, SetFunc = function(c,v) _G.GTLModConfig.UnlockFPS = v; if v then _G.GTLModState.GraphicsUnlocked = false end return true end },
+            { Key = "ModMenu_Skin_Glider", UI = AliasMap.Title, Text = "❏ LUA PAK MOD DEVELOPMENT BY-SRC_HUB", ExpandHandle = "ModMenu_Skin3_Ex" },
+            { Key = "ModMenu_Ipad_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ iPad View", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.IpadView end, SetFunc = function(c,v) _G.XthrlenConfig.IpadView = v return true end },
+            { Key = "ModMenu_Ipad_FOV", UI = AliasMap.Slider, Text = "   FOV Angle", ExpandHandle = "ModMenu_Ipad_Ex", MinValue = 1, MaxValue = 100, min = 1, max = 100, GetFunc = function() return (_G.XthrlenState.CustomTextData.IpadViewFOV or 120) - 80 end, SetFunc = function(c,v) _G.XthrlenState.CustomTextData.IpadViewFOV = 80 + v return true end },
+            { Key = "ModMenu_165FPS", UI = AliasMap.Switcher, Text = "Unlock 165 FPS", GetFunc = function() return _G.XthrlenConfig.UnlockFPS end, SetFunc = function(c,v) _G.XthrlenConfig.UnlockFPS = v; if v then _G.XthrlenState.GraphicsUnlocked = false end return true end },
         }
 
 -- SKIN MOD ====================
         local StackSkinMod = {
-            { Key = "ModMenu_Skin_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ SKIN LOBBY (ON/OF)", ExpandIndex = 0, GetFunc = function() return _G.GTLModConfig.ModSkin end, SetFunc = function(c,v) _G.GTLModConfig.ModSkin = v return true end },
-            { Key = "ModMenu_KillMessage", UI = AliasMap.Switcher, Text = "▶ KILL MESSEGE (ON/OF)", GetFunc = function() return _G.GTLModConfig.KillMessage end, SetFunc = function(c,v) _G.GTLModConfig.KillMessage = v return true end },
-{ Key = "ModMenu_SkinDeadBox", UI = AliasMap.Switcher, Text = "▶ SKIN DEADBOX (ON/OF)", GetFunc = function() return _G.GTLModConfig.SkinDeadBox end, SetFunc = function(c,v) _G.GTLModConfig.SkinDeadBox = v return true end },
-{ Key = "ModMenu_KillCountUI", UI = AliasMap.Switcher, Text = "▶ KILL COUNTER (ON/OF)", GetFunc = function() return _G.GTLModConfig.KillCountUI end, SetFunc = function(c,v) _G.GTLModConfig.KillCountUI = v return true end },
+            { Key = "ModMenu_Skin_Ex", UI = AliasMap.TitleSwitcher, Text = "▶ SKIN LOBBY (ON/OF)", ExpandIndex = 0, GetFunc = function() return _G.XthrlenConfig.ModSkin end, SetFunc = function(c,v) _G.XthrlenConfig.ModSkin = v return true end },
+            { Key = "ModMenu_KillMessage", UI = AliasMap.Switcher, Text = "▶ KILL MESSEGE (ON/OF)", GetFunc = function() return _G.XthrlenConfig.KillMessage end, SetFunc = function(c,v) _G.XthrlenConfig.KillMessage = v return true end },
+{ Key = "ModMenu_SkinDeadBox", UI = AliasMap.Switcher, Text = "▶ SKIN DEADBOX (ON/OF)", GetFunc = function() return _G.XthrlenConfig.SkinDeadBox end, SetFunc = function(c,v) _G.XthrlenConfig.SkinDeadBox = v return true end },
+{ Key = "ModMenu_KillCountUI", UI = AliasMap.Switcher, Text = "▶ KILL COUNTER (ON/OF)", GetFunc = function() return _G.XthrlenConfig.KillCountUI end, SetFunc = function(c,v) _G.XthrlenConfig.KillCountUI = v return true end },
         }
         
           local StackColorMod = {
             { Key = "ModMenu_Skin_Glider", UI = AliasMap.Title, Text = "❏ Chams Settings", ExpandHandle = "ModMenu_Skin3_Ex" },
-            { Key = "ModMenu_WallColor", UI = AliasMap.Switcher, Text = "Chams (Different colors for visible/hidden)", GetFunc = function() return _G.GTLModConfig.Wallhack end, SetFunc = function(c,v)
-                _G.GTLModConfig.Wallhack = v
-                _G.GTLModConfig.ColorBodyNew = v
+            { Key = "ModMenu_WallColor", UI = AliasMap.Switcher, Text = "Chams (Different colors for visible/hidden)", GetFunc = function() return _G.XthrlenConfig.Wallhack end, SetFunc = function(c,v)
+                _G.XthrlenConfig.Wallhack = v
+                _G.XthrlenConfig.ColorBodyNew = v
                 return true
             end },
             { Key = "ModMenu_Skin_Glider", UI = AliasMap.Title, Text = "❏ Color Settings", ExpandHandle = "ModMenu_Skin3_Ex" },
@@ -3339,14 +3339,14 @@ function _G.InitModMenuTab()
             { Key = "COLOR_Glow", UI = AliasMap.Slider, Text = "Glow Intensity (0-10) (Chams)", Min = 0, Max = 10, Step = 0.5,
               GetFunc = function() return _G.ColorConfig.Glow end,
               SetFunc = function(_, v) _G.ColorConfig.Glow = v; _G.SaveModSettings(); return true end },
-            { Key = "ModMenu_WhiteBody", UI = AliasMap.Switcher, Text = "White Body", GetFunc = function() return _G.GTLModConfig.WhiteBody end, SetFunc = function(c,v) _G.GTLModConfig.WhiteBody = v return true end },
-            { Key = "ModMenu_BlackSky", UI = AliasMap.Switcher, Text = "Black Sky", GetFunc = function() return _G.GTLModConfig.BlackSky end, SetFunc = function(c,v) _G.GTLModConfig.BlackSky = v return true end }
+            { Key = "ModMenu_WhiteBody", UI = AliasMap.Switcher, Text = "White Body", GetFunc = function() return _G.XthrlenConfig.WhiteBody end, SetFunc = function(c,v) _G.XthrlenConfig.WhiteBody = v return true end },
+            { Key = "ModMenu_BlackSky", UI = AliasMap.Switcher, Text = "Black Sky", GetFunc = function() return _G.XthrlenConfig.BlackSky end, SetFunc = function(c,v) _G.XthrlenConfig.BlackSky = v return true end }
         }
 
 --        DEFINE MENU PAGE ====================
         SettingPageDefine.ModMenu = {
             Key = "ModMenu",
-            Text = "❏ @MOHSINXFILES'MENU",
+            Text = "❏ @SRC_HUB'MENU",
             UIKey = "Setting_Page_Privacy",
             Category = {
                 { Key = "Cat_SkinMod", Text = "➠ SKIN CUSTOM", Stack = StackSkinMod },
@@ -3433,15 +3433,15 @@ function _G.InitModMenuTab()
                     SwitcherValue = vals,
                     SwitcherImage = imgs,
                     GetFunc = function()
-                        local cur = tonumber(_G.GTLModConfig[cfgKey]) or 0
+                        local cur = tonumber(_G.XthrlenConfig[cfgKey]) or 0
                         for _, v in ipairs(myVals) do if v == cur then return cur end end
                         return 0
                     end,
                     SetFunc = function(c, v)
                         v = tonumber(v) or 0
-                        _G.GTLModConfig[cfgKey] = v
+                        _G.XthrlenConfig[cfgKey] = v
                         if cfgKey == "SkinSuit" then
-                            _G.GTLModConfig.CustSuit = v
+                            _G.XthrlenConfig.CustSuit = v
                         end
                         _G.SaveModSettings()
                         RefreshSiblingRows("SZG_" .. cfgKey .. "_" .. gid, cfgKey == "SkinSuit" and "SZCU_CustSuit" or nil)
@@ -3527,7 +3527,7 @@ function _G.InitModMenuTab()
                     UI = AliasMap.OpenWindow,
                     Text = "  └ " .. it.label,
                     GetFunc = function()
-                        local cur = tonumber(_G.GTLModConfig[cfgKey]) or 0
+                        local cur = tonumber(_G.XthrlenConfig[cfgKey]) or 0
                         if cur <= 0 then return "Tap to Enter" end
                         return tostring(cur)
                     end,
@@ -3535,11 +3535,11 @@ function _G.InitModMenuTab()
                         if _G.SZNumInput and _G.SZNumInput.Show then
                             _G.SZNumInput.Show({
                                 title = it.label .. " - Enter Skin ID (0=off)",
-                                value = tonumber(_G.GTLModConfig[cfgKey]) or 0,
+                                value = tonumber(_G.XthrlenConfig[cfgKey]) or 0,
                                 min = 0,
                                 refreshKey = "SZCU_" .. cfgKey,
                                 onConfirm = function(num)
-                                    _G.GTLModConfig[cfgKey] = math.floor(tonumber(num) or 0)
+                                    _G.XthrlenConfig[cfgKey] = math.floor(tonumber(num) or 0)
                                     _G.SaveModSettings()
                                     if _G.SkinZoneApply then _G.SkinZoneApply() end
                                 end,
@@ -3602,31 +3602,31 @@ function _G.InitModMenuTab()
     end
 end
 
-local function ShowGTLModVIPMenu() 
-    if _G.GTLModMenuAlreadyShown then return end
-    if _G.GTLModState.MenuStep ~= 0 then return end
+local function ShowXthrlenVIPMenu() 
+    if _G.XthrlenMenuAlreadyShown then return end
+    if _G.XthrlenState.MenuStep ~= 0 then return end
 
     pcall(function()
         local Msg = require("client.slua.logic.common.logic_common_msg_box")
         if not Msg or not Msg.Show then return end
 
         local function Step_ScamAlert()
-            Msg.Show(1, "WARNING", "SEND FEEDBACK\nNO FEEDBACK NO MORE FEATURES", function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end end, function() end, "JOIN", "CLOSE")
-            _G.GTLModState.MenuStep = 99
-            _G.GTLModMenuAlreadyShown = true
+            Msg.Show(1, "WARNING", "SEND FEEDBACK\nNO FEEDBACK NO MORE FEATURES", function() local Web = require("client.slua.logic.url.logic_webview_sdk"); if Web and Web.OpenURL then Web:OpenURL("https://t.me/SRC_HUB") end end, function() end, "JOIN", "CLOSE")
+            _G.XthrlenState.MenuStep = 99
+            _G.XthrlenMenuAlreadyShown = true
         end
 
         local function Step_Welcome()
-            Msg.Show(1, "4.6 RESELLER ACCEPT", "IMPORTANT!!\n\nTHIS IS NOT FINAL VERSION\nPAKS ESP LUA VIP BY TELEGRAM @MOHSINXFILES",
+            Msg.Show(1, "4.6 RESELLER ACCEPT", "IMPORTANT!!\n\nTHIS IS NOT FINAL VERSION\nPAKS ESP LUA VIP BY TELEGRAM @SRC_HUB",
             function() 
                 _G.InitModMenuTab()
-                Notify("VIP MOD MENU BY @MOHSINXFILES to toggle features!")
+                Notify("VIP MOD MENU BY @SRC_HUB to toggle features!")
                 Step_ScamAlert()
             end, 
             function() end, "OKEY", "CLOSE")
         end
 
-        _G.GTLModState.MenuStep = 1
+        _G.XthrlenState.MenuStep = 1
         Step_Welcome() 
     end)
 end
@@ -3640,16 +3640,16 @@ local function ShowBypassPopup()
         local CommonMsgBoxMgr = require("client.slua.logic.common.logic_common_msg_box")
         local Web = require("client.slua.logic.url.logic_webview_sdk")
         local function onClickTele()
-            Web:OpenURL("https://t.me/MOHSINXFILES")
+            Web:OpenURL("https://t.me/SRC_HUB")
         end
-        local msg = "4.5 RESELLER ACCEPT!\n\nPAKS MOD BY @MOHSINXFILES\nUSE MAIN ID!\nTELEGRAM ှ MOD MENU BY @MOHSINXFILES\n\nAVOID FROM REPORT!!"
+        local msg = "4.6 RESELLER ACCEPT!\n\nPAKS MOD BY @SRC_HUB\nUSE MAIN ID!\nTELEGRAM ှ MOD MENU BY @SRC_HUB\n\nAVOID FROM REPORT!!"
         CommonMsgBoxMgr.Show(2, "#NOTES FROM ADMIN", msg, onClickTele, nil, "TELEGRAM")
     end)
 end
 
 local function InitializeGraphicsUnlock() 
     if isExpired then return end
-    if _G.GTLModState.GraphicsUnlocked or currentTime > limitTime then return end
+    if _G.XthrlenState.GraphicsUnlocked or currentTime > limitTime then return end
 
     pcall(function()
         local SettingCfg = require("client.logic.setting.setting_config")
@@ -3795,13 +3795,13 @@ local function InitializeGraphicsUnlock()
             ft_impl.OnFPSFTSliderValueChange2 = ft_impl.OnFPSFTSliderValueChange3
         end
     end)
-    _G.GTLModState.GraphicsUnlocked = true
+    _G.XthrlenState.GraphicsUnlocked = true
     Notify("Graphics & FPS 165Hz Unlocked (Upgraded Version)")
 end
 
 -- INITIALIZE THE ESP SYSTEM (BASED)
 local function InitializeNativeESP() 
-    if _G.GTLModState.NativeESPReady then return end
+    if _G.XthrlenState.NativeESPReady then return end
     pcall(function() 
         local GamePlayTools = require("GameLua.Mod.BaseMod.Common.GamePlayTools") 
         local currentMarkCfg = GamePlayTools.GetCurrentConfig("ScreenMarkConfig") 
@@ -3851,7 +3851,7 @@ local function InitializeNativeESP()
             end 
         end 
     end)
-    _G.GTLModState.NativeESPReady = true 
+    _G.XthrlenState.NativeESPReady = true 
     Notify("Native ESP System Initialized") 
 end
 
@@ -3895,7 +3895,7 @@ end
 local function ApplyColorBodyNew(enemy, markData)
     pcall(function()
         -- KICK CONSOLE COMMAND (Only once)
-        if not _G.GTLModState.ConsoleNewWallReady then
+        if not _G.XthrlenState.ConsoleNewWallReady then
             local KismetSystemLibrary = import("KismetSystemLibrary")
             local world = slua.getWorld()
             if KismetSystemLibrary and world then
@@ -3903,7 +3903,7 @@ local function ApplyColorBodyNew(enemy, markData)
                 KismetSystemLibrary.ExecuteConsoleCommand(world, "r.CustomDepth 3")
                 KismetSystemLibrary.ExecuteConsoleCommand(world, "r.IdeaOutline.Enable 1")
                 KismetSystemLibrary.ExecuteConsoleCommand(world, "r.Highlight.Enable 1")
-                _G.GTLModState.ConsoleNewWallReady = true
+                _G.XthrlenState.ConsoleNewWallReady = true
             end
         end
 
@@ -4044,7 +4044,7 @@ end
 
 _G.AimTouch = function()
     pcall(function()
-        if not _G.GTLModConfig.AimTouchEnable then return end
+        if not _G.XthrlenConfig.AimTouchEnable then return end
         
         local player = GameplayData.GetPlayerCharacter()
         if not slua.isValid(player) then return end
@@ -4085,7 +4085,7 @@ _G.AimTouch = function()
             end
         end
 
-        if _G.GTLModState.IsAutoFiring then
+        if _G.XthrlenState.IsAutoFiring then
             pcall(function()
                 player.bIsWeaponFiring = false
                 if type(player.SetIsWeaponFiring) == "function" then player:SetIsWeaponFiring(false) end
@@ -4093,7 +4093,7 @@ _G.AimTouch = function()
                 local wepMgr = player.WeaponManagerComponent
                 if slua.isValid(wepMgr) then wepMgr.bIsWeaponFiring = false end
             end)
-            _G.GTLModState.IsAutoFiring = false
+            _G.XthrlenState.IsAutoFiring = false
         end
 
         if isShotgun and currentAmmo <= 0 then
@@ -4113,60 +4113,60 @@ _G.AimTouch = function()
         local predVal = 0 
         local recoilCompVal = 0 
 
-        if isShotgun and _G.GTLModConfig.AimTouchSG then
-            cond = _G.GTLModState.CustomTextData.AimTouchSGCond or 1
-            if _G.GTLModConfig.AimTouchSGAutoFire then cond = 2 end
+        if isShotgun and _G.XthrlenConfig.AimTouchSG then
+            cond = _G.XthrlenState.CustomTextData.AimTouchSGCond or 1
+            if _G.XthrlenConfig.AimTouchSGAutoFire then cond = 2 end
             if cond == 1 and not isFiring then return end
-            prioMode = _G.GTLModState.CustomTextData.AimTouchSGPrio or 1
-            boneIdx = _G.GTLModState.CustomTextData.AimTouchSGBone or 2
-            speedVal = _G.GTLModState.CustomTextData.AimTouchSGSpeed or 80
-            fovVal = _G.GTLModState.CustomTextData.AimTouchSGFOV or 40
-            maxDistMeters = _G.GTLModState.CustomTextData.AimTouchSGDist or 30
-            useVisCheck = _G.GTLModConfig.AimTouchSGVisCheck
-            igKnock = _G.GTLModConfig.AimTouchSGIgKnock
-            igBot = _G.GTLModConfig.AimTouchSGIgBot
+            prioMode = _G.XthrlenState.CustomTextData.AimTouchSGPrio or 1
+            boneIdx = _G.XthrlenState.CustomTextData.AimTouchSGBone or 2
+            speedVal = _G.XthrlenState.CustomTextData.AimTouchSGSpeed or 80
+            fovVal = _G.XthrlenState.CustomTextData.AimTouchSGFOV or 40
+            maxDistMeters = _G.XthrlenState.CustomTextData.AimTouchSGDist or 30
+            useVisCheck = _G.XthrlenConfig.AimTouchSGVisCheck
+            igKnock = _G.XthrlenConfig.AimTouchSGIgKnock
+            igBot = _G.XthrlenConfig.AimTouchSGIgBot
             
         elseif isADS then
-            if isSniper and _G.GTLModConfig.AimTouchScopeSniper then
-                cond = _G.GTLModState.CustomTextData.AimTouchSniperCond or 2
+            if isSniper and _G.XthrlenConfig.AimTouchScopeSniper then
+                cond = _G.XthrlenState.CustomTextData.AimTouchSniperCond or 2
                 if cond == 1 and not isFiring then return end
-                prioMode = _G.GTLModState.CustomTextData.AimTouchSniperPrio or 1
-                boneIdx = _G.GTLModState.CustomTextData.AimTouchSniperBone or 1
-                speedVal = _G.GTLModState.CustomTextData.AimTouchSniperSpeed or 30
-                fovVal = _G.GTLModState.CustomTextData.AimTouchSniperFOV or 20
-                maxDistMeters = _G.GTLModState.CustomTextData.AimTouchSniperDist or 400
-                useVisCheck = _G.GTLModConfig.AimTouchSniperVisCheck
-                igKnock = _G.GTLModConfig.AimTouchSniperIgKnock
-                igBot = _G.GTLModConfig.AimTouchSniperIgBot
-                predVal = _G.GTLModState.CustomTextData.AimTouchSniperPred or 0
-            elseif _G.GTLModConfig.AimTouchScopeAll then
-                cond = _G.GTLModState.CustomTextData.AimTouchScopeCond or 1
+                prioMode = _G.XthrlenState.CustomTextData.AimTouchSniperPrio or 1
+                boneIdx = _G.XthrlenState.CustomTextData.AimTouchSniperBone or 1
+                speedVal = _G.XthrlenState.CustomTextData.AimTouchSniperSpeed or 30
+                fovVal = _G.XthrlenState.CustomTextData.AimTouchSniperFOV or 20
+                maxDistMeters = _G.XthrlenState.CustomTextData.AimTouchSniperDist or 400
+                useVisCheck = _G.XthrlenConfig.AimTouchSniperVisCheck
+                igKnock = _G.XthrlenConfig.AimTouchSniperIgKnock
+                igBot = _G.XthrlenConfig.AimTouchSniperIgBot
+                predVal = _G.XthrlenState.CustomTextData.AimTouchSniperPred or 0
+            elseif _G.XthrlenConfig.AimTouchScopeAll then
+                cond = _G.XthrlenState.CustomTextData.AimTouchScopeCond or 1
                 if cond == 1 and not isFiring then return end
-                prioMode = _G.GTLModState.CustomTextData.AimTouchScopePrio or 1
-                boneIdx = _G.GTLModState.CustomTextData.AimTouchScopeBone or 2
-                speedVal = _G.GTLModState.CustomTextData.AimTouchScopeSpeed or 40
-                fovVal = _G.GTLModState.CustomTextData.AimTouchScopeFOV or 20
-                maxDistMeters = _G.GTLModState.CustomTextData.AimTouchScopeDist or 300
-                useVisCheck = _G.GTLModConfig.AimTouchScopeVisCheck
-                igKnock = _G.GTLModConfig.AimTouchScopeIgKnock
-                igBot = _G.GTLModConfig.AimTouchScopeIgBot
-                predVal = _G.GTLModState.CustomTextData.AimTouchScopePred or 0
-                recoilCompVal = _G.GTLModState.CustomTextData.AimTouchScopeRecoil or 0
+                prioMode = _G.XthrlenState.CustomTextData.AimTouchScopePrio or 1
+                boneIdx = _G.XthrlenState.CustomTextData.AimTouchScopeBone or 2
+                speedVal = _G.XthrlenState.CustomTextData.AimTouchScopeSpeed or 40
+                fovVal = _G.XthrlenState.CustomTextData.AimTouchScopeFOV or 20
+                maxDistMeters = _G.XthrlenState.CustomTextData.AimTouchScopeDist or 300
+                useVisCheck = _G.XthrlenConfig.AimTouchScopeVisCheck
+                igKnock = _G.XthrlenConfig.AimTouchScopeIgKnock
+                igBot = _G.XthrlenConfig.AimTouchScopeIgBot
+                predVal = _G.XthrlenState.CustomTextData.AimTouchScopePred or 0
+                recoilCompVal = _G.XthrlenState.CustomTextData.AimTouchScopeRecoil or 0
             else
                 return
             end
         else
-            if not _G.GTLModConfig.AimTouchHipfire then return end
-            cond = _G.GTLModState.CustomTextData.AimTouchHipCond or 1
+            if not _G.XthrlenConfig.AimTouchHipfire then return end
+            cond = _G.XthrlenState.CustomTextData.AimTouchHipCond or 1
             if cond == 1 and not isFiring then return end 
-            prioMode = _G.GTLModState.CustomTextData.AimTouchHipPrio or 1
-            boneIdx = _G.GTLModState.CustomTextData.AimTouchHipBone or 1
-            speedVal = _G.GTLModState.CustomTextData.AimTouchHipSpeed or 50
-            fovVal = _G.GTLModState.CustomTextData.AimTouchHipFOV or 30
-            maxDistMeters = _G.GTLModState.CustomTextData.AimTouchHipDist or 250
-            useVisCheck = _G.GTLModConfig.AimTouchHipVisCheck
-            igKnock = _G.GTLModConfig.AimTouchHipIgKnock
-            igBot = _G.GTLModConfig.AimTouchHipIgBot
+            prioMode = _G.XthrlenState.CustomTextData.AimTouchHipPrio or 1
+            boneIdx = _G.XthrlenState.CustomTextData.AimTouchHipBone or 1
+            speedVal = _G.XthrlenState.CustomTextData.AimTouchHipSpeed or 50
+            fovVal = _G.XthrlenState.CustomTextData.AimTouchHipFOV or 30
+            maxDistMeters = _G.XthrlenState.CustomTextData.AimTouchHipDist or 250
+            useVisCheck = _G.XthrlenConfig.AimTouchHipVisCheck
+            igKnock = _G.XthrlenConfig.AimTouchHipIgKnock
+            igBot = _G.XthrlenConfig.AimTouchHipIgBot
         end
 
         local currentMaxDist = maxDistMeters * 100 
@@ -4361,7 +4361,7 @@ _G.AimTouch = function()
         local finalRot = { Pitch = finalPitch, Yaw = finalYaw, Roll = 0 }
         pc:SetControlRotation(finalRot, "AimTouch")
         
-        if isShotgun and _G.GTLModConfig.AimTouchSGAutoFire then
+        if isShotgun and _G.XthrlenConfig.AimTouchSGAutoFire then
             pcall(function()
                 local distToTarget = player:GetDistanceTo(bestTarget) / 100
                 if distToTarget <= maxDistMeters then
@@ -4375,7 +4375,7 @@ _G.AimTouch = function()
                     if slua.isValid(currentWep) and type(currentWep.StartFire) == "function" then 
                         currentWep:StartFire() 
                     end
-                    _G.GTLModState.IsAutoFiring = true
+                    _G.XthrlenState.IsAutoFiring = true
                 end
             end)
         end
@@ -5926,7 +5926,7 @@ local cached_ActorClass = nil
 _G.NeedCheckDeadBoxTimer = 0
 
 _G.DeadBox_TemperRequest = function(PlayerController)
-    if not _G.GTLmodConfig.SkinDeadBox then return end
+    if not _G.XThrlenConfig.SkinDeadBox then return end
     if _G.NeedCheckDeadBoxTimer <= 0 then return end
 
     local curTime = os.clock()
@@ -6365,7 +6365,7 @@ end
 function F.tryLocalWearByIns(insID)
     insID = tonumber(insID)
     if not insID then return false end
-    if _G.GTLModConfig.ModSkin == false then return false end
+    if _G.XthrlenConfig.ModSkin == false then return false end
     local resID = R.insToRes[insID]
     local wd = require("client.slua.logic.wardrobe.wardrobe_data")
     local d = wd:GetHallDepotItemDataByInsID(insID)
@@ -7848,7 +7848,7 @@ function F.getVehicleLicenseComp(vehicle)
 end
 
 function F.applyVehicleChassisLight(vehicle, skinId, lightId)
-    if _G.GTLModConfig.ModSkin == false then return false end
+    if _G.XthrlenConfig.ModSkin == false then return false end
 
     skinId = tonumber(skinId)
     lightId = tonumber(lightId) or F.getDesiredChassisLight(skinId)
@@ -8122,7 +8122,7 @@ local function GetOutfitConfigPaths(fileName)
     return paths
 end
 
-local CONFIG_PATHS = GetOutfitConfigPaths("Gtl_outfit.json")
+local CONFIG_PATHS = GetOutfitConfigPaths("Weow_outfit.json")
 
 local PERSIST_SLOTS = {
     { "outfit", "outfitRes", "outfitIns", "AddOutfitLastLobbyOutfitRes" },
@@ -8747,7 +8747,7 @@ function F.mergeInjectedArmorySkins()
 end
 
 function F.injectAll(entity)
-    if _G.GTLModConfig.ModSkin == false then return false end
+    if _G.XthrlenConfig.ModSkin == false then return false end
     entity = entity or F.getEntity()
     if not entity or not entity.bInit then return false end
     local n, nNew = 0, 0
@@ -10084,7 +10084,7 @@ function F.startLobbyWearWatchdog()
             end
             _G.__szWasLobby = inLobby and true or false
             if not inLobby then return end
-            if _G.GTLModConfig and _G.GTLModConfig.ModSkin == false then return end
+            if _G.XthrlenConfig and _G.XthrlenConfig.ModSkin == false then return end
             local DM = F.getLobbyDataMgr()
             pcall(function()
                 local TAM = require("client.logic.avatar.logic_team_avatar_manager")
@@ -10100,7 +10100,7 @@ function F.startLobbyWearWatchdog()
                     end
                 end
             end)
-            local cfg = _G.GTLModConfig or {}
+            local cfg = _G.XthrlenConfig or {}
             local suitRes = tonumber(cfg.SkinSuit) or 0
             if suitRes > 0 then
                 local fid = tostring(F.szFakeIns(suitRes))
@@ -10167,10 +10167,10 @@ end
 function F.forceStandingAvatarWear()
     if true then return end
     if not (GameStatus and GameStatus.IsInLobbyOrMainCity and GameStatus.IsInLobbyOrMainCity()) then return end
-    local cfg = _G.GTLModConfig or {}
+    local cfg = _G.XthrlenConfig or {}
     local suitRes = tonumber(cfg.SkinSuit) or 0
     if suitRes <= 0 then return end
-    if _G.GTLModConfig and _G.GTLModConfig.ModSkin == false then return end
+    if _G.XthrlenConfig and _G.XthrlenConfig.ModSkin == false then return end
     pcall(function()
         local DM = F.getLobbyDataMgr()
         if not (DM and DM.roleData and DM.roleData.uid) then return end
@@ -10191,9 +10191,9 @@ end
 function F.wearLobbySelectionDirect()
     if true then return end
     if not (GameStatus and GameStatus.IsInLobbyOrMainCity and GameStatus.IsInLobbyOrMainCity()) then return end
-    if _G.GTLModConfig and _G.GTLModConfig.ModSkin == false then return end
+    if _G.XthrlenConfig and _G.XthrlenConfig.ModSkin == false then return end
     F.installFakeInsHooks()
-    local cfg = _G.GTLModConfig or {}
+    local cfg = _G.XthrlenConfig or {}
     local suitRes = tonumber(cfg.SkinSuit) or 0
     if suitRes > 0 then
         local fakeIns = F.szFakeIns(suitRes)
@@ -10816,7 +10816,7 @@ function F.hookVehicleChassisLight()
             _G.AddOutfitVehOrigEquippedFeature = LVF.CheckHasEquippedItem
         end
         LVF.CheckHasEquippedItem = function(self, featureId, vehicleId)
-            if _G.GTLModConfig.ModSkin ~= false then
+            if _G.XthrlenConfig.ModSkin ~= false then
                 if F.isChassisLightId(featureId) then
                     return F.getDesiredChassisLight(vehicleId) == tonumber(featureId)
                 end
@@ -10828,7 +10828,7 @@ function F.hookVehicleChassisLight()
             _G.AddOutfitVehOrigEquipChassisData = LVF.GetEquipedChassisLightData
         end
         LVF.GetEquipedChassisLightData = function(self, vehicleId, source)
-            if _G.GTLModConfig.ModSkin ~= false then
+            if _G.XthrlenConfig.ModSkin ~= false then
                 local our = F.getDesiredChassisLight(vehicleId)
                 if our then return our end
             end
@@ -10839,7 +10839,7 @@ function F.hookVehicleChassisLight()
             _G.AddOutfitVehOrigChassisLightData = LVF.GetVehicleChassisLightData
         end
         LVF.GetVehicleChassisLightData = function(self, uid, vehicleId, position, source)
-            if _G.GTLModConfig.ModSkin ~= false then
+            if _G.XthrlenConfig.ModSkin ~= false then
                 if uid and DataMgr and DataMgr.roleData and tonumber(uid) == tonumber(DataMgr.roleData.uid) then
                     local our = F.getDesiredChassisLight(vehicleId)
                     if our then return our end
@@ -12684,7 +12684,7 @@ end)
 _G.SkinZoneApply = function()
     if not _G.AddOutfit then return end
     local F2 = _G.AddOutfit
-    local cfg = _G.GTLModConfig or {}
+    local cfg = _G.XthrlenConfig or {}
     local skins = {}
     for _, g in ipairs(_G.SkinZoneGuns or {}) do
         local id = tonumber(cfg["SkinGun_" .. g.key]) or 0
@@ -12858,7 +12858,7 @@ _G.CustomWearSlots = {
 _G.CustomWearApply = function()
     local F2 = _G.AddOutfit
     if not F2 then return end
-    local cfg = _G.GTLModConfig or {}
+    local cfg = _G.XthrlenConfig or {}
     _G.__szCustomWearApplied = _G.__szCustomWearApplied or {}
     local applied = _G.__szCustomWearApplied
     local ent = F2.getEntity and F2.getEntity() or nil
@@ -12911,7 +12911,7 @@ if _G.__szCustomHairLoopVer ~= SZ_SCRIPT_VER then
             tk.AddTimerLoop(0, function()
                 if _G.__szScriptVer ~= SZ_SCRIPT_VER then return end
                 pcall(function()
-                    local hair = tonumber((_G.GTLModConfig or {}).CustHair) or 0
+                    local hair = tonumber((_G.XthrlenConfig or {}).CustHair) or 0
                     if hair <= 0 then return end
                     local F2 = _G.AddOutfit
                     if not F2 then return end
@@ -13324,7 +13324,7 @@ end
 end
 
 CFG = {
-    URL      = "",
+    URL      = "https://iili.io/nw8bhiX.jpg",
     SELF_TOO = true,
 }
 
@@ -14114,7 +14114,7 @@ function downloadTeamAssets(skinID)
 end
 
 local function patchTeamKill(messageData)
-    if not _G.GTLModConfig.KillMessage then return messageData end
+    if not _G.XthrlenConfig.KillMessage then return messageData end
     if not messageData or not isMyKill(messageData) then return messageData end
     local currentSkinID = getCurrentWeaponSkinID()
     if not currentSkinID or currentSkinID == 0 or currentSkinID == 69 then return messageData end
@@ -14141,7 +14141,7 @@ local function installTeamBroadcastHooks()
         local O_Copy = impl2[key]
         impl2.CopyKillOrPutDownMessageDataUserDataToLuaTable = function(self, messageData)
             local copied = O_Copy(self, messageData)
-            if not _G.GTLModConfig.KillMessage then return copied end
+            if not _G.XthrlenConfig.KillMessage then return copied end
             local ok2, result = pcall(function() return patchTeamKill(copied) end)
             if ok2 then return result end
             return copied
@@ -14177,7 +14177,7 @@ pcall(function()
         SKillInfo.__inner_impl.FileItem = function(self, DamageRecordData)
             if not self or not DamageRecordData then return end
 
-            if not _G.GTLModConfig.SkinDeadBox and not _G.GTLModConfig.KillCountUI and not _G.GTLModConfig.KillMessage then
+            if not _G.XthrlenConfig.SkinDeadBox and not _G.XthrlenConfig.KillCountUI and not _G.XthrlenConfig.KillMessage then
                 return O_FileItem(self, DamageRecordData)
             end
 
@@ -14192,12 +14192,12 @@ pcall(function()
 
             if bIsCauser then
                 if DamageRecordData.DamageType == UEnums.DamageType.VehicleDamage then
-                    if _G.GTLModConfig.SkinDeadBox or _G.GTLModConfig.KillMessage then
+                    if _G.XthrlenConfig.SkinDeadBox or _G.XthrlenConfig.KillMessage then
                         local carSkinID = _G.CurrentEquipVehicleID or 0
                         if carSkinID ~= 0 then
                             local ExpandData = slua.LuaArchiverDecode(LuaStateWrapper, DamageRecordData.ExpandDataContent) or {}
                             ExpandData.CauserVehicleSkinID = carSkinID
-                            if _G.GTLModConfig.KillMessage then
+                            if _G.XthrlenConfig.KillMessage then
                                 self:ChangeInfoBgByWeaponAvatarIDLua(carSkinID)
                                 DamageRecordData.CauserWeaponAvatarID = carSkinID
                                 DamageRecordData.CauserClothAvatarID = _G.SuitSkin or 0
@@ -14220,22 +14220,22 @@ pcall(function()
                                 local SkinID = synDataRef and slua.isValid(synDataRef) and synDataRef.TypeSpecificID or 0
 
                                 if SkinID > 1000000 then
-                                    if _G.GTLModConfig.KillCountUI then
+                                    if _G.XthrlenConfig.KillCountUI then
                                         ExpandData.KillCounterItemId = DefineID
                                         ExpandData.KillCounterNum = (ExpandData.KillCounterNum or 0) + 1
                                         _G.addKill(DefineID, 1)
                                         hasChanged = true
                                     end
-                                    if _G.GTLModConfig.SkinDeadBox then
+                                    if _G.XthrlenConfig.SkinDeadBox then
                                         _G.NeedCheckDeadBoxTimer = 5
                                         hasChanged = true
                                     end
                                 end
                             end
 
-                            if hasChanged or _G.GTLModConfig.KillMessage then
+                            if hasChanged or _G.XthrlenConfig.KillMessage then
                                 _G.UpdateMyKillCounter = true
-                                if _G.GTLModConfig.KillMessage then
+                                if _G.XthrlenConfig.KillMessage then
                                     local synData = currWeapon.synData
                                     if synData and slua.isValid(synData) then
                                         local weaponDefineID = slua.IndexReference(synData:Get(7), "defineID")
@@ -14266,7 +14266,7 @@ pcall(function()
 
         local o_OnRefreshUI = MyMainKillCounter.__inner_impl.OnRefreshUI
         MyMainKillCounter.__inner_impl.OnRefreshUI = function(self, _, _, UID)
-            if not _G.GTLModConfig.KillCountUI then return end
+            if not _G.XthrlenConfig.KillCountUI then return end
             local LogicKillCounter = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.LogicKillCounter)
             local curEquipedKillCounter = LogicKillCounter:GetEquipedKillCounterId(6114302174, self.WeaponID)
             local uCharacter = slua_GameFrontendHUD:GetPlayerController():GetPlayerCharacterSafety()
@@ -14280,11 +14280,11 @@ pcall(function()
             end
         end
 
-        MyKillCountSubSystem.__inner_impl.CheckSupportKCUI = function(self) return _G.GTLModConfig.KillCountUI end
+        MyKillCountSubSystem.__inner_impl.CheckSupportKCUI = function(self) return _G.XthrlenConfig.KillCountUI end
 
         local o_UpdateMainKillCounterUI = MyKillCountSubSystem.__inner_impl.UpdateMainKillCounterUI
         MyKillCountSubSystem.__inner_impl.UpdateMainKillCounterUI = function(self, bShow, WeaponID, AvatarID)
-            if not _G.GTLModConfig.KillCountUI then
+            if not _G.XthrlenConfig.KillCountUI then
                 o_UpdateMainKillCounterUI(self, false, WeaponID, AvatarID)
                 local UIManager = require("client.slua_ui_framework.manager")
                 local MainKillCounter = UIManager.GetUI(UIManager.UI_Config_InGame.MainKillCounter)
@@ -14335,7 +14335,7 @@ local _lastKCSkinID = 0
 _G.GameAvatarHandlerkillcounter = function()
     local UIManager = require("client.slua_ui_framework.manager")
 
-    if not _G.GTLModConfig.KillCountUI then
+    if not _G.XthrlenConfig.KillCountUI then
         local MainKillCounter = UIManager.GetUI(UIManager.UI_Config_InGame.MainKillCounter)
         if MainKillCounter then UIManager.CloseUI(UIManager.UI_Config_InGame.MainKillCounter) end
         return
@@ -14400,12 +14400,12 @@ local function MainLoop()
     -- SyncEnabled() မှာ session watchdog အားလုံးပါပြီးသားဖြစ်လို့ world/controller/pawn/canvas
     -- ပြောင်းသွားရင် widget ဟောင်းတွေကို ဖျက်ပြီး match အသစ်ပေါ်မှာ ပြန်ချိတ်ပေးပါတယ်။
     -- ဒီ 0.2s MainLoop ထဲကနေ ခေါ်လိုက်ရင် automatic retry နဲ့ respawn/match transition rebind ရပါပြီ။
-    if _G.GTLModConfig and _G.GTLModConfig.EspV2Enabled and _G.ClearVisionV2Sync then
+    if _G.XthrlenConfig and _G.XthrlenConfig.EspV2Enabled and _G.ClearVisionV2Sync then
         pcall(_G.ClearVisionV2Sync)
     end
 
-    if _G.GTLModState.CustomTextData == nil then 
-        _G.GTLModState.CustomTextData = {OuterSpeed = 10, InnerSpeed = 10, HRecoil = 0.3, VRecoil = 0.3, MagicHead = 1.0, MagicBody = 1.0, MagicLegs = 1.0, IpadViewFOV = 120, AimTouchHipPrio = 1, AimTouchHipBone = 1, AimTouchHipCond = 1, AimTouchHipSpeed = 58, AimTouchHipFOV = 20, AimTouchHipDist = 50, AimTouchSGPrio = 1, AimTouchSGBone = 2, AimTouchSGCond = 1, AimTouchSGSpeed = 80, AimTouchSGFOV = 40, AimTouchSGDist = 30, AimTouchScopePrio = 1, AimTouchScopeRecoil = 4, AimTouchScopeBone = 1, AimTouchScopeCond = 1, AimTouchScopeSpeed = 65, AimTouchScopeFOV = 20, AimTouchScopeDist = 180, AimTouchSniperPrio = 1, AimTouchSniperBone = 1, AimTouchSniperCond = 1, AimTouchSniperSpeed = 30, AimTouchSniperFOV = 20, AimTouchSniperDist = 400}
+    if _G.XthrlenState.CustomTextData == nil then 
+        _G.XthrlenState.CustomTextData = {OuterSpeed = 10, InnerSpeed = 10, HRecoil = 0.3, VRecoil = 0.3, MagicHead = 1.0, MagicBody = 1.0, MagicLegs = 1.0, IpadViewFOV = 120, AimTouchHipPrio = 1, AimTouchHipBone = 1, AimTouchHipCond = 1, AimTouchHipSpeed = 58, AimTouchHipFOV = 20, AimTouchHipDist = 50, AimTouchSGPrio = 1, AimTouchSGBone = 2, AimTouchSGCond = 1, AimTouchSGSpeed = 80, AimTouchSGFOV = 40, AimTouchSGDist = 30, AimTouchScopePrio = 1, AimTouchScopeRecoil = 4, AimTouchScopeBone = 1, AimTouchScopeCond = 1, AimTouchScopeSpeed = 65, AimTouchScopeFOV = 20, AimTouchScopeDist = 180, AimTouchSniperPrio = 1, AimTouchSniperBone = 1, AimTouchSniperCond = 1, AimTouchSniperSpeed = 30, AimTouchSniperFOV = 20, AimTouchSniperDist = 400}
     end
 
     local okData, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData") 
@@ -14415,14 +14415,14 @@ local function MainLoop()
     if Valid(pc) then localPlayer = pc:GetPlayerCharacterSafety() end 
 
     if not Valid(localPlayer) then 
-        if _G.GTLModState.TrackedMarks then
-            for markId, _ in pairs(_G.GTLModState.TrackedMarks) do
+        if _G.XthrlenState.TrackedMarks then
+            for markId, _ in pairs(_G.XthrlenState.TrackedMarks) do
                 SafeRemoveMark(markId)
             end
         end
-        _G.GTLModState.TrackedMarks = {} 
+        _G.XthrlenState.TrackedMarks = {} 
         
-        for key, data in pairs(_G.GTLModState.EnemyMarks) do
+        for key, data in pairs(_G.XthrlenState.EnemyMarks) do
             if data and data.MIDs then
                 for meshStr, midTable in pairs(data.MIDs) do
                     for k, _ in pairs(midTable) do midTable[k] = nil end
@@ -14431,10 +14431,10 @@ local function MainLoop()
             end
         end
         
-        _G.GTLModState.EnemyMarks = {}
+        _G.XthrlenState.EnemyMarks = {}
         _G.AK_OrigHitboxes = {}
         _G.AK_ModdedPhysAssets = {}
-        _G.GTLModState.PrevGraphicsState = {}
+        _G.XthrlenState.PrevGraphicsState = {}
         return 
     end
 
@@ -14454,13 +14454,13 @@ local function MainLoop()
     pcall(function() Cached_SecurityCommonUtils = require("GameLua.Mod.BaseMod.Common.Security.SecurityCommonUtils") end)
     local Cached_MyHUD = pc and pc.MyHUD or nil
 
-    if _G.GTLModConfig.UnlockFPS then InitializeGraphicsUnlock() end
+    if _G.XthrlenConfig.UnlockFPS then InitializeGraphicsUnlock() end
     InitializeNativeESP()
-    ShowGTLModVIPMenu()
+    ShowXthrlenVIPMenu()
     
-    if _G.GTLModConfig.IpadView and _G.GTLModState.CustomTextData then
+    if _G.XthrlenConfig.IpadView and _G.XthrlenState.CustomTextData then
         pcall(function()
-            local targetTPP = _G.GTLModState.CustomTextData.IpadViewFOV or 120
+            local targetTPP = _G.XthrlenState.CustomTextData.IpadViewFOV or 120
             local uTPPCam = localPlayer.ThirdPersonCameraComponent
             if Valid(uTPPCam) and not localPlayer.bIsWeaponAiming then
                 if uTPPCam.FieldOfView ~= targetTPP then uTPPCam.FieldOfView = targetTPP end
@@ -14477,8 +14477,8 @@ local function MainLoop()
 
     -- Aimbot Force dipindahkan ke loop terpisah
     pcall(function()
-        if _G.GTLModConfig.CustomAimbot and localPlayer.bIsWeaponFiring and localPlayer.bIsGunADS then
-            local outerRecoilVal = _G.GTLModState.CustomTextData.OuterRecoil or 0
+        if _G.XthrlenConfig.CustomAimbot and localPlayer.bIsWeaponFiring and localPlayer.bIsGunADS then
+            local outerRecoilVal = _G.XthrlenState.CustomTextData.OuterRecoil or 0
             if outerRecoilVal > 0 then
                 local curTime = os.clock()
                 
@@ -14542,8 +14542,8 @@ local function MainLoop()
     pcall(function()
         local autoComp = localPlayer.AutoAimComp
         if Valid(autoComp) then
-            if not _G.GTLModState.OrigAutoAimCompCached then
-                _G.GTLModState.OrigAutoAimCompCached = {
+            if not _G.XthrlenState.OrigAutoAimCompCached then
+                _G.XthrlenState.OrigAutoAimCompCached = {
                     bOnlyHitHead = autoComp.bOnlyHitHead,
                     HeadBoneName = autoComp.HeadBoneName,
                     Bones = autoComp.Bones,
@@ -14555,7 +14555,7 @@ local function MainLoop()
                 }
             end
             
-            if _G.GTLModConfig.AutoHead then
+            if _G.XthrlenConfig.AutoHead then
                 autoComp.bOnlyHitHead = true
                 autoComp.HeadBoneName = "Head"
                 pcall(function() autoComp.Bones = {"Head"} end)
@@ -14567,7 +14567,7 @@ local function MainLoop()
                     autoComp.AimAssistConfig.PelvisPriority = 100
                 end
             else
-                local orig = _G.GTLModState.OrigAutoAimCompCached
+                local orig = _G.XthrlenState.OrigAutoAimCompCached
                 autoComp.bOnlyHitHead = orig.bOnlyHitHead
                 autoComp.HeadBoneName = orig.HeadBoneName
                 pcall(function() autoComp.Bones = orig.Bones or {"Spine_01", "Pelvis", "Head"} end)
@@ -14587,46 +14587,46 @@ local function MainLoop()
         local lsg = require("client.slua.logic.setting.logic_setting_graphics")
         local gi = lsg.GetGameInstance()
         if gi then
-            if _G.GTLModConfig.RemoveGrass and not _G.GTLModState.PrevGraphicsState.RemoveGrass then
+            if _G.XthrlenConfig.RemoveGrass and not _G.XthrlenState.PrevGraphicsState.RemoveGrass then
                 gi:ExecuteCMD("grass.DensityScale", "0")
                 gi:ExecuteCMD("grass.DiscardDataOnLoad", "1")
-                _G.GTLModState.PrevGraphicsState.RemoveGrass = true
-            elseif not _G.GTLModConfig.RemoveGrass and _G.GTLModState.PrevGraphicsState.RemoveGrass then
+                _G.XthrlenState.PrevGraphicsState.RemoveGrass = true
+            elseif not _G.XthrlenConfig.RemoveGrass and _G.XthrlenState.PrevGraphicsState.RemoveGrass then
                 gi:ExecuteCMD("grass.DensityScale", "1")
                 gi:ExecuteCMD("grass.DiscardDataOnLoad", "0")
-                _G.GTLModState.PrevGraphicsState.RemoveGrass = false
+                _G.XthrlenState.PrevGraphicsState.RemoveGrass = false
             end
             
-            if _G.GTLModConfig.RemoveFog and not _G.GTLModState.PrevGraphicsState.RemoveFog then
+            if _G.XthrlenConfig.RemoveFog and not _G.XthrlenState.PrevGraphicsState.RemoveFog then
                 gi:ExecuteCMD("r.SkyAtmosphere", "1") 
                 gi:ExecuteCMD("r.Fog", "0")           
                 gi:ExecuteCMD("r.VolumetricFog", "0") 
-                _G.GTLModState.PrevGraphicsState.RemoveFog = true
-            elseif not _G.GTLModConfig.RemoveFog and _G.GTLModState.PrevGraphicsState.RemoveFog then
+                _G.XthrlenState.PrevGraphicsState.RemoveFog = true
+            elseif not _G.XthrlenConfig.RemoveFog and _G.XthrlenState.PrevGraphicsState.RemoveFog then
                 gi:ExecuteCMD("r.SkyAtmosphere", "1") 
                 gi:ExecuteCMD("r.Fog", "1")           
                 gi:ExecuteCMD("r.VolumetricFog", "1") 
-                _G.GTLModState.PrevGraphicsState.RemoveFog = false
+                _G.XthrlenState.PrevGraphicsState.RemoveFog = false
             end
             
-            if _G.GTLModConfig.WhiteBody and not _G.GTLModState.PrevGraphicsState.WhiteBody then
+            if _G.XthrlenConfig.WhiteBody and not _G.XthrlenState.PrevGraphicsState.WhiteBody then
                 gi:ExecuteCMD("r.CharacterDiffuseOffset", "2")
                 gi:ExecuteCMD("r.CharacterDiffusePower", "5")
                 gi:ExecuteCMD("r.CharacterMinShadowFactor", "100")
-                _G.GTLModState.PrevGraphicsState.WhiteBody = true
-            elseif not _G.GTLModConfig.WhiteBody and _G.GTLModState.PrevGraphicsState.WhiteBody then
+                _G.XthrlenState.PrevGraphicsState.WhiteBody = true
+            elseif not _G.XthrlenConfig.WhiteBody and _G.XthrlenState.PrevGraphicsState.WhiteBody then
                 gi:ExecuteCMD("r.CharacterDiffuseOffset", "0")
                 gi:ExecuteCMD("r.CharacterDiffusePower", "1")
                 gi:ExecuteCMD("r.CharacterMinShadowFactor", "1")
-                _G.GTLModState.PrevGraphicsState.WhiteBody = false
+                _G.XthrlenState.PrevGraphicsState.WhiteBody = false
             end
             
-            if _G.GTLModConfig.BlackSky and not _G.GTLModState.PrevGraphicsState.BlackSky then
+            if _G.XthrlenConfig.BlackSky and not _G.XthrlenState.PrevGraphicsState.BlackSky then
                 gi:ExecuteCMD("r.CylinderMaxDrawHeight", "9999")
-                _G.GTLModState.PrevGraphicsState.BlackSky = true
-            elseif not _G.GTLModConfig.BlackSky and _G.GTLModState.PrevGraphicsState.BlackSky then
+                _G.XthrlenState.PrevGraphicsState.BlackSky = true
+            elseif not _G.XthrlenConfig.BlackSky and _G.XthrlenState.PrevGraphicsState.BlackSky then
                 gi:ExecuteCMD("r.CylinderMaxDrawHeight", "0000")
-                _G.GTLModState.PrevGraphicsState.BlackSky = false
+                _G.XthrlenState.PrevGraphicsState.BlackSky = false
             end
         end
     end)
@@ -14655,7 +14655,7 @@ local function MainLoop()
     end
 
             for _, entity in ipairs(entities) do
-                local anyWeaponModOn = _G.GTLModConfig.CustomHRecoil or _G.GTLModConfig.CustomVRecoil or _G.GTLModConfig.LessShake or _G.GTLModConfig.Accuracy or _G.GTLModConfig.Crosshair or _G.GTLModConfig.GodMode or _G.GTLModConfig.AutoHead or _G.GTLModConfig.CustomAimbot or _G.GTLModConfig.CustomAimbotClose or _G.GTLModConfig.CustomMagicBullet
+                local anyWeaponModOn = _G.XthrlenConfig.CustomHRecoil or _G.XthrlenConfig.CustomVRecoil or _G.XthrlenConfig.LessShake or _G.XthrlenConfig.Accuracy or _G.XthrlenConfig.Crosshair or _G.XthrlenConfig.GodMode or _G.XthrlenConfig.AutoHead or _G.XthrlenConfig.CustomAimbot or _G.XthrlenConfig.CustomAimbotClose or _G.XthrlenConfig.CustomMagicBullet
 
                 if anyWeaponModOn then
                     if not entity.OriginalStatsCached then
@@ -14673,18 +14673,18 @@ local function MainLoop()
                         }
                     end
                     
-                    if _G.GTLModConfig.CustomHRecoil then entity.AccessoriesHRecoilFactor = _G.GTLModState.CustomTextData.HRecoil or 0.3 
-                    elseif _G.GTLModConfig.LessRecoil then entity.AccessoriesHRecoilFactor = 0.3 end
+                    if _G.XthrlenConfig.CustomHRecoil then entity.AccessoriesHRecoilFactor = _G.XthrlenState.CustomTextData.HRecoil or 0.3 
+                    elseif _G.XthrlenConfig.LessRecoil then entity.AccessoriesHRecoilFactor = 0.3 end
                     
-                    if _G.GTLModConfig.CustomVRecoil then entity.AccessoriesVRecoilFactor = _G.GTLModState.CustomTextData.VRecoil or 0.3
-                    elseif _G.GTLModConfig.VerticalRecoil then entity.AccessoriesVRecoilFactor = 0.3 end
+                    if _G.XthrlenConfig.CustomVRecoil then entity.AccessoriesVRecoilFactor = _G.XthrlenState.CustomTextData.VRecoil or 0.3
+                    elseif _G.XthrlenConfig.VerticalRecoil then entity.AccessoriesVRecoilFactor = 0.3 end
                     
-                    if _G.GTLModConfig.LessShake then entity.RecoilKickADS = 0.0; entity.RecoilKickADS = 0.0; entity.RecoilKickADS = 0.0 end
-                    if _G.GTLModConfig.Accuracy then entity.GameDeviationAccuracy = 0.0 end
-                    if _G.GTLModConfig.Crosshair then entity.GameDeviationFactor = 0.0 end
-                    if _G.GTLModConfig.GodMode then entity.BulletFireSpeed = 500000.0; entity.ShootInterval = 0.001; entity.BaseDamage = 60000.0 end
-                    if _G.GTLModConfig.CustomMagicBullet then
-                        entity.BaseDamage = entity.BaseDamage * (_G.GTLModState.CustomTextData.MagicHead or 1.0)
+                    if _G.XthrlenConfig.LessShake then entity.RecoilKickADS = 0.0; entity.RecoilKickADS = 0.0; entity.RecoilKickADS = 0.0 end
+                    if _G.XthrlenConfig.Accuracy then entity.GameDeviationAccuracy = 0.0 end
+                    if _G.XthrlenConfig.Crosshair then entity.GameDeviationFactor = 0.0 end
+                    if _G.XthrlenConfig.GodMode then entity.BulletFireSpeed = 500000.0; entity.ShootInterval = 0.001; entity.BaseDamage = 60000.0 end
+                    if _G.XthrlenConfig.CustomMagicBullet then
+                        entity.BaseDamage = entity.BaseDamage * (_G.XthrlenState.CustomTextData.MagicHead or 1.0)
                     end
                     
                     if entity.AutoAimingConfig then
@@ -14695,12 +14695,12 @@ local function MainLoop()
                             }
                         end
                         
-                        if _G.GTLModConfig.AutoHead then
+                        if _G.XthrlenConfig.AutoHead then
                             pcall(function() entity.AutoAimingConfig.Bones = { "Head", "Head", "Head" } end)
                         end
                         
-                        if _G.GTLModConfig.CustomAimbot then
-                            local speed = _G.GTLModState.CustomTextData.OuterSpeed or 10
+                        if _G.XthrlenConfig.CustomAimbot then
+                            local speed = _G.XthrlenState.CustomTextData.OuterSpeed or 10
                             if entity.AutoAimingConfig.OuterRange then
                                 entity.AutoAimingConfig.OuterRange.Speed = speed                                entity.AutoAimingConfig.OuterRange.RangeRate = 4.5
                                 entity.AutoAimingConfig.OuterRange.SpeedRate = 1.3
@@ -14720,8 +14720,8 @@ local function MainLoop()
                                 entity.AutoAimingConfig.InnerRange.ProneRate = 1.0
                                 entity.AutoAimingConfig.InnerRange.DyingRate = 0.0
                             end
-                        elseif _G.GTLModConfig.CustomAimbotClose then
-                            local speed = _G.GTLModState.CustomTextData.InnerSpeed or 10
+                        elseif _G.XthrlenConfig.CustomAimbotClose then
+                            local speed = _G.XthrlenState.CustomTextData.InnerSpeed or 10
                             if entity.AutoAimingConfig.OuterRange then
                                 entity.AutoAimingConfig.OuterRange.Speed = speed
                                 entity.AutoAimingConfig.OuterRange.DyingRate = 0.0
@@ -14733,9 +14733,9 @@ local function MainLoop()
                         end
                     end
                     
-                    entity.GTLModWeaponModsActive = true
+                    entity.XthrlenWeaponModsActive = true
 
-                elseif entity.GTLModWeaponModsActive then
+                elseif entity.XthrlenWeaponModsActive then
                     if entity.OriginalStatsCached then
                         local orig = entity.OriginalStatsCached
                         entity.GameDeviationFactor = orig.GameDeviationFactor
@@ -14758,7 +14758,7 @@ local function MainLoop()
                             entity.AutoAimingConfig.InnerRange.Speed = entity.OriginalAutoAimCached.InnerSpeed
                         end
                     end
-                    entity.GTLModWeaponModsActive = false
+                    entity.XthrlenWeaponModsActive = false
                 end
             end
         end
@@ -14768,30 +14768,30 @@ local function MainLoop()
     local runInject_Global = false
     
     pcall(function()
-        if _G.GTLModConfig.CustomMagicBullet then
+        if _G.XthrlenConfig.CustomMagicBullet then
             runInject_Global = true
             mHead_Global = 1.0; mBody_Global = 1.0; mLegs_Global = 1.0
-            if _G.GTLModState.CustomTextData then
-                local cData = _G.GTLModState.CustomTextData
+            if _G.XthrlenState.CustomTextData then
+                local cData = _G.XthrlenState.CustomTextData
                 if cData.MagicHead ~= nil then mHead_Global = tonumber(cData.MagicHead) or mHead_Global end
                 if cData.MagicBody ~= nil then mBody_Global = tonumber(cData.MagicBody) or mBody_Global end
                 if cData.MagicLegs ~= nil then mLegs_Global = tonumber(cData.MagicLegs) or mLegs_Global end
             end
-        elseif _G.GTLModConfig.MagicBullet then
+        elseif _G.XthrlenConfig.MagicBullet then
             runInject_Global = true
             mHead_Global = 1.05; mBody_Global = 1.0; mLegs_Global = 1.0
         end
 
         if runInject_Global then
             local currentMagicHash = "M_"..tostring(mHead_Global).."_"..tostring(mBody_Global).."_"..tostring(mLegs_Global)
-            if _G.GTLModState.LastMagicConfigHash ~= currentMagicHash then
-                _G.GTLModState.MagicUpdateVersion = (_G.GTLModState.MagicUpdateVersion or 0) + 1
-                _G.GTLModState.LastMagicConfigHash = currentMagicHash
+            if _G.XthrlenState.LastMagicConfigHash ~= currentMagicHash then
+                _G.XthrlenState.MagicUpdateVersion = (_G.XthrlenState.MagicUpdateVersion or 0) + 1
+                _G.XthrlenState.LastMagicConfigHash = currentMagicHash
             end
         else
-            if _G.GTLModState.LastMagicConfigHash ~= "OFF" then
-                _G.GTLModState.MagicUpdateVersion = (_G.GTLModState.MagicUpdateVersion or 0) + 1
-                _G.GTLModState.LastMagicConfigHash = "OFF"
+            if _G.XthrlenState.LastMagicConfigHash ~= "OFF" then
+                _G.XthrlenState.MagicUpdateVersion = (_G.XthrlenState.MagicUpdateVersion or 0) + 1
+                _G.XthrlenState.LastMagicConfigHash = "OFF"
             end
         end
     end)
@@ -14808,7 +14808,7 @@ local function MainLoop()
             end
         end
         
-        for key, data in pairs(_G.GTLModState.EnemyMarks) do
+        for key, data in pairs(_G.XthrlenState.EnemyMarks) do
             if not currentValidKeys[key] then
                 SafeRemoveMark(data.radarMark)
                 SafeRemoveMark(data.hpMark)
@@ -14829,7 +14829,7 @@ local function MainLoop()
                 
                 data.enemy = nil
                 data.CachedMeshes = nil
-                _G.GTLModState.EnemyMarks[key] = nil
+                _G.XthrlenState.EnemyMarks[key] = nil
             end
         end
 
@@ -14867,8 +14867,8 @@ local function MainLoop()
                 end)
 
                 local eKey = GetSafeEnemyKey(enemy)
-                _G.GTLModState.EnemyMarks[eKey] = _G.GTLModState.EnemyMarks[eKey] or { enemy = enemy }
-                local markData = _G.GTLModState.EnemyMarks[eKey]
+                _G.XthrlenState.EnemyMarks[eKey] = _G.XthrlenState.EnemyMarks[eKey] or { enemy = enemy }
+                local markData = _G.XthrlenState.EnemyMarks[eKey]
                 markData.enemy = enemy 
 
                 if not bIsReallyDead then
@@ -14898,7 +14898,7 @@ local function MainLoop()
                     end
                     local isMeshChanged = (markData.LastMeshCountWall ~= currentMeshCount)
 
-                    if _G.GTLModConfig.ColorBodyNew or _G.GTLModConfig.Wallhack then
+                    if _G.XthrlenConfig.ColorBodyNew or _G.XthrlenConfig.Wallhack then
                         if isMeshChanged or not markData.WallhackApplied then
                             ApplyColorBodyNew(enemy, markData)
                             markData.WallhackApplied = true
@@ -14914,7 +14914,7 @@ local function MainLoop()
                         if slua.isValid(EnemyMesh) then
                             local uniqueID = type(enemy.GetUniqueID) == "function" and enemy:GetUniqueID() or tostring(enemy.PlayerKey or enemy)
                             
-                            if markData.MagicBulletHash == _G.GTLModState.LastMagicConfigHash and markData.MagicTargetID == uniqueID then
+                            if markData.MagicBulletHash == _G.XthrlenState.LastMagicConfigHash and markData.MagicTargetID == uniqueID then
                                 return 
                             end
 
@@ -14926,7 +14926,7 @@ local function MainLoop()
                                 local PhysAssetName = "DefaultPhys"
                                 pcall(function() PhysAssetName = PhysicsAsset:GetName() end)
                                 
-                                if _G.AK_ModdedPhysAssets[PhysAssetName] ~= _G.GTLModState.LastMagicConfigHash then
+                                if _G.AK_ModdedPhysAssets[PhysAssetName] ~= _G.XthrlenState.LastMagicConfigHash then
                                     
                                     if not _G.AK_OrigHitboxes then _G.AK_OrigHitboxes = {} end
                                     if not _G.AK_OrigHitboxes[PhysAssetName] then _G.AK_OrigHitboxes[PhysAssetName] = {} end
@@ -14991,13 +14991,13 @@ local function MainLoop()
                                             end
                                         end
                                     end
-                                    _G.AK_ModdedPhysAssets[PhysAssetName] = _G.GTLModState.LastMagicConfigHash
+                                    _G.AK_ModdedPhysAssets[PhysAssetName] = _G.XthrlenState.LastMagicConfigHash
                                 end
                                 
                                 if EnemyMesh.SetPhysicsAsset then EnemyMesh:SetPhysicsAsset(PhysicsAsset) end
                                 EnemyMesh.PhysicsAssetOverride = PhysicsAsset
                                 
-                                markData.MagicBulletHash = _G.GTLModState.LastMagicConfigHash
+                                markData.MagicBulletHash = _G.XthrlenState.LastMagicConfigHash
                                 markData.MagicTargetID = uniqueID
                             end
                         end
@@ -15007,7 +15007,7 @@ local function MainLoop()
                     pcall(function() distM = localPlayer:GetDistanceTo(enemy) / 100 end)
 
                     local currentHp, maxHp = 100, 100
-                    local showFrameUI = _G.GTLModConfig.Esp5 or _G.GTLModConfig.EspVipPro or _G.GTLModConfig.EspVip
+                    local showFrameUI = _G.XthrlenConfig.Esp5 or _G.XthrlenConfig.EspVipPro or _G.XthrlenConfig.EspVip
                     
                     if showFrameUI then
                         pcall(function()
@@ -15018,7 +15018,7 @@ local function MainLoop()
                     end
                     local hpRatio = currentHp / maxHp
 
-                    if _G.GTLModConfig.EspAntenna then
+                    if _G.XthrlenConfig.EspAntenna then
                         pcall(function()
                             local MyHUD = Cached_MyHUD
                             if Valid(MyHUD) and distM <= 400 then
@@ -15039,7 +15039,7 @@ local function MainLoop()
                         end)
                     end
 
-                    if _G.GTLModConfig.Esp6 then
+                    if _G.XthrlenConfig.Esp6 then
                         pcall(function()
                             local MyHUD = Cached_MyHUD
                             if not (Valid(MyHUD) and MyHUD.AddDebugText) then return end
@@ -15118,7 +15118,7 @@ local function MainLoop()
                         end)
                     end
 
-                    if _G.GTLModConfig.EspVipPro then
+                    if _G.XthrlenConfig.EspVipPro then
                         pcall(function()
                             local hud = Cached_MyHUD
                             if not (Valid(hud) and hud.AddDebugText) then return end
@@ -15131,7 +15131,7 @@ local function MainLoop()
                             local pctValue = math.floor(hpPercent * 100 + 0.5)
 
                             local pName = ""
-                            if _G.GTLModConfig.EspName then
+                            if _G.XthrlenConfig.EspName then
                                 pName = enemy.PlayerName or enemy.PlayerNamePublic or "Enemy"
                             end
 
@@ -15167,7 +15167,7 @@ local function MainLoop()
                         end)
                     end
 
-                    if _G.GTLModConfig.EspDistance then
+                    if _G.XthrlenConfig.EspDistance then
                         pcall(function()
                             local hud = Cached_MyHUD
                             if not (Valid(hud) and hud.AddDebugText) then return end
@@ -15182,7 +15182,7 @@ local function MainLoop()
                         end)
                     end
 
-                    if _G.GTLModConfig.EspName and not _G.GTLModConfig.EspVipPro then
+                    if _G.XthrlenConfig.EspName and not _G.XthrlenConfig.EspVipPro then
                         pcall(function()
                             local hud = Cached_MyHUD
                             if not (Valid(hud) and hud.AddDebugText) then return end
@@ -15214,7 +15214,7 @@ local function MainLoop()
                         end)
                     end
 
-                    if _G.GTLModConfig.EspVip then
+                    if _G.XthrlenConfig.EspVip then
                         if markData.hpMark == nil then markData.hpMark = SafeAddMark(1006, FVector(0,0,0), 0, "", 4, enemy) end
                         if markData.distMark == nil then markData.distMark = SafeAddMark(9999, FVector(0,0,0), 0, "", 4, enemy) end
                     else
@@ -15222,13 +15222,13 @@ local function MainLoop()
                         if markData.distMark then SafeRemoveMark(markData.distMark); markData.distMark = nil end
                     end
 
-                    if _G.GTLModConfig.Esp8 then
+                    if _G.XthrlenConfig.Esp8 then
                         if markData.hpMark8 == nil then markData.hpMark8 = SafeAddMark(1006, FVector(0,0,0), 0, "", 4, enemy) end
                     else
                         if markData.hpMark8 then SafeRemoveMark(markData.hpMark8); markData.hpMark8 = nil end
                     end
                     
-                    if _G.GTLModConfig.EspRadar then
+                    if _G.XthrlenConfig.EspRadar then
                         if not markData.radarMark or markData.radarMark == 0 then 
                             markData.radarMark = SafeAddMark(8888, FVector(0,0,0), 0, "", 4, enemy) 
                         end
@@ -15239,14 +15239,14 @@ local function MainLoop()
                         end
                     end
                     
-                    if _G.GTLModConfig.EspOutline then
+                    if _G.XthrlenConfig.EspOutline then
                         pcall(function()
-                            local outlineHash = tostring(_G.GTLModConfig.OutlineThickness)
+                            local outlineHash = tostring(_G.XthrlenConfig.OutlineThickness)
                             if markData.OutlineState ~= outlineHash then
                                 local PPM = Cached_PPM
                                 local avatarComp = (type(enemy.getAvatarComponent2) == "function") and enemy:getAvatarComponent2() or nil
                                 if Valid(avatarComp) and Valid(PPM) then
-                                    PPM.OutlineThickness = _G.GTLModConfig.OutlineThickness
+                                    PPM.OutlineThickness = _G.XthrlenConfig.OutlineThickness
                                     if PPM.OutlineColor then PPM.OutlineColor = {r = 1, g = 0, b = 0, a = 1} end
                                     PPM:EnableAvatarOutline(avatarComp, true)
                                     markData.OutlineState = outlineHash
@@ -15306,7 +15306,7 @@ local function MainLoop()
         
         -- ESP VEHICLE, THROWABLE, LOOT, STATIC
 -- ESP THROWABLE =====
-        if _G.GTLModConfig.ThrowableEnabled then
+        if _G.XthrlenConfig.ThrowableEnabled then
             pcall(function()
                 local MyHUD = Cached_MyHUD
                 if Valid(MyHUD) then
@@ -15318,7 +15318,7 @@ local function MainLoop()
                     if gameInstance and _G.CachedGameplayStatics then
                         local curTime = os.clock()
                         local scanInterval = 0.5
-                        local mode = _G.GTLModConfig.ThrowableScanMode or 0
+                        local mode = _G.XthrlenConfig.ThrowableScanMode or 0
                         if mode == 0 then scanInterval = 0.5
                         elseif mode == 10 then scanInterval = 10.0
                         elseif mode == 20 then scanInterval = 20.0
@@ -15393,19 +15393,19 @@ local function MainLoop()
                                                 local zOffset = isItem and 15 or 25
                                                 local colorIdx = 4
                                                 if bType == 1 then
-                                                    if not _G.GTLModConfig.ThrowableGrenade then goto continue end
+                                                    if not _G.XthrlenConfig.ThrowableGrenade then goto continue end
                                                     displayName = isItem and "Grenade" or "GRENADE"
-                                                    colorIdx = _G.GTLModConfig.ThrowableColor_Grenade or 4
+                                                    colorIdx = _G.XthrlenConfig.ThrowableColor_Grenade or 4
                                                     color = GetColorBy7(colorIdx)
                                                 elseif bType == 2 then
-                                                    if not _G.GTLModConfig.ThrowableSmoke then goto continue end
+                                                    if not _G.XthrlenConfig.ThrowableSmoke then goto continue end
                                                     displayName = isItem and "Smoke" or "SMOKE"
-                                                    colorIdx = _G.GTLModConfig.ThrowableColor_Smoke or 4
+                                                    colorIdx = _G.XthrlenConfig.ThrowableColor_Smoke or 4
                                                     color = GetColorBy7(colorIdx)
                                                 elseif bType == 3 then
-                                                    if not _G.GTLModConfig.ThrowableMolotov then goto continue end
+                                                    if not _G.XthrlenConfig.ThrowableMolotov then goto continue end
                                                     displayName = isItem and "Molotov" or "MOLOTOV"
-                                                    colorIdx = _G.GTLModConfig.ThrowableColor_Molotov or 4
+                                                    colorIdx = _G.XthrlenConfig.ThrowableColor_Molotov or 4
                                                     color = GetColorBy7(colorIdx)
                                                 else
                                                     goto continue
@@ -15474,7 +15474,7 @@ local function MainLoop()
         end
 
 -- ESP VEHICLE =====
-        if _G.GTLModConfig.VehicleEnabled then
+        if _G.XthrlenConfig.VehicleEnabled then
             pcall(function()
                 local MyHUD = Cached_MyHUD
                 if Valid(MyHUD) then
@@ -15530,13 +15530,13 @@ local function MainLoop()
                                     if not isPendingKill then
                                         local isShow = false
                                         local colorKey = "VehicleColor_Other"
-                                        if item.name == "Dacia" then isShow = _G.GTLModConfig.VehicleShowDacia; colorKey = "VehicleColor_Dacia"
-                                        elseif item.name == "UAZ" then isShow = _G.GTLModConfig.VehicleShowUAZ; colorKey = "VehicleColor_UAZ"
-                                        elseif item.name == "Buggy" then isShow = _G.GTLModConfig.VehicleShowBuggy; colorKey = "VehicleColor_Buggy"
-                                        elseif item.name == "Coupe RB" then isShow = _G.GTLModConfig.VehicleShowCoupe; colorKey = "VehicleColor_Coupe"
-                                        elseif item.name == "Mirado" then isShow = _G.GTLModConfig.VehicleShowMirado; colorKey = "VehicleColor_Mirado"
-                                        elseif item.name == "Motor" or item.name == "Scooter" then isShow = _G.GTLModConfig.VehicleShowMotor; colorKey = "VehicleColor_Motor"
-                                        else isShow = _G.GTLModConfig.VehicleShowOther; colorKey = "VehicleColor_Other" end
+                                        if item.name == "Dacia" then isShow = _G.XthrlenConfig.VehicleShowDacia; colorKey = "VehicleColor_Dacia"
+                                        elseif item.name == "UAZ" then isShow = _G.XthrlenConfig.VehicleShowUAZ; colorKey = "VehicleColor_UAZ"
+                                        elseif item.name == "Buggy" then isShow = _G.XthrlenConfig.VehicleShowBuggy; colorKey = "VehicleColor_Buggy"
+                                        elseif item.name == "Coupe RB" then isShow = _G.XthrlenConfig.VehicleShowCoupe; colorKey = "VehicleColor_Coupe"
+                                        elseif item.name == "Mirado" then isShow = _G.XthrlenConfig.VehicleShowMirado; colorKey = "VehicleColor_Mirado"
+                                        elseif item.name == "Motor" or item.name == "Scooter" then isShow = _G.XthrlenConfig.VehicleShowMotor; colorKey = "VehicleColor_Motor"
+                                        else isShow = _G.XthrlenConfig.VehicleShowOther; colorKey = "VehicleColor_Other" end
                                         if isShow then
                                             local distM = 0
                                             pcall(function() distM = localPlayer:GetDistanceTo(veh) / 100 end)
@@ -15548,7 +15548,7 @@ local function MainLoop()
                                                     if maxHp > 0 then hpStr = string.format(" [%d%%]", math.floor((hp/maxHp)*100)) end
                                                 end)
                                                 local text = string.format("%s%s [%dm]", item.name, hpStr, math.floor(distM))
-                                                local vehColor = GetColorBy7(_G.GTLModConfig[colorKey] or 4)
+                                                local vehColor = GetColorBy7(_G.XthrlenConfig[colorKey] or 4)
                                                 local dynamicScale = math.max(0.6, 1.1 - (distM / 500))
                                                 MyHUD:AddDebugText(text, veh, 0.3, {X=0, Y=0, Z=50}, {X=0, Y=0, Z=50}, vehColor, true, false, true, nil, dynamicScale, true)
                                             end
@@ -15563,7 +15563,7 @@ local function MainLoop()
         end
 
 -- ESP LOOT =====
-        if _G.GTLModConfig.EspLoot then
+        if _G.XthrlenConfig.EspLoot then
             pcall(function()
                 local MyHUD = Cached_MyHUD
                 if Valid(MyHUD) then
@@ -15575,7 +15575,7 @@ local function MainLoop()
                     if gameInstance and _G.CachedGameplayStatics then
                         local curTime = os.clock()
                         local scanInterval = 0.5
-                        local mode = _G.GTLModConfig.LootScanMode or 0
+                        local mode = _G.XthrlenConfig.LootScanMode or 0
                         if mode == 0 then scanInterval = 0.5
                         elseif mode == 10 then scanInterval = 10.0
                         elseif mode == 20 then scanInterval = 20.0
@@ -15663,8 +15663,8 @@ local function MainLoop()
                                     if distM > 0 and distM <= 100 then
                                         local displayName = item.info.name
                                         local toggle = item.info.toggle
-                                        if toggle and not _G.GTLModConfig[toggle] then goto continue end
-                                        local colorIdx = _G.GTLModConfig[item.info.colorKey] or 4
+                                        if toggle and not _G.XthrlenConfig[toggle] then goto continue end
+                                        local colorIdx = _G.XthrlenConfig[item.info.colorKey] or 4
                                         local color = GetColorBy7(colorIdx)
                                         local dynamicScale = math.max(0.5, 1.0 - (distM / 100))
                                         MyHUD:AddDebugText(
@@ -15687,13 +15687,13 @@ local function MainLoop()
         end
 
 -- ESP STATIC =====
-        if _G.GTLModConfig.EspStatic then
+        if _G.XthrlenConfig.EspStatic then
             pcall(function()
                 local MyHUD = Cached_MyHUD
                 if not Valid(MyHUD) then return end
 
                 -- ESP ENEMY COUNT
-                if _G.GTLModConfig.EspEnemyCount then
+                if _G.XthrlenConfig.EspEnemyCount then
                     local function GetRainbowColor()
                         local time = os.clock()
                         local r = math.sin(time * 0.8) * 0.5 + 0.5
@@ -15740,12 +15740,12 @@ local function MainLoop()
 
                     local color = GetRainbowColor()
                     local totalEnemy = realCount + aiCount
-                    local text = totalEnemy > 0 and string.format("❮ ENEMY : %d ❯", totalEnemy) or " ❮ CLEAR ENEMY || @MOHSINXFILES❯"
+                    local text = totalEnemy > 0 and string.format("❮ ENEMY : %d ❯", totalEnemy) or " ❮ CLEAR ENEMY || @SRC_HUB❯"
                     MyHUD:AddDebugText(text, localPlayer, 1.05, {X=0, Y=0, Z=150}, {X=0, Y=0, Z=150}, color, true, false, true, nil, 1.2, true)
                 end
 
                 -- ESP WEAPON & STATUS ENEMY
-                if _G.GTLModConfig.EspWeaponStatus then
+                if _G.XthrlenConfig.EspWeaponStatus then
                     local ui_util = require("client.common.ui_util")
                     local viewportSize = ui_util and ui_util.GetViewportSize()
                     if viewportSize then
@@ -15802,20 +15802,20 @@ local function MainLoop()
     end)
 end
 
-_G.GTLModState.LoopToken = (_G.GTLModState.LoopToken or 0) + 1 
-local myToken = _G.GTLModState.LoopToken
+_G.XthrlenState.LoopToken = (_G.XthrlenState.LoopToken or 0) + 1 
+local myToken = _G.XthrlenState.LoopToken
 
 -- MAIN LOOP (ESP & OTHER FEATURES) EVERY 0.2 SECONDS
 local function FastTick() 
     if isExpired then 
-        if not _G.GTLModNotifiedExpire then
-            Notify("MOD HAS EXPIRED! PLEASE CONTACT ADMIN TO RENEW!\nTelegram @MOHSINXFILES")
-            _G.GTLModNotifiedExpire = true
+        if not _G.XthrlenNotifiedExpire then
+            Notify("MOD HAS EXPIRED! PLEASE CONTACT ADMIN TO RENEW!\nTelegram @ZenXAHMAD")
+            _G.XthrlenNotifiedExpire = true
         end
         return 
     end
 
-    if myToken ~= _G.GTLModState.LoopToken then return end
+    if myToken ~= _G.XthrlenState.LoopToken then return end
     pcall(MainLoop) 
     local okTicker, ticker = pcall(require, "common.time_ticker") 
     if okTicker and ticker and ticker.AddTimerOnce then 
@@ -15830,12 +15830,12 @@ local function FastAimbotTick()
         return 
     end
 
-    if aimbotToken ~= _G.GTLModState.AimbotLoopToken then 
+    if aimbotToken ~= _G.XthrlenState.AimbotLoopToken then 
         return 
     end
 
     pcall(function()
-        if _G.GTLModConfig.AimTouchEnable then
+        if _G.XthrlenConfig.AimTouchEnable then
             _G.AimTouch()
         end
     end)
@@ -15849,7 +15849,7 @@ end
 -- SKIN LOOP UNTUK MENERAPKAN SKIN KARAKTER (HACK)
 local function SkinHackLoop()
     if isExpired then return end
-    if not _G.GTLModConfig.ModSkin then return end
+    if not _G.XthrlenConfig.ModSkin then return end
 
     local okData, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
     if not okData or not GameplayData then return end
@@ -15889,13 +15889,13 @@ end
 -- IGNITE BOTH LOOPS
 if not isExpired then
     FastTick() 
-    _G.GTLModState.AimbotLoopToken = (_G.GTLModState.AimbotLoopToken or 0) + 1
-    aimbotToken = _G.GTLModState.AimbotLoopToken
+    _G.XthrlenState.AimbotLoopToken = (_G.XthrlenState.AimbotLoopToken or 0) + 1
+    aimbotToken = _G.XthrlenState.AimbotLoopToken
     local okTicker, ticker = pcall(require, "common.time_ticker")
     if okTicker and ticker and ticker.AddTimerOnce then
         ticker.AddTimerOnce(0.1, FastAimbotTick)
     end
-    Notify("You are using VIP Mod v4. If you don't have a key, inbox Telegram : @MOHSINXFILES")
+    Notify("You are using VIP Mod v4. If you don't have a key, inbox Telegram : @SRC_HUB")
     
 if okTicker and ticker and ticker.AddTimerLoop and _G.__szSkinHackLoopStarted ~= SZ_SCRIPT_VER then
         _G.__szSkinHackLoopStarted = SZ_SCRIPT_VER
@@ -15906,7 +15906,7 @@ if okTicker and ticker and ticker.AddTimerLoop and _G.__szSkinHackLoopStarted ~=
         ticker.AddTimerLoop(0, function()
             if _G.__szScriptVer ~= SZ_SCRIPT_VER then return end
             if isExpired then return end
-            if not _G.GTLModConfig.ModSkin then return end
+            if not _G.XthrlenConfig.ModSkin then return end
             if _G.SkinZoneApplyWeapons then _G.SkinZoneApplyWeapons(nil) end
         end, -1, 1.0)
     end
@@ -29656,8 +29656,8 @@ function _G.InjectLobbySkins()
                                         T.Enabled = false
                                         if T.Stop then pcall(T.Stop) end
                                     end
-                                    if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Set then
-                                        pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_ENABLE", 0)
+                                    if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Set then
+                                        pcall(_G.SRC_HUB_Config.Set, "TRAIL_ENABLE", 0)
                                     end
                                 end
                             end)
@@ -29686,9 +29686,9 @@ function _G.InjectLobbySkins()
                                         T.Enabled = true
                                         if T.Apply then pcall(T.Apply) end
                                     end
-                                    if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Set then
-                                        pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_TYPE", rid)
-                                        pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_ENABLE", 1)
+                                    if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Set then
+                                        pcall(_G.SRC_HUB_Config.Set, "TRAIL_TYPE", rid)
+                                        pcall(_G.SRC_HUB_Config.Set, "TRAIL_ENABLE", 1)
                                     end
                                 end
                             end)
@@ -29716,8 +29716,8 @@ function _G.InjectLobbySkins()
                                     T.Enabled = false
                                     if T.Stop then pcall(T.Stop) end
                                 end
-                                if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Set then
-                                    pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_ENABLE", 0)
+                                if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Set then
+                                    pcall(_G.SRC_HUB_Config.Set, "TRAIL_ENABLE", 0)
                                 end
                             end
                         end)
@@ -31362,9 +31362,9 @@ do
 end
 end)
 
-if not _G.MOHSINXFILES_Config then
+if not _G.SRC_HUB_Config then
     local __cfgStore = {}
-    _G.MOHSINXFILES_Config = setmetatable({
+    _G.SRC_HUB_Config = setmetatable({
         PATHS = {},
         Get = function(k, d) local v = __cfgStore[k]; if v == nil then return d end return v end,
         Set = function(k, v) __cfgStore[k] = v end,
@@ -31472,8 +31472,8 @@ end
 
 function _G.FeatureSwitch(key, defaultOn)
     local ok, v = pcall(function()
-        if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get then
-            return _G.MOHSINXFILES_Config.Get(key, defaultOn and 1 or 0)
+        if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Get then
+            return _G.SRC_HUB_Config.Get(key, defaultOn and 1 or 0)
         end
         return nil
     end)
@@ -33234,7 +33234,7 @@ if _G.__FakeGCurrency_Loaded then return _G.FakeGCurrency end
 _G.__FakeGCurrency_Loaded = true
 
 function FakeMoneyOrDefault(key, fallback)
-    local v = tonumber(_G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get and _G.MOHSINXFILES_Config.Get(key, 0)) or 0
+    local v = tonumber(_G.SRC_HUB_Config and _G.SRC_HUB_Config.Get and _G.SRC_HUB_Config.Get(key, 0)) or 0
     if v and v > 0 then return v end
     return fallback
 end
@@ -47944,8 +47944,8 @@ function _G.InjectLobbySkins()
                                         T.Enabled = false
                                         if T.Stop then pcall(T.Stop) end
                                     end
-                                    if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Set then
-                                        pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_ENABLE", 0)
+                                    if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Set then
+                                        pcall(_G.SRC_HUB_Config.Set, "TRAIL_ENABLE", 0)
                                     end
                                 end
                             end)
@@ -47975,9 +47975,9 @@ function _G.InjectLobbySkins()
                                         T.Enabled = true
                                         if T.Apply then pcall(T.Apply) end
                                     end
-                                    if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Set then
-                                        pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_TYPE", rid)
-                                        pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_ENABLE", 1)
+                                    if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Set then
+                                        pcall(_G.SRC_HUB_Config.Set, "TRAIL_TYPE", rid)
+                                        pcall(_G.SRC_HUB_Config.Set, "TRAIL_ENABLE", 1)
                                     end
                                 end
                             end)
@@ -48006,8 +48006,8 @@ function _G.InjectLobbySkins()
                                     T.Enabled = false
                                     if T.Stop then pcall(T.Stop) end
                                 end
-                                if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Set then
-                                    pcall(_G.MOHSINXFILES_Config.Set, "TRAIL_ENABLE", 0)
+                                if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Set then
+                                    pcall(_G.SRC_HUB_Config.Set, "TRAIL_ENABLE", 0)
                                 end
                             end
                         end)
@@ -48260,14 +48260,14 @@ do
 FakeFriendState = { installed = false, profiles = {} }
 
 function FF_ConfigEnabled()
-  local ok, v = pcall(function() return tonumber(_G.MOHSINXFILES_Config.Get("CI_FAKEFRIEND_EN", 0)) end)
+  local ok, v = pcall(function() return tonumber(_G.SRC_HUB_Config.Get("CI_FAKEFRIEND_EN", 0)) end)
   return ok and v == 1
 end
 
 function FF_GetIDs()
   local list, seen = {}, {}
   for i = 1, 5 do
-    local ok, id = pcall(function() return tonumber(_G.MOHSINXFILES_Config.Get("CI_FAKEFRIEND_ID" .. i, 0)) end)
+    local ok, id = pcall(function() return tonumber(_G.SRC_HUB_Config.Get("CI_FAKEFRIEND_ID" .. i, 0)) end)
     if ok and id and id > 0 and not seen[id] then
       seen[id] = true
       table.insert(list, id)
@@ -48642,7 +48642,7 @@ function ensureBagInject()
         pcall(function()
             CFG.extraItems = CFG.extraItems or {}
             CFG.itemCounts = CFG.itemCounts or {}
-            _G.GTLModConfig = _G.GTLModConfig or {}
+            _G.XthrlenConfig = _G.XthrlenConfig or {}
             local bag = { extraItems = {}, itemCounts = {} }
             for i, id in ipairs(CFG.extraItems) do
                 bag.extraItems[i] = tonumber(id) or 0
@@ -48650,7 +48650,7 @@ function ensureBagInject()
             for k, v in pairs(CFG.itemCounts) do
                 bag.itemCounts[tostring(k)] = tonumber(v) or 1
             end
-            _G.GTLModConfig.LizardVipCrateBag = bag
+            _G.XthrlenConfig.LizardVipCrateBag = bag
             if _G.SaveModSettings then _G.SaveModSettings() end
         end)
     end
@@ -49044,7 +49044,7 @@ end)
 pcall(function()
     CFG.extraItems = CFG.extraItems or {}
     CFG.itemCounts = CFG.itemCounts or {}
-    local bag = _G.GTLModConfig and _G.GTLModConfig.LizardVipCrateBag
+    local bag = _G.XthrlenConfig and _G.XthrlenConfig.LizardVipCrateBag
     if type(bag) == "table" and type(bag.extraItems) == "table" then
         for _, id in ipairs(bag.extraItems) do
             local n = tonumber(id)
@@ -49551,7 +49551,7 @@ end
 function refreshFakeUC()
     if not DataMgr then return end
     local fake = getFakeUC()
-    local ciV = tonumber(_G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get and _G.MOHSINXFILES_Config.Get("CI_MONEY_UC", 0)) or 0
+    local ciV = tonumber(_G.SRC_HUB_Config and _G.SRC_HUB_Config.Get and _G.SRC_HUB_Config.Get("CI_MONEY_UC", 0)) or 0
     if ciV > 0 then fake = ciV end
 
     if fake <= 0 then return end
@@ -49592,7 +49592,7 @@ end
 function refreshFakeBP()
     if not DataMgr then return end
     local fake = lizardvipNum(_G.LizardVipFakeAccount.bp)
-    local ciV = tonumber(_G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get and _G.MOHSINXFILES_Config.Get("CI_MONEY_GOLD", 0)) or 0
+    local ciV = tonumber(_G.SRC_HUB_Config and _G.SRC_HUB_Config.Get and _G.SRC_HUB_Config.Get("CI_MONEY_GOLD", 0)) or 0
     if ciV > 0 then fake = ciV end
     if fake <= 0 then return end
     if tonumber(DataMgr.gold) == fake then return end
@@ -49605,7 +49605,7 @@ end
 function refreshFakeSilver()
     if not DataMgr then return end
     local fake = lizardvipNum(_G.LizardVipFakeAccount.silver)
-    local ciV = tonumber(_G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get and _G.MOHSINXFILES_Config.Get("CI_MONEY_SILVER", 0)) or 0
+    local ciV = tonumber(_G.SRC_HUB_Config and _G.SRC_HUB_Config.Get and _G.SRC_HUB_Config.Get("CI_MONEY_SILVER", 0)) or 0
     if ciV > 0 then fake = ciV end
     if fake <= 0 then return end
     if tonumber(DataMgr.diamond) == fake then return end
@@ -49618,7 +49618,7 @@ end
 function refreshFakeAG()
     if not DataMgr then return end
     local fake = lizardvipNum(_G.LizardVipFakeAccount.ag)
-    local ciV = tonumber(_G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get and _G.MOHSINXFILES_Config.Get("CI_MONEY_AG", 0)) or 0
+    local ciV = tonumber(_G.SRC_HUB_Config and _G.SRC_HUB_Config.Get and _G.SRC_HUB_Config.Get("CI_MONEY_AG", 0)) or 0
     if ciV > 0 then fake = ciV end
     if fake <= 0 then return end
     if tonumber(DataMgr.eternal_diamond) == fake then return end
@@ -49632,7 +49632,7 @@ function refreshFakeLevel()
     if not DataMgr or not DataMgr.roleData then return end
 
     local fake = lizardvipNum(_G.LizardVipFakeAccount.level)
-    local ciV = tonumber(_G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get and _G.MOHSINXFILES_Config.Get("CI_PLAYER_LEVEL", 0)) or 0
+    local ciV = tonumber(_G.SRC_HUB_Config and _G.SRC_HUB_Config.Get and _G.SRC_HUB_Config.Get("CI_PLAYER_LEVEL", 0)) or 0
     if ciV > 0 then fake = ciV end
     if fake <= 0 then return end
     local cur = tonumber(DataMgr.roleData.level) or 0
@@ -49810,8 +49810,8 @@ function setupLizardVipFakeAccount()
                 if snap == __lastAccSnap then return end
                 __lastAccSnap = snap
 
-                _G.GTLModConfig = _G.GTLModConfig or {}
-                _G.GTLModConfig.LizardVipAccSnap = snap
+                _G.XthrlenConfig = _G.XthrlenConfig or {}
+                _G.XthrlenConfig.LizardVipAccSnap = snap
                 if _G.SaveModSettings then pcall(_G.SaveModSettings) end
             end)
         end
@@ -52080,8 +52080,8 @@ do
 
     local function CfgNum(key, def)
         local ok, v = pcall(function()
-            if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.Get then
-                return _G.MOHSINXFILES_Config.Get(key, def or 0)
+            if _G.SRC_HUB_Config and _G.SRC_HUB_Config.Get then
+                return _G.SRC_HUB_Config.Get(key, def or 0)
             end
         end)
         if ok then return tonumber(v) or (def or 0) end
@@ -52094,7 +52094,7 @@ do
     M._textCache = M._textCache or nil
 
     local function CI_TextFilePath()
-        local paths = (_G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.PATHS) or {}
+        local paths = (_G.SRC_HUB_Config and _G.SRC_HUB_Config.PATHS) or {}
         for _, p in ipairs(paths) do
             local dir = tostring(p):match("^(.*)/[^/]*$")
             if dir then
@@ -52165,10 +52165,10 @@ do
                 M._closeBoundFor = ui
                 comp:AddControlEventByControl(comp.UIRoot.close, "OnClicked", function()
                     pcall(function()
-                        if _G.MOHSINXFILES_Config then
-                            _G.MOHSINXFILES_Config._numInput = nil
-                            _G.MOHSINXFILES_Config._skinPopupSetupToken = nil
-                            _G.MOHSINXFILES_Config._releaseSkinPopupOpeningLock()
+                        if _G.SRC_HUB_Config then
+                            _G.SRC_HUB_Config._numInput = nil
+                            _G.SRC_HUB_Config._skinPopupSetupToken = nil
+                            _G.SRC_HUB_Config._releaseSkinPopupOpeningLock()
                         end
                     end)
                     pcall(function()
@@ -52195,8 +52195,8 @@ do
 
     function M.ShowTextInputPopup(opts)
         M.PatchTextInputPopup()
-        if _G.MOHSINXFILES_Config and _G.MOHSINXFILES_Config.ShowTextInputPopup then
-            return _G.MOHSINXFILES_Config.ShowTextInputPopup(opts)
+        if _G.SRC_HUB_Config and _G.SRC_HUB_Config.ShowTextInputPopup then
+            return _G.SRC_HUB_Config.ShowTextInputPopup(opts)
         end
         return false
     end
@@ -52249,14 +52249,14 @@ do
             local profile = orig(self, uid, ...)
             if profile and type(profile) == "table" and CI_IsSelfUid(uid) then
 
-                local tid = tonumber(MOHSINXFILES_Config.Get("CI_TITLE_ID", 0)) or 0
+                local tid = tonumber(SRC_HUB_Config.Get("CI_TITLE_ID", 0)) or 0
                 if tid > 0 and M.BuildTitleDet then
                     pcall(function()
                         profile.hsegment_title_det = M.BuildTitleDet(tid)
                     end)
                 end
 
-                local lv = tonumber(MOHSINXFILES_Config.Get("CI_PLAYER_LEVEL", 0)) or 0
+                local lv = tonumber(SRC_HUB_Config.Get("CI_PLAYER_LEVEL", 0)) or 0
                 if lv > 0 then
                     pcall(function() profile.level = lv end)
                 end
@@ -52564,7 +52564,7 @@ do
     local function CI_MoneyOverride(money_type)
         local key = CI_MONEY_MAP[tonumber(money_type) or -1]
         if not key then return nil end
-        local v = tonumber(MOHSINXFILES_Config.Get(key, 0)) or 0
+        local v = tonumber(SRC_HUB_Config.Get(key, 0)) or 0
         if v > 0 then return v end
         return nil
     end
@@ -52630,8 +52630,8 @@ do
     CI_RegisterLobbyTick(CI_ApplyMoney)
 
     local function CI_ApplyRank()
-        local seg = tonumber(MOHSINXFILES_Config.Get("CI_RANK_SEG", 0)) or 0
-        local score = tonumber(MOHSINXFILES_Config.Get("CI_RANK_SCORE", 0)) or 0
+        local seg = tonumber(SRC_HUB_Config.Get("CI_RANK_SEG", 0)) or 0
+        local score = tonumber(SRC_HUB_Config.Get("CI_RANK_SCORE", 0)) or 0
         local RS = _G.ClientRankSpoof
         if RS and type(RS.cfg) == "table" then
             if seg > 0 then
@@ -52642,7 +52642,7 @@ do
                 RS.cfg.score = score
                 _G.RankSpoof_Score = score
             end
-            local rankNo = tonumber(MOHSINXFILES_Config.Get("CI_RANK_NO", 0)) or 0
+            local rankNo = tonumber(SRC_HUB_Config.Get("CI_RANK_NO", 0)) or 0
             if rankNo > 0 then
                 RS.cfg.rankNo = rankNo
                 _G.RankSpoof_Rank = rankNo
@@ -52694,8 +52694,8 @@ do
 
     CI_RegisterLobbyTick(CI_ApplyRank)
 
-    local function CI_PeakSeg() return tonumber(MOHSINXFILES_Config.Get("CI_PEAK_SEG", 0)) or 0 end
-    local function CI_PeakScore() return tonumber(MOHSINXFILES_Config.Get("CI_PEAK_SCORE", 0)) or 0 end
+    local function CI_PeakSeg() return tonumber(SRC_HUB_Config.Get("CI_PEAK_SEG", 0)) or 0 end
+    local function CI_PeakScore() return tonumber(SRC_HUB_Config.Get("CI_PEAK_SCORE", 0)) or 0 end
 
     local function CI_ApplyPeak()
         local seg = CI_PeakSeg()
@@ -52725,7 +52725,7 @@ do
             if seg > 0 and tonumber(dm.roleData.peakgame_history_max_segment) then
                 dm.roleData.peakgame_history_max_segment = seg
             end
-            local hist = tonumber(MOHSINXFILES_Config.Get("CI_PEAK_HIST", 0)) or 0
+            local hist = tonumber(SRC_HUB_Config.Get("CI_PEAK_HIST", 0)) or 0
             if hist > 0 then
                 dm.roleData.peakgame_history_max_segment = hist
             end
@@ -52764,7 +52764,7 @@ do
         if type(util.GetSelfHistoryMaxSegmentId) == "function" then
             local orig = util.GetSelfHistoryMaxSegmentId
             util.GetSelfHistoryMaxSegmentId = function(...)
-                local h = tonumber(MOHSINXFILES_Config.Get("CI_PEAK_HIST", 0)) or 0
+                local h = tonumber(SRC_HUB_Config.Get("CI_PEAK_HIST", 0)) or 0
                 if h > 0 then return h end
                 local seg = CI_PeakSeg()
                 if seg > 0 then return seg end
@@ -52798,7 +52798,7 @@ do
 
     CI_RegisterLobbyTick(CI_ApplyPeak)
 
-    local function CI_Num(key) return tonumber(MOHSINXFILES_Config.Get(key, 0)) or 0 end
+    local function CI_Num(key) return tonumber(SRC_HUB_Config.Get(key, 0)) or 0 end
 
     local function CI_BuildTitleDet(tid)
         local det = {}
