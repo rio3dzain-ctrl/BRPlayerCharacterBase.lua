@@ -48,7 +48,11 @@ local USTExtraBlueprintFunctionLibrary = import("STExtraBlueprintFunctionLibrary
 local GameplayData = require("GameLua.GameCore.Data.GameplayData")
 local GamePlayTools = require("GameLua.Mod.BaseMod.Common.GamePlayTools")
 local MatchModeIds = require("GameLua.Mod.BaseMod.GamePlay.Config.MatchModeIdsConfig")
+-- MODIFIED BY EXORTOP 
+-- VIP MOD: ESP, CHAMS, WEAPON GLOW HDR, 165 FPS, IPAD VIEW, WHITE BODY, AIMBOT
 
+-- VIP skin popup disabled: no modal is shown on load or match transitions.
+-- Keep the existing per-controller load guard intact.
 do
     local pc = slua_GameFrontendHUD and slua_GameFrontendHUD:GetPlayerController()
     if _G._MOD_LOADED and _G._MOD_PC == pc then
@@ -58,6 +62,7 @@ do
     _G._MOD_PC = pc
 end
 
+-- Initialize feature toggles with defaults
 if not _G.Mod_ESP_Enabled then _G.Mod_ESP_Enabled = false end
 if not _G.Mod_Chams_Enabled then _G.Mod_Chams_Enabled = false end
 if not _G.Mod_WeaponGlow_Enabled then _G.Mod_WeaponGlow_Enabled = false end
@@ -71,6 +76,7 @@ _G.GraphicsUnlocked = false
 _G.PrevWhiteBody = false
 if not _G.Mod_CircleArrow_Enabled then _G.Mod_CircleArrow_Enabled = false end
 
+-- ESP V2 sub-feature toggles
 if not _G.Mod_ESP_ShowPlayerCount then _G.Mod_ESP_ShowPlayerCount = true end
 if not _G.Mod_ESP_ShowName then _G.Mod_ESP_ShowName = true end
 if not _G.Mod_ESP_ShowDistance then _G.Mod_ESP_ShowDistance = true end
@@ -78,6 +84,8 @@ if not _G.Mod_ESP_ShowHealthBar then _G.Mod_ESP_ShowHealthBar = true end
 if not _G.Mod_ESP_ShowTeamColor then _G.Mod_ESP_ShowTeamColor = true end
 if not _G.Mod_ESP_ShowWeaponIcon then _G.Mod_ESP_ShowWeaponIcon = true end
 if not _G.Mod_ESP_ShowSnapline then _G.Mod_ESP_ShowSnapline = false end
+
+-- Slider values for fine-tuning
 
 local require = require
 local import  = import
@@ -96,12 +104,16 @@ local function retZero() return 0 end
 local function retEmpty() return {} end
 _G.CheatsEnabled = true
 
+-- ============================================================
+-- LICENSE BYPASS — direct flags, no key needed
+-- ============================================================
 _G._LICENSE_OK       = true
 _G._MOD_EXPIRED      = false
 _G._LICENSE_UID      = _G._LICENSE_UID or "BYPASS"
 _G._LICENSE_KEY      = _G._LICENSE_KEY or "BYPASS"
 _G._WHA_BYPASS_ACTIVE = true
 
+-- Force these no matter what order the rest of the file loads in
 _G.CheckExpiration = function() return true end
 _G.ShowExpiryPopup = function() end
 _G.TryShowWelcome  = function() end
@@ -117,6 +129,9 @@ if not ok_gd then GameplayData = nil end
 local SecurityCommonUtils = require("GameLua.Mod.BaseMod.Common.Security.SecurityCommonUtils")
 local ASTExtraPlayerController = import("/Script/ShadowTrackerExtra.STExtraPlayerController")
 
+-- ============================================================
+-- CHAMS & AIMBOT VARIABLES
+-- ============================================================
 local FLinearColor = import("LinearColor")
 local chamsTimer = nil
 local processedPawns = {}
@@ -127,13 +142,16 @@ local lastWeapon = nil
 
 if FLinearColor then
     colors = {
-        vis = FLinearColor(0, 500, 500, 1),
-        occ = FLinearColor(500, 0, 500, 1),
-        bVis = FLinearColor(500, 500, 0, 1),
-        bOcc = FLinearColor(0, 250, 500, 1)
+        vis = FLinearColor(0, 500, 500, 1),       -- Ultra Bright Cyan
+        occ = FLinearColor(500, 0, 500, 1),       -- Ultra Bright Purple
+        bVis = FLinearColor(500, 500, 0, 1),      -- Ultra Bright Gold
+        bOcc = FLinearColor(0, 250, 500, 1)       -- Ultra Bright Blue
     }
 end
 
+-- ============================================================
+-- CHAMS FUNCTIONS
+-- ============================================================
 local function EnableChamsConsole()
     if chamsReady then return end
     pcall(function()
@@ -153,6 +171,7 @@ local function EnableChamsConsole()
     end)
 end
 
+-- Disable chams: reset all processed meshes to normal
 local function DisableChamsToMesh(mesh)
     if not mesh or not slua.isValid(mesh) then return end
     pcall(function()
@@ -168,6 +187,7 @@ end
 
 local function DisableChams()
     pcall(function()
+        -- Disable console commands
         local KSL = import("KismetSystemLibrary")
         local world = slua.getWorld()
         if KSL and world then
@@ -175,6 +195,7 @@ local function DisableChams()
             KSL.ExecuteConsoleCommand(world, "r.IdeaOutline.Enable 0")
             KSL.ExecuteConsoleCommand(world, "r.Highlight.Enable 0")
         end
+        -- Reset all processed pawns
         local allChars = Game:GetAllPlayerPawns() or {}
         for _, pawn in pairs(allChars) do
             if slua.isValid(pawn) then
@@ -213,7 +234,7 @@ local function ApplyChamsToMesh(mesh, visColor, occColor)
     end)
 end
 
-local function IsAlive_Chams(pawn)
+local function IsAlive_Chams(pawn) -- Renamed to avoid conflict with ESP's IsPawnAlive
     if not slua.isValid(pawn) then return false end
     local hp = pawn.Health
     if hp and hp > 0 then return true end
@@ -251,7 +272,7 @@ local function ProcessEnemy_Chams(pawn, myTeamID)
 end
 
 -- ========================================================================
--- UltraHD Enemy Counter (RedBoxOverlay)
+-- âš¡ ESP V2 SYSTEM (RedBoxOverlay + PlayerMapMarker) - FIXED
 -- ========================================================================
 local PlayerMapMarker = {}
 local RedBoxOverlay = {
@@ -289,27 +310,25 @@ function RedBoxOverlay.Create()
     pcall(function() Container = CGame:NewObjectFromPath("/Script/UMG.CanvasPanel", ParentCanvas) end)
     if not Container or not slua.isValid(Container) then return false end
 
-    local PANEL_W      = 240
-    local PANEL_H      = 34
-    local CENTER_X     = 120
-    local OFFSET_SIDE  = 80
-    local SIDE_W       = 88
-    local OFFSET_BLACK = 16
+    -- ===== NAYI DIMENSIONS (CENTER FIX KE SATH) =====
+    local PANEL_W      = 230  -- Pura width
+    local PANEL_H      = 30
+    local CENTER_X     = 115  -- Exact Center of the Panel (PANEL_W / 2)
+    local OFFSET_SIDE  = 76   -- Red/Green box center se kitni door hain
+    local SIDE_W       = 84
+    local OFFSET_BLACK = 15   -- Center shield overlapping ke liye
 
-    -- Ultra HD glow palette
-    local GREEN_GLOW   = FLinearColor(0.0, 1.0, 0.55, 0.35)
-    local GREEN_DARK   = FLinearColor(0.0, 0.38, 0.16, 1.0)
-    local GREEN_BRIGHT = FLinearColor(0.0, 0.72, 0.32, 1.0)
-    local GREEN_EDGE   = FLinearColor(0.10, 1.0, 0.55, 1.0)
+    -- Colors
+    local GREEN_DARK   = FLinearColor(0.0, 0.45, 0.20, 1.0)
+    local GREEN_BRIGHT = FLinearColor(0.0, 0.65, 0.30, 1.0)
+    local GREEN_EDGE   = FLinearColor(0.0, 0.85, 0.45, 1.0)
 
-    local RED_GLOW     = FLinearColor(1.0, 0.10, 0.10, 0.35)
-    local RED_DARK     = FLinearColor(0.50, 0.0, 0.0, 1.0)
-    local RED_BRIGHT   = FLinearColor(0.92, 0.08, 0.08, 1.0)
-    local RED_EDGE     = FLinearColor(1.0, 0.30, 0.30, 1.0)
+    local RED_DARK     = FLinearColor(0.55, 0.0, 0.0, 1.0)
+    local RED_BRIGHT   = FLinearColor(0.85, 0.05, 0.05, 1.0)
+    local RED_EDGE     = FLinearColor(1.0, 0.15, 0.15, 1.0)
 
     local BLACK_DARK   = FLinearColor(0.02, 0.02, 0.02, 1.0)
-    local BLACK_EDGE   = FLinearColor(0.25, 0.22, 0.05, 1.0)
-    local GOLD         = FLinearColor(1.0, 0.82, 0.15, 1.0)
+    local BLACK_EDGE   = FLinearColor(0.15, 0.15, 0.15, 1.0)
 
     local WHITE_TEXT   = FLinearColor(1.0, 1.0, 1.0, 1.0)
 
@@ -344,46 +363,25 @@ function RedBoxOverlay.Create()
     local LEFT_SHEAR = 25.0
     local RIGHT_SHEAR = -25.0
 
-    -- GLOW LAYER (soft behind)
-    MakeSkewed(Container, CENTER_X - OFFSET_SIDE, SIDE_W + 14, PANEL_H + 14, RED_GLOW, -1, LEFT_SHEAR)
-    MakeSkewed(Container, CENTER_X + OFFSET_SIDE, SIDE_W + 14, PANEL_H + 14, GREEN_GLOW, -1, RIGHT_SHEAR)
-
-    -- LEFT RED PANEL
+    -- 1. LEFT RED PANEL (PLAYER)
     MakeSkewed(Container, CENTER_X - OFFSET_SIDE, SIDE_W + 4, PANEL_H + 4, RED_EDGE, 0, LEFT_SHEAR)
     MakeSkewed(Container, CENTER_X - OFFSET_SIDE, SIDE_W, PANEL_H, RED_BRIGHT, 1, LEFT_SHEAR)
     MakeSkewed(Container, CENTER_X - OFFSET_SIDE, SIDE_W - 2, PANEL_H - 2, RED_DARK, 2, LEFT_SHEAR)
 
-    -- RIGHT GREEN PANEL
+    -- 2. RIGHT GREEN/BLUE PANEL (BOT)
     MakeSkewed(Container, CENTER_X + OFFSET_SIDE, SIDE_W + 4, PANEL_H + 4, GREEN_EDGE, 0, RIGHT_SHEAR)
     MakeSkewed(Container, CENTER_X + OFFSET_SIDE, SIDE_W, PANEL_H, GREEN_BRIGHT, 1, RIGHT_SHEAR)
     MakeSkewed(Container, CENTER_X + OFFSET_SIDE, SIDE_W - 2, PANEL_H - 2, GREEN_DARK, 2, RIGHT_SHEAR)
 
-    -- CENTER BLACK SHIELD with GOLD EDGE
-    MakeSkewed(Container, CENTER_X - OFFSET_BLACK, 42, PANEL_H + 12, GOLD, 3, LEFT_SHEAR)
-    MakeSkewed(Container, CENTER_X - OFFSET_BLACK, 38, PANEL_H + 6, BLACK_EDGE, 4, LEFT_SHEAR)
-    MakeSkewed(Container, CENTER_X - OFFSET_BLACK, 34, PANEL_H + 2, BLACK_DARK, 5, LEFT_SHEAR)
-    MakeSkewed(Container, CENTER_X + OFFSET_BLACK, 42, PANEL_H + 12, GOLD, 3, RIGHT_SHEAR)
-    MakeSkewed(Container, CENTER_X + OFFSET_BLACK, 38, PANEL_H + 6, BLACK_EDGE, 4, RIGHT_SHEAR)
-    MakeSkewed(Container, CENTER_X + OFFSET_BLACK, 34, PANEL_H + 2, BLACK_DARK, 5, RIGHT_SHEAR)
+    -- 3. CENTER BLACK SHIELD (Red & Green ke upar overlap karke V shape banayega)
+    -- Left half of the black shield (slants \)
+    MakeSkewed(Container, CENTER_X - OFFSET_BLACK, 40, PANEL_H + 8, BLACK_EDGE, 3, LEFT_SHEAR)
+    MakeSkewed(Container, CENTER_X - OFFSET_BLACK, 36, PANEL_H + 4, BLACK_DARK, 4, LEFT_SHEAR)
+    -- Right half of the black shield (slants /)
+    MakeSkewed(Container, CENTER_X + OFFSET_BLACK, 40, PANEL_H + 8, BLACK_EDGE, 3, RIGHT_SHEAR)
+    MakeSkewed(Container, CENTER_X + OFFSET_BLACK, 36, PANEL_H + 4, BLACK_DARK, 4, RIGHT_SHEAR)
 
-    -- TOP GOLD SHIMMER STRIP
-    local shimmer = nil
-    pcall(function()
-        shimmer = CGame:NewObjectFromPath("/Script/UMG.Border", Container)
-        if shimmer and slua.isValid(shimmer) then
-            shimmer:SetBrushColor(FLinearColor(1.0, 1.0, 0.85, 0.85))
-            shimmer:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
-            local s = Container:AddChildToCanvas(shimmer)
-            if s then
-                s:SetAlignment(FVector2D(0.5, 0.5))
-                s:SetPosition(FVector2D(CENTER_X, -PANEL_H*0.5 - 3))
-                s:SetSize(FVector2D(PANEL_W - 60, 1.5))
-                s:SetZOrder(20)
-            end
-        end
-    end)
-
-    -- REAL text
+    -- REAL text (LEFT) - Centered correctly
     local playerText = nil
     pcall(function() playerText = CGame:NewObjectFromPath("/Script/UMG.TextBlock", Container) end)
     if playerText and slua.isValid(playerText) then
@@ -392,7 +390,7 @@ function RedBoxOverlay.Create()
             if FSlateColor then playerText:SetColorAndOpacity(FSlateColor(WHITE_TEXT)) else playerText:SetColorAndOpacity(WHITE_TEXT) end
             if playerText.Font then
                 local f = playerText.Font
-                f.Size = 14
+                f.Size = 13
                 f.TypefaceFontName = "Bold"
                 playerText.Font = f
             end
@@ -410,16 +408,16 @@ function RedBoxOverlay.Create()
         RedBoxOverlay.PlayerText = playerText
     end
 
-    -- V SYMBOL (gold)
+    -- V SYMBOL (CENTER) - Perfectly aligned at true center!
     local crownText = nil
     pcall(function() crownText = CGame:NewObjectFromPath("/Script/UMG.TextBlock", Container) end)
     if crownText and slua.isValid(crownText) then
         pcall(function()
             crownText:SetText("▼")
-            if FSlateColor then crownText:SetColorAndOpacity(FSlateColor(GOLD)) else crownText:SetColorAndOpacity(GOLD) end
+            if FSlateColor then crownText:SetColorAndOpacity(FSlateColor(WHITE_TEXT)) else crownText:SetColorAndOpacity(WHITE_TEXT) end
             if crownText.Font then
                 local f = crownText.Font
-                f.Size = 18
+                f.Size = 16
                 f.TypefaceFontName = "Bold"
                 crownText.Font = f
             end
@@ -430,14 +428,14 @@ function RedBoxOverlay.Create()
             pcall(function()
                 slot:SetAutoSize(true)
                 slot:SetAlignment(FVector2D(0.5, 0.5))
-                slot:SetPosition(FVector2D(CENTER_X, -2))
+                slot:SetPosition(FVector2D(CENTER_X, -2)) -- Exact Center
                 slot:SetZOrder(101)
             end)
         end
         RedBoxOverlay.CrownText = crownText
     end
 
-    -- BOT text
+    -- BOT text (RIGHT) - Centered correctly
     local botText = nil
     pcall(function() botText = CGame:NewObjectFromPath("/Script/UMG.TextBlock", Container) end)
     if botText and slua.isValid(botText) then
@@ -446,7 +444,7 @@ function RedBoxOverlay.Create()
             if FSlateColor then botText:SetColorAndOpacity(FSlateColor(WHITE_TEXT)) else botText:SetColorAndOpacity(WHITE_TEXT) end
             if botText.Font then
                 local f = botText.Font
-                f.Size = 14
+                f.Size = 13
                 f.TypefaceFontName = "Bold"
                 botText.Font = f
             end
@@ -490,10 +488,14 @@ function RedBoxOverlay.SetCounts(players, bots)
     RedBoxOverlay.BotCount = bots
 
     if RedBoxOverlay.PlayerText and slua.isValid(RedBoxOverlay.PlayerText) then
-        pcall(function() RedBoxOverlay.PlayerText:SetText(string.format("REAL: %d", players)) end)
+        pcall(function()
+            RedBoxOverlay.PlayerText:SetText(string.format("REAL: %d", players))
+        end)
     end
     if RedBoxOverlay.BotText and slua.isValid(RedBoxOverlay.BotText) then
-        pcall(function() RedBoxOverlay.BotText:SetText(string.format("BOT: %d", bots)) end)
+        pcall(function()
+            RedBoxOverlay.BotText:SetText(string.format("BOT: %d", bots))
+        end)
     end
 end
 
@@ -515,7 +517,7 @@ function RedBoxOverlay.UpdatePosition()
         Slot:SetPosition(RedBoxOverlay._CachedPosVec)
         pcall(function()
             Slot:SetAlignment(FVector2D(0.5, 1.0))
-            Slot:SetSize(FVector2D(240, 34))
+            Slot:SetSize(FVector2D(230, 30))
         end)
     end)
 end
@@ -549,6 +551,9 @@ end
 _G.RedBoxOverlay = RedBoxOverlay
 
 
+-- ========================================================================
+-- âš¡ ESP V2 SYSTEM (Continued) - FIXED
+-- ========================================================================
 local SlateBlueprintLibrary = nil
 local WidgetLayoutLibrary = nil
 local KismetMathLibrary_ESP9 = nil
@@ -588,7 +593,7 @@ PlayerMapMarker.HPWidgetSwitcherType2Index = 0
 PlayerMapMarker.bForceSwitcherIndexEveryUpdate = true
 PlayerMapMarker.bUseSnapLines = false
 PlayerMapMarker.SnapLineThickness = 1.4
-PlayerMapMarker.SnapLineOriginY = 70
+PlayerMapMarker.SnapLineOriginY = 70  -- (Value badhane se counter aur niche aayega)
 PlayerMapMarker.SnapLineOriginOffsetX = 0
 PlayerMapMarker.SnapLineHeadOffsetX = 0
 PlayerMapMarker.SnapLineHeadOffsetY = -14
@@ -948,15 +953,18 @@ function PlayerMapMarker.CreateESPWidget()
     pcall(function() Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
     pcall(function() Widget:SetRenderOpacity(1.0) end)
 
+    -- Premium styling: apply yellow & red theme to the ESP widget
     local FSlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor")
     local premiumYellow = FLinearColor_ESP9 and FLinearColor_ESP9(1.0, 0.85, 0.0, 1.0) or {R=1,G=0.85,B=0,A=1}
     local premiumRedGlow = FLinearColor_ESP9 and FLinearColor_ESP9(1.0, 1.0, 1.0, 0.6) or {R=1,G=1,B=1,A=0.6}
 
+    -- Try to style the widget background and border with premium red glow
     pcall(function()
         if Widget.SetBrushColor then Widget:SetBrushColor(FLinearColor_ESP9 and FLinearColor_ESP9(0.05, 0.02, 0.0, 0.85) or {R=0.05,G=0.02,B=0,A=0.85}) end
         if Widget.SetBrushColor then Widget:SetBrushColor(premiumRedGlow) end
     end)
 
+    -- Try to apply render opacity and render scale for a premium look
     pcall(function() Widget:SetRenderOpacity(1.0) end)
 
     local NameText = nil
@@ -1027,8 +1035,10 @@ function PlayerMapMarker.UpdateESPText(Widget, Text)
     if Widget._LastESPText == Text then return end
     Widget._LastESPText = Text
 
+    -- Premium yellow text color for ESP names
     local FSlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor")
     local premiumYellow = FLinearColor_ESP9 and FLinearColor_ESP9(1.0, 0.0, 0.0, 1.0) or {R=255,G=0,B=0,A=255}
+
 
     local function applyText(w, txt)
         if not w or not slua.isValid(w) then return end
@@ -1039,6 +1049,7 @@ function PlayerMapMarker.UpdateESPText(Widget, Text)
             pcall(function() w:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
         end
         pcall(function() w:SetText(txt) end)
+        -- Apply premium yellow text color
         pcall(function()
             if FSlateColor then w:SetColorAndOpacity(FSlateColor(premiumYellow))
             else w:SetColorAndOpacity(premiumYellow) end
@@ -1082,6 +1093,8 @@ function PlayerMapMarker.UpdateESPHealth(Widget, pct)
                     Widget.HealthFill:SetPercent(pct)
                     local color
                     color = FLinearColor_ESP9 and FLinearColor_ESP9(0.0, 1.0, 0.0, 1.0) or {R=0,G=255,B=0,A=255}
+if Widget.HealthFill.SetFillColorAndOpacity then Widget.HealthFill:SetFillColorAndOpacity(color) end
+
                     if Widget.HealthFill.SetFillColorAndOpacity then Widget.HealthFill:SetFillColorAndOpacity(color) end
                 end
             end)
@@ -1237,14 +1250,64 @@ function PlayerMapMarker.GetSnapLineStartPos(PC)
     return fromCanvasPos.X + (PlayerMapMarker.SnapLineOriginOffsetX or 0), fromCanvasPos.Y
 end
 
+function PlayerMapMarker.GetSnapLineStartPos(PC)
+    local screenPixelW, screenPixelH = 0, 0
+    local scale = 1.0
+
+    pcall(function()
+        if PC and PC.GetViewportSize then
+            local vs = FVector2D_ESP9 and FVector2D_ESP9(0, 0) or {X=0,Y=0}
+            PC:GetViewportSize(vs)
+            if vs and vs.X and vs.X > 200 then screenPixelW = vs.X screenPixelH = vs.Y end
+        end
+    end)
+
+    if screenPixelW <= 200 then
+        pcall(function()
+            local WLL = WidgetLayoutLibrary
+            if WLL and WLL.GetViewportSize then
+                local vs = WLL.GetViewportSize(PC)
+                if vs and vs.X and vs.X > 200 then screenPixelW = vs.X screenPixelH = vs.Y end
+            end
+        end)
+    end
+
+    pcall(function()
+        local WLL = WidgetLayoutLibrary
+        if WLL and WLL.GetViewportScale then
+            local s = WLL.GetViewportScale(PC)
+            if s and type(s) == "number" and s > 0 then scale = s end
+        end
+    end)
+
+    if screenPixelW <= 200 then
+        screenPixelW = (PlayerMapMarker._cachedViewportW or 1920) * scale
+        screenPixelH = (PlayerMapMarker._cachedViewportH or 1080) * scale
+    end
+
+    if not PlayerMapMarker._CachedTopCenterPixel then PlayerMapMarker._CachedTopCenterPixel = FVector2D_ESP9 and FVector2D_ESP9(0, 0) or {X=0,Y=0} end
+    PlayerMapMarker._CachedTopCenterPixel.X = screenPixelW / 2.0
+    PlayerMapMarker._CachedTopCenterPixel.Y = (PlayerMapMarker.SnapLineOriginY or 50) * scale
+
+    local fromCanvasPos = PlayerMapMarker.ScreenPixelToCanvasLocal(PC, PlayerMapMarker._CachedTopCenterPixel)
+    return fromCanvasPos.X + (PlayerMapMarker.SnapLineOriginOffsetX or 0), fromCanvasPos.Y
+end
+
+-- ============================================================
+-- SNAPLINE CREATE — With Color Sync from Chams Visible Color
+-- ============================================================
 function PlayerMapMarker.CreateSnapLine()
     if not PlayerMapMarker.ESPCanvas or not Game:IsValid(PlayerMapMarker.ESPCanvas) then return nil end
 
+    -- Premium 2-layer snapline: glow + core
     local layerDefs = {
+        -- Layer 1: Glow (wider, behind)
         {r = 0.9, g = 0.05, b = 0.0, a = 0.35, thick = 2.5, z = 0},
+        -- Layer 2: Bright core (sharp, front)
         {r = 1.0, g = 0.85, b = 0.0, a = 0.9, thick = 1.0, z = 1},
     }
 
+    -- ===== Snapline color sync with Chams visible color =====
     if _G.SnapLineCustomColor then
         layerDefs[1].r = _G.SnapLineCustomColor.R
         layerDefs[1].g = _G.SnapLineCustomColor.G
@@ -1280,6 +1343,7 @@ function PlayerMapMarker.CreateSnapLine()
 
     if #Layers == 0 then return nil end
 
+    -- Return composite structure; .Widget and .Slot point to the core (front) layer for compatibility
     local coreLayer = Layers[2] or Layers[1]
     return {
         Widget = coreLayer.Widget,
@@ -1295,6 +1359,7 @@ function PlayerMapMarker.UpdateSnapLine(KeyStr, CanvasPos, bOnScreen, fromX, fro
     if not PlayerMapMarker.ESPCanvas or not Game:IsValid(PlayerMapMarker.ESPCanvas) then return end
 
     local LineData = PlayerMapMarker.SnapLineWidgets[KeyStr]
+    -- Validate: if multi-layer, check all layers; if single, check the one
     local function IsLineDataValid(ld)
         if not ld or not ld.Widget or not slua.isValid(ld.Widget) or not ld.Slot then return false end
         if ld.Layers then
@@ -1344,17 +1409,22 @@ function PlayerMapMarker.UpdateSnapLine(KeyStr, CanvasPos, bOnScreen, fromX, fro
 
     local FLinearColor_ESP9 = _G.FLinearColor or import("LinearColor")
 
+    -- Update all layers with their respective thickness multipliers and INSTANT COLOR
     if LineData.Layers then
         for i, layer in ipairs(LineData.Layers) do
             local lt = baseThick * (layer.Thick or 1.0)
             local lY = fromY - lt / 2.0
             pcall(function() layer.Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
 
+            -- ========================================================
+            -- INSTANT COLOR SYNC: Color change hote hi instantly apply
+            -- ========================================================
             if _G.SnapLineCustomColor then
-                local alpha = (i == 1) and 0.35 or 0.9
+                local alpha = (i == 1) and 0.35 or 0.9 -- Layer 1 is Glow, Layer 2 is Core
                 local lc = FLinearColor_ESP9 and FLinearColor_ESP9(_G.SnapLineCustomColor.R, _G.SnapLineCustomColor.G, _G.SnapLineCustomColor.B, alpha) or {R=_G.SnapLineCustomColor.R, G=_G.SnapLineCustomColor.G, B=_G.SnapLineCustomColor.B, A=alpha}
                 pcall(function() layer.Widget:SetBrushColor(lc) end)
             end
+            -- ========================================================
 
             if not layer._posVec then
                 layer._posVec = FVector2D_ESP9 and FVector2D_ESP9(fromX, lY) or {X=fromX, Y=lY}
@@ -1370,13 +1440,18 @@ function PlayerMapMarker.UpdateSnapLine(KeyStr, CanvasPos, bOnScreen, fromX, fro
             pcall(function() layer.Widget:SetRenderAngle(angle) end)
         end
     else
+        -- Fallback: single-layer (legacy path)
         local Widget = LineData.Widget
         local Slot = LineData.Slot
         pcall(function() Widget:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
 
+        -- ========================================================
+        -- INSTANT COLOR SYNC (For Single Layer)
+        -- ========================================================
         if _G.SnapLineCustomColor then
             pcall(function() Widget:SetBrushColor(_G.SnapLineCustomColor) end)
         end
+        -- ========================================================
 
         if not LineData._CachedPosVec then
             LineData._CachedPosVec = FVector2D_ESP9 and FVector2D_ESP9(fromX, fromY - baseThick / 2.0) or {X=fromX, Y=fromY - baseThick / 2.0}
@@ -1397,6 +1472,7 @@ end
 function PlayerMapMarker.RemoveSnapLine(KeyStr)
     local LineData = PlayerMapMarker.SnapLineWidgets[KeyStr]
     if LineData then
+        -- Multi-layer: destroy all layer widgets
         if LineData.Layers then
             for _, layer in ipairs(LineData.Layers) do
                 if layer.Widget and slua.isValid(layer.Widget) then
@@ -1407,6 +1483,7 @@ function PlayerMapMarker.RemoveSnapLine(KeyStr)
             pcall(function() LineData.Widget:RemoveFromParent() LineData.Widget:ConditionalBeginDestroy() end)
         end
     end
+    -- Always clear the record, including invalid/stale widget handles.
     PlayerMapMarker.SnapLineWidgets[KeyStr] = nil
 end
 
@@ -1444,6 +1521,7 @@ function PlayerMapMarker.ClearAllSnapLines()
     PlayerMapMarker.SnapLineWidgets = {}
 end
 
+-- ============================================================
 function PlayerMapMarker.ScreenPixelToCanvasLocalRaw(PC, screenX, screenY)
     local scaleX = PlayerMapMarker._CanvasScaleX or 1.0
     local scaleY = PlayerMapMarker._CanvasScaleY or 1.0
@@ -1862,13 +1940,14 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
                             else
                                 PlayerMapMarker.RemoveSkeletonLines(KeyStr)
                             end
+
                         else
                             local Container = Widget.Container or Widget
                             pcall(function() Container:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
                             PlayerMapMarker.UpdateESPHealth(Widget, 0)
                             PlayerMapMarker.RemoveSnapLine(KeyStr)
                             PlayerMapMarker.RemoveSkeletonLines(KeyStr)
-                        end
+                                            end
                     end
                 else
                     ESPData.Character = Character
@@ -1897,6 +1976,7 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
                     else
                         PlayerMapMarker.RemoveSkeletonLines(KeyStr)
                     end
+
                 end
             end
         end
@@ -1908,6 +1988,7 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
             PlayerMapMarker.ESPWidgets[KeyStr] = nil
         end
     end
+    -- Remove any line whose target record no longer exists; this prevents stale left-side flicker.
     for KeyStr in pairs(PlayerMapMarker.SnapLineWidgets) do
         if not PlayerMapMarker.ESPWidgets[KeyStr] then PlayerMapMarker.RemoveSnapLine(KeyStr) end
     end
@@ -1943,7 +2024,7 @@ function PlayerMapMarker.UpdateESPLight()
                 pcall(function() Container:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
                 PlayerMapMarker.RemoveSnapLine(KeyStr)
                 PlayerMapMarker.RemoveSkeletonLines(KeyStr)
-            else
+                    else
                 local bShowAnyUI = _G.Mod_ESP_ShowName or _G.Mod_ESP_ShowDistance or _G.Mod_ESP_ShowHealthBar or _G.Mod_ESP_ShowTeamColor or _G.Mod_ESP_ShowWeaponIcon
                 if bShowAnyUI then
                     pcall(function() Container:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
@@ -1964,13 +2045,15 @@ function PlayerMapMarker.UpdateESPLight()
                     else
                         PlayerMapMarker.RemoveSkeletonLines(KeyStr)
                     end
+
                 else
                     PlayerMapMarker.RemoveSnapLine(KeyStr)
                     PlayerMapMarker.RemoveSkeletonLines(KeyStr)
-                end
+                            end
             end
         end
-    endend
+    end
+end
 
 function PlayerMapMarker.UpdateESPDistances()
     if not PlayerMapMarker.bUseScreenESP then return end
@@ -2118,7 +2201,7 @@ _G.PlayerMapMarker = PlayerMapMarker
 
 
 -- ============================================================
--- UltraHD Anime Corner Box ESP with PER-TEAM COLORS
+-- ANIME CORNER BOX ESP (Clean - Only Corners)
 -- ============================================================
 local FVector2D = _G.FVector2D or import("Vector2D")
 local FLinearColor = _G.FLinearColor or import("LinearColor")
@@ -2147,10 +2230,10 @@ local CFG = {
   MaxDistance = 40000,
   MaxTracked = 16,
   ScreenMargin = 220,
-  CornerThickness = 1.4,
-  CornerLen = 0.30,
-  CornerMin = 8,
-  CornerMax = 32,
+  CornerThickness = 1.0,
+  CornerLen = 0.28,
+  CornerMin = 6,
+  CornerMax = 28,
   BoxMinWidth = 22,
   BoxMaxWidth = 320,
   BoxMinHeight = 14,
@@ -2185,37 +2268,6 @@ ESP.LastScan = -999.0
 ESP.LastTransform = -999.0
 ESP.LastWorld = nil
 ESP.bActive = false
-
--- Fallback palette for team colors
-local FALLBACK_TEAM_COLORS = {
-  [1]  = ESPMKC(1.0, 0.2, 0.2, 1.0),
-  [2]  = ESPMKC(0.2, 1.0, 0.2, 1.0),
-  [3]  = ESPMKC(0.2, 0.4, 1.0, 1.0),
-  [4]  = ESPMKC(1.0, 1.0, 0.2, 1.0),
-  [5]  = ESPMKC(1.0, 0.2, 1.0, 1.0),
-  [6]  = ESPMKC(0.2, 1.0, 1.0, 1.0),
-  [7]  = ESPMKC(1.0, 0.6, 0.2, 1.0),
-  [8]  = ESPMKC(0.6, 0.2, 1.0, 1.0),
-  [9]  = ESPMKC(0.8, 1.0, 0.2, 1.0),
-  [10] = ESPMKC(0.2, 0.6, 1.0, 1.0),
-  [11] = ESPMKC(1.0, 0.4, 0.6, 1.0),
-  [12] = ESPMKC(0.4, 1.0, 0.6, 1.0),
-  [13] = ESPMKC(0.6, 0.6, 0.2, 1.0),
-  [14] = ESPMKC(0.2, 0.8, 0.6, 1.0),
-  [15] = ESPMKC(1.0, 0.8, 0.2, 1.0),
-}
-
-function ESP.TeamColorFor(teamID)
-  if teamID == nil or teamID == 0 then return C_WHITE end
-  if _G.PlayerMapMarker and _G.PlayerMapMarker.GetTeamColor then
-    local c = nil
-    pcall(function() c = _G.PlayerMapMarker.GetTeamColor(teamID) end)
-    if c then return c end
-  end
-  local idx = (tonumber(teamID) or 1) % 15
-  if idx == 0 then idx = 15 end
-  return FALLBACK_TEAM_COLORS[idx] or C_WHITE
-end
 
 function ESP.GetGameplayData()
   if ESP._GDP then return ESP._GDP end
@@ -2466,7 +2518,7 @@ function ESP.NewLine(color, z)
     return nil
   end
   pcall(function() slot:SetAutoSize(false) slot:SetZOrder(z or 30) end)
-  return { Widget = border, Slot = slot, _lastColor = nil }
+  return { Widget = border, Slot = slot }
 end
 
 function ESP.DrawLine(data, x1, y1, x2, y2, thickness)
@@ -2530,16 +2582,9 @@ function ESP.EnsureCorner(key, idx, color)
   local t = ESP.Corners[key]
   if not t then t = {} ESP.Corners[key] = t end
   local d = t[idx]
-  if not d or not ESPValid(d.Widget) then
-    d = ESP.NewLine(color or C_WHITE, 32)
-    t[idx] = d
-  end
-  if d and ESPValid(d.Widget) and color then
-    if d._lastColor ~= color then
-      pcall(function() d.Widget:SetBrushColor(color) end)
-      d._lastColor = color
-    end
-  end
+  if d and ESPValid(d.Widget) then return d end
+  d = ESP.NewLine(color or C_WHITE, 32)
+  t[idx] = d
   return d
 end
 
@@ -2570,7 +2615,7 @@ function ESP.Scan()
   local myTeam = ESP.GetTeamID(me)
   local list = {}
   local pawns = nil
-  pcall(function() if Game and Game:GetAllPlayerPawns then pawns = Game:GetAllPlayerPawns() end end)
+  pcall(function() if Game and Game.GetAllPlayerPawns then pawns = Game:GetAllPlayerPawns() end end)
   if pawns then
     for _, ch in pairs(pawns) do
       if ESPValid(ch) and ch ~= me and ESP.IsAlive(ch) then
@@ -2579,12 +2624,7 @@ function ESP.Scan()
           local loc = ESP.ActorLocation(ch)
           local dm = ESP.DistMeters(myLoc, loc)
           if dm * 100.0 <= (CFG.MaxDistance or 40000) then
-            list[#list + 1] = {
-              Character = ch,
-              Key = ESP.GetPlayerKey(ch),
-              Distance = dm,
-              TeamID = team,
-            }
+            list[#list + 1] = { Character = ch, Key = ESP.GetPlayerKey(ch), Distance = dm }
           end
         end
       end
@@ -2661,24 +2701,17 @@ function ESP.Update()
               local T = headS.Y - padT
               local B = feetS.Y + padB
 
-              local currentTeamID = item.TeamID
-              if ESPValid(c) then
-                local liveTeam = ESP.GetTeamID(c)
-                if liveTeam ~= nil then currentTeamID = liveTeam end
-              end
-              local boxColor = ESP.TeamColorFor(currentTeamID)
-
-              local arm = math.min(R - L, B - T) * (CFG.CornerLen or 0.30)
-              arm = math.max(CFG.CornerMin or 8, math.min(CFG.CornerMax or 32, arm))
-              local th = CFG.CornerThickness or 1.4
-              ESP.DrawLine(ESP.EnsureCorner(key, 1, boxColor), L, T, L + arm, T, th)
-              ESP.DrawLine(ESP.EnsureCorner(key, 2, boxColor), L, T, L, T + arm, th)
-              ESP.DrawLine(ESP.EnsureCorner(key, 3, boxColor), R, T, R - arm, T, th)
-              ESP.DrawLine(ESP.EnsureCorner(key, 4, boxColor), R, T, R, T + arm, th)
-              ESP.DrawLine(ESP.EnsureCorner(key, 5, boxColor), L, B, L + arm, B, th)
-              ESP.DrawLine(ESP.EnsureCorner(key, 6, boxColor), L, B, L, B - arm, th)
-              ESP.DrawLine(ESP.EnsureCorner(key, 7, boxColor), R, B, R - arm, B, th)
-              ESP.DrawLine(ESP.EnsureCorner(key, 8, boxColor), R, B, R, B - arm, th)
+              local arm = math.min(R - L, B - T) * (CFG.CornerLen or 0.28)
+              arm = math.max(CFG.CornerMin or 6, math.min(CFG.CornerMax or 28, arm))
+              local th = CFG.CornerThickness or 2.2
+              ESP.DrawLine(ESP.EnsureCorner(key, 1, C_WHITE), L, T, L + arm, T, th)
+              ESP.DrawLine(ESP.EnsureCorner(key, 2, C_WHITE), L, T, L, T + arm, th)
+              ESP.DrawLine(ESP.EnsureCorner(key, 3, C_WHITE), R, T, R - arm, T, th)
+              ESP.DrawLine(ESP.EnsureCorner(key, 4, C_WHITE), R, T, R, T + arm, th)
+              ESP.DrawLine(ESP.EnsureCorner(key, 5, C_WHITE), L, B, L + arm, B, th)
+              ESP.DrawLine(ESP.EnsureCorner(key, 6, C_WHITE), L, B, L, B - arm, th)
+              ESP.DrawLine(ESP.EnsureCorner(key, 7, C_WHITE), R, B, R - arm, B, th)
+              ESP.DrawLine(ESP.EnsureCorner(key, 8, C_WHITE), R, B, R, B - arm, th)
             else
               ESP.HideTarget(key)
             end
@@ -2738,17 +2771,25 @@ function ESP.Start()
 end
 
 _G.ESP = ESP
-
-
+-- ============================================================
+-- END ANIME CORNER BOX ESP
+-- =======================================================
+-- ========================================================================
+-- NewFreshRuntimeTick - applies ESP toggle settings and start/stop
+-- ========================================================================
 function _G.NewFreshRuntimeTick()
+    -- Aim features, iPad view, credit (from BRPlayerCharacterBase.lua)
+    -- These functions may not exist in this context, so pcall them safely
     pcall(function() if _G.NewFreshApplyV1AimFeatures then _G.NewFreshApplyV1AimFeatures() end end)
     pcall(function() if _G.NewFreshApplyIpadView then _G.NewFreshApplyIpadView() end end)
     pcall(function() if _G.NewFreshCredit then _G.NewFreshCredit() end end)
 
+    -- Weapon Glow
     if _G.Mod_WeaponGlow_Enabled and _G.ApplyWeaponGlow then
         pcall(function() _G.ApplyWeaponGlow(GameplayData.GetPlayerCharacter()) end)
     end
 
+    -- ESP V2 toggle settings and start/stop
     if _G.PlayerMapMarker then
         _G.PlayerMapMarker.bUseSnapLines = _G.Mod_ESP_ShowSnapline or false
         _G.PlayerMapMarker.bShowDistance = _G.Mod_ESP_ShowDistance or false
@@ -2759,6 +2800,7 @@ function _G.NewFreshRuntimeTick()
         end
     end
 
+    -- RedBoxOverlay (player count) start/stop
     if _G.RedBoxOverlay then
         if _G.Mod_ESP_Enabled and _G.Mod_ESP_ShowPlayerCount then
             if not _G.RedBoxOverlay.bActive then pcall(_G.RedBoxOverlay.Start) end
@@ -2769,6 +2811,11 @@ function _G.NewFreshRuntimeTick()
 end
 
 
+-- ============================================================
+-- WEAPON GLOW (HDR) FUNCTION
+-- ============================================================
+-- WEAPON GLOW (HDR) FUNCTION - GLITCH FIXED
+-- ============================================================
 _G.ApplyWeaponGlow = function(PlayerCharacter)
     pcall(function()
         if not slua.isValid(PlayerCharacter) then return end
@@ -2777,6 +2824,7 @@ _G.ApplyWeaponGlow = function(PlayerCharacter)
 
         local meshComponentClass = import("/Script/Engine.MeshComponent")
 
+        -- PEHLE SABHI GUNS SE GLOW HATAO (Taki peeth wali gun glitch na kare)
         for slot = 1, 3 do
             local Weapon = WeaponManager:GetInventoryWeaponByPropSlot(slot)
             if slua.isValid(Weapon) then
@@ -2793,6 +2841,7 @@ _G.ApplyWeaponGlow = function(PlayerCharacter)
             end
         end
 
+        -- Agar Glow Toggle OFF hai toh yahi ruk jao
         if not _G.Mod_WeaponGlow_Enabled then return end
 
         local LinearColorClass = import("LinearColor") or FLinearColor
@@ -2814,6 +2863,7 @@ _G.ApplyWeaponGlow = function(PlayerCharacter)
 
         local finalColor = LinearColorClass and LinearColorClass(r * glowIntensity, g * glowIntensity, b * glowIntensity, 1.0) or { R = r * 255 * glowIntensity, G = g * 255 * glowIntensity, B = b * 255 * glowIntensity, A = 255 }
 
+        -- AB SIRF HAATH MEIN PAKDI HUI GUN PAR GLOW LAGAO
         local CurrentWeapon = PlayerCharacter:GetCurrentWeapon()
         if slua.isValid(CurrentWeapon) then
             pcall(function()
@@ -2836,6 +2886,12 @@ _G.ApplyWeaponGlow = function(PlayerCharacter)
 end
 
 
+
+
+
+-- ============================================================
+-- UNLOCK 165 FPS FUNCTION (Full hook version)
+-- ============================================================
 local function InitializeGraphicsUnlock()
     if _G.GraphicsUnlocked then return end
 
@@ -2860,6 +2916,7 @@ local function InitializeGraphicsUnlock()
         local KismetMathLibrary = import("KismetMathLibrary") or _G.KismetMathLibrary
         local FLinearColor2 = import("LinearColor") or FLinearColor
 
+        -- Hook SetFPS to force 165 when level 8
         if logic_setting_graphics then
             local old_SetFPS = logic_setting_graphics.SetFPS
             function logic_setting_graphics.SetFPS(gameInstance, FPSLevel)
@@ -2871,6 +2928,7 @@ local function InitializeGraphicsUnlock()
             end
         end
 
+        -- Hook GSC_FPS to unlock all FPS levels
         if GSC_FPS and GSC_FPS.__inner_impl then
             local fps_impl = GSC_FPS.__inner_impl
             function fps_impl:GetMaxFPSLevel() return 8, 8 end
@@ -2897,6 +2955,7 @@ local function InitializeGraphicsUnlock()
             end
         end
 
+        -- Hook GSC_FPSFT to allow 90-165 fine tune slider
         if GSC_FPSFT and GSC_FPSFT.__inner_impl then
             local ft_impl = GSC_FPSFT.__inner_impl
             local NMinFPS, NStep = 90, 5
@@ -2984,6 +3043,7 @@ local function InitializeGraphicsUnlock()
         end
     end)
 
+    -- Also run console commands directly
     pcall(function()
         local KSL = import("KismetSystemLibrary")
         local world = slua.getWorld()
@@ -2996,6 +3056,9 @@ local function InitializeGraphicsUnlock()
     _G.GraphicsUnlocked = true
 end
 
+-- ============================================================
+-- IPAD VIEW FUNCTION
+-- ============================================================
 local function UpdateIpadView(localPlayer, pc)
     pcall(function()
         if not isValid(localPlayer) then return end
@@ -3006,9 +3069,11 @@ local function UpdateIpadView(localPlayer, pc)
         local uVehCam = localPlayer.VehicleCameraComponent
         local camMgr = pc.PlayerCameraManager
         
+        -- Not aiming (walking or driving)
         if type(pc.FOV) == "function" then pc:FOV(0) end
         if isValid(camMgr) and type(camMgr.UnlockFOV) == "function" then camMgr:UnlockFOV() end
         
+        -- Walk
         if not isInVehicle then
             if _G.Mod_IpadView_Enabled then
                 local targetTPP = _G.IpadViewFOV or 120
@@ -3022,6 +3087,7 @@ local function UpdateIpadView(localPlayer, pc)
             end
         end
         
+        -- Drive (reset vehicle cam to default)
         if isInVehicle then
             if isValid(uVehCam) and uVehCam.FieldOfView ~= 90 then
                 uVehCam.FieldOfView = 90
@@ -3030,6 +3096,9 @@ local function UpdateIpadView(localPlayer, pc)
     end)
 end
 
+-- ============================================================
+-- WHITE BODY FUNCTION
+-- ============================================================
 local function InitCircleArrowESP()
     if _G.CircleArrowESP then return end
     local CAIsValid = function(obj) return obj ~= nil and slua ~= nil and slua.isValid ~= nil and slua.isValid(obj) end
@@ -3051,6 +3120,7 @@ local function InitCircleArrowESP()
     ESP._CanvasOffsetX = 0.0
     ESP._CanvasOffsetY = 0.0
     
+    -- [ SETTINGS FOR SIMPLE SOLID GREEN CIRCLE ]
     ESP.FOVCircleRadius = 250.0
     ESP.FOVCircleSegments = 72
     ESP.FOVCircleThickness = 4.0
@@ -3278,11 +3348,15 @@ local function InitCircleArrowESP()
     _G.CircleArrowESP = ESP
 end
 
+-- ============================================================
+-- MAIN UPDATE LOOP (CHAMS + ESP V2 + WEAPON GLOW + IPAD + WHITE BODY + FPS + CIRCLE ARROW)
+-- ============================================================
 local function MainUpdate()
     pcall(function()
         local localPlayer = GameplayData and GameplayData.GetPlayerCharacter()
         if not slua.isValid(localPlayer) then return end
 
+        -- ===== CHAMS COLOR SYNC =====
         if colors and _G.ChamsColors then
             if _G.ChamsColors.vis then colors.vis = _G.ChamsColors.vis end
             if _G.ChamsColors.occ then colors.occ = _G.ChamsColors.occ end
@@ -3290,6 +3364,7 @@ local function MainUpdate()
             if _G.ChamsColors.bOcc then colors.bOcc = _G.ChamsColors.bOcc end
         end
 
+        -- ===== IPAD FOV SYNC =====
         if _G.Mod_IpadView_Enabled and _G.IpadViewFOV then
             local targetFov = tonumber(_G.IpadViewFOV) or 120
             if targetFov < 90 then targetFov = 90 end
@@ -3305,6 +3380,7 @@ local function MainUpdate()
             end)
         end
 
+        -- Update Chams
         if _G.Mod_Chams_Enabled then
             EnableChamsConsole()
             if colors then
@@ -3327,6 +3403,7 @@ local function MainUpdate()
             end
         end
 
+        -- Update Anime Box ESP (FIXED - Mod_ESP_ShowTeamColor)
         if _G.Mod_ESP_ShowTeamColor then
             if _G.ESP and not _G.ESP.bActive then
                 pcall(_G.ESP.Start)
@@ -3340,8 +3417,10 @@ local function MainUpdate()
             end
         end
 
+        -- Call NewFreshRuntimeTick
         pcall(_G.NewFreshRuntimeTick)
 
+        -- Update Weapon Glow
         if not _G.LastGlowTime or (os.clock() - _G.LastGlowTime) > 0.5 then
             _G.LastGlowTime = os.clock()
             if _G.Mod_WeaponGlow_Enabled then
@@ -3351,17 +3430,21 @@ local function MainUpdate()
             end
         end
 
+        -- Update Unlock 165 FPS
         if _G.Mod_UnlockFPS_Enabled and not _G.GraphicsUnlocked then
             InitializeGraphicsUnlock()
         end
 
+        -- Update iPad View
         local uCon = slua_GameFrontendHUD and slua_GameFrontendHUD:GetPlayerController()
         if isValid(uCon) then
             UpdateIpadView(localPlayer, uCon)
         end
 
+        -- Update White Body
         UpdateWhiteBody()
 
+        -- Update Circle & Arrow ESP
         if _G.Mod_CircleArrow_Enabled then
             if not _G.CircleArrowESP then InitCircleArrowESP() end
             if _G.CircleArrowESP and not _G.CircleArrowESP.bActive then
@@ -3372,9 +3455,15 @@ local function MainUpdate()
                 pcall(_G.CircleArrowESP.Stop)
             end
         end
+
     end)
 end
 
+
+
+-- ============================================================
+-- START MODULES
+-- ============================================================
 pcall(function()
     if _G._ESPWatchdogHandle then pcall(function() Game:ClearTimer(_G._ESPWatchdogHandle) end); _G._ESPWatchdogHandle = nil end
 
@@ -3407,53 +3496,65 @@ pcall(function()
 end)
 
 
+
 -- ============================================================
--- ULTRA-HD VIP MENU UI — Premium Shining Design
+-- LUXURY MENU UI - FROM 1.lua (old game menu removed)
 -- ============================================================
+
+-- ============================================================
+-- ============================================================
+-- ============================================================
+-- ============================================================
+-- ============================================================
+-- ============================================================
+-- VIP MENU UI - 2 MENU + PNG BANNER + Snapline Sync
+-- MOD DEVELOPER EXORTOP
+-- ============================================================
+
+-- ============================================================
+-- VIP MENU UI - 2 MENU + PNG BANNER + Snapline Sync
+-- ============================================================
+-- VIP MENU UI - 2 MENU + PNG BANNER + Snapline Sync
+-- MOD DEVELOPER EXORTOP
+-- ============================================================
+
 do
     local IsValid = function(obj) return obj and slua and slua.isValid and slua.isValid(obj) end
     local FLinearColor = import("LinearColor")
     local FVector2D = import("Vector2D")
     local FSlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor")
 
-    -- ===== ULTRA-HD PREMIUM PALETTE =====
+    -- ===== PREMIUM GLASS PALETTE =====
     local C = {
-        bg_outer_dark  = FLinearColor(0.05, 0.05, 0.08, 0.94),
-        bg_panel       = FLinearColor(0.10, 0.10, 0.14, 0.92),
-        bg_header      = FLinearColor(0.14, 0.14, 0.20, 0.96),
-        bg_row         = FLinearColor(0.14, 0.14, 0.18, 0.85),
-        bg_row_alt     = FLinearColor(0.17, 0.17, 0.22, 0.85),
-        bg_slider_row  = FLinearColor(0.18, 0.20, 0.28, 0.85),
-        bg_tab_active  = FLinearColor(0.20, 0.55, 1.0, 1.0),
-        bg_tab_inactive= FLinearColor(0.22, 0.22, 0.28, 0.85),
-        gold_border    = FLinearColor(1.0, 0.82, 0.20, 1.0),
-        gold_soft      = FLinearColor(1.0, 0.85, 0.35, 0.55),
-        cyan_glow      = FLinearColor(0.20, 0.75, 1.0, 0.55),
-        cyan_bright    = FLinearColor(0.30, 0.85, 1.0, 1.0),
-        text_gold      = FLinearColor(1.0, 0.88, 0.35, 1.0),
-        text_white     = FLinearColor(1.0, 1.0, 1.0, 1.0),
-        text_soft      = FLinearColor(0.85, 0.88, 0.95, 1.0),
-        text_cyan      = FLinearColor(0.35, 0.88, 1.0, 1.0),
-        toggle_on_glow = FLinearColor(0.20, 1.0, 0.45, 0.55),
-        toggle_on      = FLinearColor(0.10, 0.88, 0.35, 1.0),
-        toggle_off     = FLinearColor(0.35, 0.35, 0.40, 1.0),
-        toggle_knob    = FLinearColor(1.0, 1.0, 1.0, 1.0),
-        close_glow     = FLinearColor(1.0, 0.15, 0.15, 0.55),
-        close_btn      = FLinearColor(0.92, 0.18, 0.18, 1.0),
-        transparent    = FLinearColor(0, 0, 0, 0.01),
-        shimmer        = FLinearColor(1.0, 1.0, 1.0, 0.85),
-        btn_minus_glow = FLinearColor(1.0, 0.20, 0.20, 0.45),
-        btn_minus      = FLinearColor(0.92, 0.25, 0.25, 1.0),
-        btn_plus_glow  = FLinearColor(0.20, 1.0, 0.35, 0.45),
-        btn_plus       = FLinearColor(0.18, 0.88, 0.32, 1.0),
+        bg_panel        = FLinearColor(0.96, 0.96, 0.96, 0.75),
+        bg_header       = FLinearColor(0.88, 0.88, 0.88, 0.80),
+        bg_tab_active   = FLinearColor(0.35, 0.65, 1.0, 1.0),
+        bg_tab_inactive = FLinearColor(0.85, 0.85, 0.85, 0.60),
+        bg_row          = FLinearColor(0.85, 0.85, 0.85, 0.55),
+        bg_row_alt      = FLinearColor(0.78, 0.78, 0.78, 0.50),
+        bg_slider_row   = FLinearColor(0.75, 0.85, 1.0, 0.55),
+
+        text_black      = FLinearColor(0.0, 0.0, 0.0, 1.0),
+        text_blue       = FLinearColor(0.0, 0.35, 0.85, 1.0),
+        text_light      = FLinearColor(1.0, 1.0, 1.0, 1.0),
+
+        toggle_on       = FLinearColor(0.20, 0.85, 0.30, 1.0),
+        toggle_off      = FLinearColor(0.60, 0.60, 0.60, 1.0),
+        toggle_knob     = FLinearColor(1.0, 1.0, 1.0, 1.0),
+        close_btn       = FLinearColor(0.9, 0.2, 0.2, 1.0),
+        transparent     = FLinearColor(0, 0, 0, 0.01),
+        border_blue     = FLinearColor(0.0, 0.35, 0.85, 0.6),
+
+        btn_minus       = FLinearColor(0.9, 0.3, 0.3, 1.0),
+        btn_plus        = FLinearColor(0.2, 0.8, 0.3, 1.0),
     }
 
-    local M_W = 540
-    local M_H = 660
-    local ROW_H = 52
-    local SLIDER_ROW_H = 60
-    local HEADER_H = 92
-    local TAB_H = 54
+    local M_W = 520
+    local M_H = 620
+    local ROW_H = 48
+    local SLIDER_ROW_H = 56
+    local HEADER_H = 80
+    local TAB_H = 50
 
     _G.VIPConfig = _G.VIPConfig or {
         ESP_Enabled = true, ESP_HealthBar = true, ESP_Distance = true, ESP_WeaponIcon = false, ESP_Name = false,
@@ -3462,6 +3563,7 @@ do
         AIM_FOV = false, AIM_Smooth = false, AIM_Visible = false,
     }
 
+    -- ===== CHAMS COLOR PRESETS =====
     local CHAMS_VIS_COLORS = {
         {name = "Cyan",     r = 0,   g = 5,   b = 5},
         {name = "Purple",   r = 5,   g = 0,   b = 5},
@@ -3490,6 +3592,7 @@ do
     _G.ChamsVisColorIndex = _G.ChamsVisColorIndex or 1
     _G.ChamsOccColorIndex = _G.ChamsOccColorIndex or 1
 
+    -- ===== FEATURE MAP =====
     local FeatureMap = {
         ESP_Enabled = "_G.Mod_ESP_Enabled",
         ESP_Line = "_G.Mod_ESP_ShowSnapline",
@@ -3520,6 +3623,7 @@ do
         return val
     end
 
+    -- ===== APPLY CHAMS COLOR =====
     local function ApplyChamsColor()
         pcall(function()
             local visCfg = CHAMS_VIS_COLORS[_G.ChamsVisColorIndex] or CHAMS_VIS_COLORS[1]
@@ -3547,6 +3651,7 @@ do
         end)
     end
 
+    -- ===== APPLY IPAD FOV =====
     local function ApplyIpadFov()
         pcall(function()
             local fov = tonumber(_G.IpadViewFOV) or 120
@@ -3571,6 +3676,7 @@ do
         end)
     end
 
+    -- ===== HELPER: ESP SUB-FEATURES SYNC (sab yahi se chalega) =====
     local function _SyncESPState()
         local anyESP = _G.Mod_ESP_ShowSnapline
             or _G.Mod_ESP_ShowName
@@ -3602,6 +3708,7 @@ do
         end
     end
 
+    -- ===== DIRECT FUNCTION TRIGGER =====
     local function ApplyFeature(key, state)
         SyncFeature(key, state)
         pcall(function()
@@ -3683,6 +3790,7 @@ do
         end)
     end
 
+
     for cfgKey, _ in pairs(FeatureMap) do
         local state = GetFeatureState(cfgKey)
         _G.VIPConfig[cfgKey] = state
@@ -3755,7 +3863,7 @@ do
         return b
     end
 
-    local function Text(parent, txt, x, y, size, color, z, alignX, alignY, bold)
+    local function Text(parent, txt, x, y, size, color, z, alignX, alignY)
         local t = nil
         pcall(function()
             t = CGame:NewObjectFromPath("/Script/UMG.TextBlock", parent)
@@ -3763,12 +3871,7 @@ do
                 t:SetText(txt)
                 if FSlateColor then t:SetColorAndOpacity(FSlateColor(color))
                 else t:SetColorAndOpacity(color) end
-                if t.Font then
-                    local f = t.Font
-                    f.Size = size
-                    if bold ~= false then f.TypefaceFontName = "Bold" end
-                    t.Font = f
-                end
+                if t.Font then local f = t.Font f.Size = size t.Font = f end
                 t:SetRenderTransformPivot(FVector2D(alignX or 0.5, alignY or 0.5))
                 t:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
                 local slot = parent:AddChildToCanvas(t)
@@ -3791,9 +3894,6 @@ do
         if rowData.track and IsValid(rowData.track) then
             pcall(function() rowData.track:SetBrushColor(state and C.toggle_on or C.toggle_off) end)
         end
-        if rowData.glow and IsValid(rowData.glow) then
-            pcall(function() rowData.glow:SetBrushColor(state and C.toggle_on_glow or C.transparent) end)
-        end
         if rowData.knobSlot then
             pcall(function()
                 local knobX = state and (rowData.toggleX + rowData.toggleW - rowData.knobSize - 2) or (rowData.toggleX + 2)
@@ -3809,13 +3909,11 @@ do
         local rowData = { key = toggleKey }
 
         rowData.bg = Layer(parent, x, y, w, h, rowBg, 200)
-        -- Top shine line
-        Layer(parent, x + 4, y + 1, w - 8, 1, C.shimmer, 201)
-        rowData.label = Text(parent, label, x + 18, y + h * 0.5, 17, C.text_white, 300, 0, 0.5)
+        rowData.label = Text(parent, label, x + 16, y + h * 0.5, 16, C.text_black, 300, 0, 0.5)
 
-        local toggleW = 52
-        local toggleH = 26
-        local toggleX = x + w - toggleW - 18
+        local toggleW = 48
+        local toggleH = 24
+        local toggleX = x + w - toggleW - 16
         local toggleY = y + h * 0.5 - toggleH * 0.5
         local knobSize = toggleH - 4
 
@@ -3825,13 +3923,7 @@ do
         rowData.toggleH = toggleH
         rowData.knobSize = knobSize
 
-        -- Glow under track
-        rowData.glow = Layer(parent, toggleX - 3, toggleY - 3, toggleW + 6, toggleH + 6, state and C.toggle_on_glow or C.transparent, 299)
-
         rowData.track = Layer(parent, toggleX, toggleY, toggleW, toggleH, state and C.toggle_on or C.toggle_off, 300)
-        -- Track top highlight
-        Layer(parent, toggleX + 2, toggleY + 1, toggleW - 4, 1, C.shimmer, 302)
-
         local knobX = state and (toggleX + toggleW - knobSize - 2) or (toggleX + 2)
         local knobY = toggleY + 2
 
@@ -3845,7 +3937,7 @@ do
                     slot:SetAutoSize(false)
                     slot:SetPosition(FVector2D(knobX, knobY))
                     slot:SetSize(FVector2D(knobSize, knobSize))
-                    slot:SetZOrder(303)
+                    slot:SetZOrder(301)
                 end
                 rowData.knob = k
                 rowData.knobSlot = slot
@@ -3863,16 +3955,18 @@ do
         return rowData
     end
 
+    -- ============================================================
+    -- SIMPLE SLIDER ROW (1 Click = 1 Change)
+    -- ============================================================
     local function MakeSliderRow(parent, label, x, y, w, h, getDisplayText, onMinus, onPlus, isZebra)
         local rowBg = isZebra and C.bg_row_alt or C.bg_slider_row
         local rowData = { key = label, isSlider = true }
 
         rowData.bg = Layer(parent, x, y, w, h, rowBg, 200)
-        Layer(parent, x + 4, y + 1, w - 8, 1, C.shimmer, 201)
-        rowData.label = Text(parent, label, x + 18, y + h * 0.5 - 9, 16, C.text_gold, 300, 0, 0.5)
+        rowData.label = Text(parent, label, x + 16, y + h * 0.5 - 8, 15, C.text_black, 300, 0, 0.5)
 
         local valText = getDisplayText()
-        rowData.valueText = Text(parent, valText, x + 18, y + h * 0.5 + 10, 14, C.text_cyan, 300, 0, 0.5)
+        rowData.valueText = Text(parent, valText, x + 16, y + h * 0.5 + 10, 13, C.text_blue, 300, 0, 0.5)
 
         local function RefreshText()
             if rowData.valueText and IsValid(rowData.valueText) then
@@ -3880,27 +3974,21 @@ do
             end
         end
 
-        local btnW = 42
-        local btnH = 38
+        local btnW = 40
+        local btnH = 36
         local btnY = y + h * 0.5 - btnH * 0.5
-        local minusX = x + w - 108
-        local plusX = x + w - 56
+        local minusX = x + w - 100
+        local plusX = x + w - 52
 
-        -- MINUS
-        Layer(parent, minusX - 3, btnY - 3, btnW + 6, btnH + 6, C.btn_minus_glow, 298)
         Layer(parent, minusX, btnY, btnW, btnH, C.btn_minus, 299)
-        Layer(parent, minusX + 2, btnY + 1, btnW - 4, 1, C.shimmer, 300)
-        Text(parent, "−", minusX + btnW * 0.5, btnY + btnH * 0.5, 28, C.text_white, 400, 0.5, 0.5)
+        Text(parent, "-", minusX + btnW * 0.5, btnY + btnH * 0.5, 26, C.text_light, 400, 0.5, 0.5)
         MakeBtn(parent, minusX, btnY, btnW, btnH, 900, function()
             onMinus()
             RefreshText()
         end)
 
-        -- PLUS
-        Layer(parent, plusX - 3, btnY - 3, btnW + 6, btnH + 6, C.btn_plus_glow, 298)
         Layer(parent, plusX, btnY, btnW, btnH, C.btn_plus, 299)
-        Layer(parent, plusX + 2, btnY + 1, btnW - 4, 1, C.shimmer, 300)
-        Text(parent, "+", plusX + btnW * 0.5, btnY + btnH * 0.5, 26, C.text_white, 400, 0.5, 0.5)
+        Text(parent, "+", plusX + btnW * 0.5, btnY + btnH * 0.5, 24, C.text_light, 400, 0.5, 0.5)
         MakeBtn(parent, plusX, btnY, btnW, btnH, 900, function()
             onPlus()
             RefreshText()
@@ -3910,7 +3998,7 @@ do
         return rowData
     end
 
-    local function BuildMenu()
+        local function BuildMenu()
         if menuBuilt and bgPanel and IsValid(bgPanel) then
             pcall(function() bgPanel:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
             return
@@ -3935,56 +4023,28 @@ do
         end)
         if not bgPanel or not slua.isValid(bgPanel) then return end
 
-        -- OUTER GLOW
-        Layer(bgPanel, -6, -6, M_W + 12, M_H + 12, C.gold_soft, 0)
-        Layer(bgPanel, -3, -3, M_W + 6, M_H + 6, C.cyan_glow, 1)
+        Layer(bgPanel, 0, 0, M_W, M_H, C.bg_panel, 1)
+        Layer(bgPanel, 0, 0, M_W, 2, C.border_blue, 2)
+        Layer(bgPanel, 0, M_H - 2, M_W, 2, C.border_blue, 2)
+        Layer(bgPanel, 0, 0, 2, M_H, C.border_blue, 2)
+        Layer(bgPanel, M_W - 2, 0, 2, M_H, C.border_blue, 2)
 
-        -- MAIN BACKGROUND
-        Layer(bgPanel, 0, 0, M_W, M_H, C.bg_outer_dark, 2)
+        Layer(bgPanel, 2, 2, M_W - 4, HEADER_H - 4, C.bg_header, 3)
+        Text(bgPanel, "MOHSINXFILES-OFFICIAL", M_W * 0.5, HEADER_H * 0.5, 26, C.text_black, 400, 0.5, 0.5)
+        Layer(bgPanel, 20, 20, 12, 12, FLinearColor(1, 0.4, 0.4), 5)
+        Layer(bgPanel, 40, 20, 12, 12, FLinearColor(1, 0.8, 0.2), 5)
+        Layer(bgPanel, 60, 20, 12, 12, FLinearColor(0.2, 0.9, 0.2), 5)
 
-        -- DOUBLE BORDER (cyan inner + gold outer)
-        Layer(bgPanel, 0, 0, M_W, 3, C.gold_border, 3)
-        Layer(bgPanel, 0, M_H - 3, M_W, 3, C.gold_border, 3)
-        Layer(bgPanel, 0, 0, 3, M_H, C.gold_border, 3)
-        Layer(bgPanel, M_W - 3, 0, 3, M_H, C.gold_border, 3)
-        Layer(bgPanel, 3, 3, M_W - 6, 2, C.cyan_bright, 4)
-        Layer(bgPanel, 3, M_H - 5, M_W - 6, 2, C.cyan_bright, 4)
-        Layer(bgPanel, 3, 3, 2, M_H - 6, C.cyan_bright, 4)
-        Layer(bgPanel, M_W - 5, 3, 2, M_H - 6, C.cyan_bright, 4)
-
-        -- HEADER
-        Layer(bgPanel, 6, 6, M_W - 12, HEADER_H - 6, C.bg_header, 5)
-        -- Top shimmer strip on header
-        Layer(bgPanel, 6, 6, M_W - 12, 2, C.shimmer, 6)
-        -- Gold accent line under header
-        Layer(bgPanel, 6, HEADER_H + 3, M_W - 12, 2, C.gold_border, 6)
-
-        -- HEADER TITLE with shadow layers (UltraHD look)
-        Text(bgPanel, "REDMAGIX", M_W * 0.5 + 2, HEADER_H * 0.42 + 2, 34, FLinearColor(0, 0, 0, 0.85), 400, 0.5, 0.5)
-        Text(bgPanel, "REDMAGIX", M_W * 0.5, HEADER_H * 0.42, 34, C.text_gold, 401, 0.5, 0.5)
-        Text(bgPanel, "OFFICIAL", M_W * 0.5 + 1, HEADER_H * 0.72 + 1, 14, FLinearColor(0, 0, 0, 0.85), 400, 0.5, 0.5)
-        Text(bgPanel, "OFFICIAL", M_W * 0.5, HEADER_H * 0.72, 14, C.text_cyan, 401, 0.5, 0.5)
-
-        -- Header decorative dots
-        Layer(bgPanel, 22, 22, 12, 12, FLinearColor(1, 0.35, 0.35, 1), 7)
-        Layer(bgPanel, 42, 22, 12, 12, FLinearColor(1, 0.85, 0.20, 1), 7)
-        Layer(bgPanel, 62, 22, 12, 12, FLinearColor(0.35, 1, 0.35, 1), 7)
-
-        -- CLOSE BUTTON with glow
-        Layer(bgPanel, M_W - 46, 18, 32, 32, C.close_glow, 898)
-        Layer(bgPanel, M_W - 43, 21, 26, 26, C.close_btn, 899)
-        Layer(bgPanel, M_W - 41, 22, 22, 1, C.shimmer, 901)
-        MakeBtn(bgPanel, M_W - 46, 18, 32, 32, 900, function()
+        MakeBtn(bgPanel, M_W - 40, 20, 30, 30, 900, function()
             isMenuOpen = false
             pcall(function() bgPanel:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
         end)
-        Text(bgPanel, "X", M_W - 30, 34, 20, C.text_white, 400, 0.5, 0.5)
+        Text(bgPanel, "X", M_W - 25, 35, 20, C.close_btn, 400, 0.5, 0.5)
 
-        -- TABS
-        local tabY = HEADER_H + 8
+        local tabY = HEADER_H
         local tabNames = {"ESP", "WALL HACK"}
-        local tabW = (M_W - 16) / #tabNames
-        Layer(bgPanel, 8, tabY, M_W - 16, TAB_H, C.bg_panel, 4)
+        local tabW = M_W / #tabNames
+        Layer(bgPanel, 0, tabY, M_W, TAB_H, C.bg_panel, 1)
 
         local tabWidgets = {}
         local contentPanels = {}
@@ -3997,11 +4057,8 @@ do
                     if tw.bg and IsValid(tw.bg) then
                         tw.bg:SetBrushColor(isActive and C.bg_tab_active or C.bg_tab_inactive)
                     end
-                    if tw.glow and IsValid(tw.glow) then
-                        tw.glow:SetBrushColor(isActive and C.cyan_glow or C.transparent)
-                    end
                     if tw.txt and IsValid(tw.txt) then
-                        local color = isActive and C.text_white or C.text_soft
+                        local color = isActive and C.text_light or C.text_black
                         if FSlateColor then tw.txt:SetColorAndOpacity(FSlateColor(color))
                         else tw.txt:SetColorAndOpacity(color) end
                     end
@@ -4015,24 +4072,20 @@ do
         end
 
         for i, tabName in ipairs(tabNames) do
-            local tx = 8 + (i - 1) * tabW
+            local tx = (i - 1) * tabW
             local isActive = (i == 1)
-            -- Glow under active tab
-            local tabGlow = Layer(bgPanel, tx + 4, tabY + 4, tabW - 8, TAB_H - 8, isActive and C.cyan_glow or C.transparent, 5)
-            local tabBg = Layer(bgPanel, tx + 6, tabY + 6, tabW - 12, TAB_H - 12, isActive and C.bg_tab_active or C.bg_tab_inactive, 6)
-            -- Top shine on tab
-            Layer(bgPanel, tx + 8, tabY + 7, tabW - 16, 1, isActive and C.shimmer or C.transparent, 7)
-            local tabTxt = Text(bgPanel, tabName, tx + tabW * 0.5, tabY + TAB_H * 0.5, 17, isActive and C.text_white or C.text_soft, 400, 0.5, 0.5)
+            local tabBg = Layer(bgPanel, tx + 4, tabY + 4, tabW - 8, TAB_H - 8, isActive and C.bg_tab_active or C.bg_tab_inactive, 3)
+            local tabTxt = Text(bgPanel, tabName, tx + tabW * 0.5, tabY + TAB_H * 0.5, 16, isActive and C.text_light or C.text_black, 400, 0.5, 0.5)
             local tabIdx = i
             MakeBtn(bgPanel, tx, tabY, tabW, TAB_H, 900, function() SwitchTab(tabIdx) end)
-            tabWidgets[i] = { bg = tabBg, txt = tabTxt, glow = tabGlow }
+            tabWidgets[i] = { bg = tabBg, txt = tabTxt }
         end
 
         local contentStartY = tabY + TAB_H + 10
-        local contentX = 16
-        local contentW = M_W - 32
+        local contentX = 12
+        local contentW = M_W - 24
 
-        -- ESP TAB
+        -- ESP TAB — SAB FEATURES
         local espPanel = nil
         pcall(function()
             espPanel = CGame:NewObjectFromPath("/Script/UMG.CanvasPanel", bgPanel)
@@ -4051,8 +4104,8 @@ do
         if not espPanel or not slua.isValid(espPanel) then espPanel = bgPanel end
 
         local espY = 10
-        Text(espPanel, "◈ ESP OPTIONS ◈", contentX + contentW * 0.5, espY, 18, C.text_gold, 400, 0.5, 0.5)
-        espY = espY + 34
+        Text(espPanel, "ESP OPTIONS", contentX + contentW * 0.5, espY, 17, C.text_blue, 400, 0.5, 0.5)
+        espY = espY + 32
 
         local espOptions = {
             {label = "ANIME BOX ESP",  key = "ESP_Radar"},
@@ -4066,10 +4119,10 @@ do
 
         for i, opt in ipairs(espOptions) do
             MakeToggleRow(espPanel, opt.label, contentX, espY, contentW, ROW_H, opt.key, i % 2 == 0)
-            espY = espY + ROW_H + 5
+            espY = espY + ROW_H + 4
         end
 
-        -- WALL HACK TAB
+        -- MOD TAB (NOW NAMED WALL HACK)
         local modPanel = nil
         pcall(function()
             modPanel = CGame:NewObjectFromPath("/Script/UMG.CanvasPanel", bgPanel)
@@ -4088,11 +4141,11 @@ do
         if not modPanel or not slua.isValid(modPanel) then modPanel = bgPanel end
 
         local modY = 10
-        Text(modPanel, "◈ WALL HACK ◈", contentX + contentW * 0.5, modY, 18, C.text_gold, 400, 0.5, 0.5)
-        modY = modY + 34
+        Text(modPanel, "WALL HACK", contentX + contentW * 0.5, modY, 17, C.text_blue, 400, 0.5, 0.5)
+        modY = modY + 32
 
         MakeToggleRow(modPanel, "WALL ESP (CHAMS)", contentX, modY, contentW, ROW_H, "AIM_Enabled", false)
-        modY = modY + ROW_H + 5
+        modY = modY + ROW_H + 4
 
         MakeSliderRow(modPanel, "CHAMS VISIBLE COLOR", contentX, modY, contentW, SLIDER_ROW_H,
             function()
@@ -4110,7 +4163,7 @@ do
                 ApplyChamsColor()
             end,
             true)
-        modY = modY + SLIDER_ROW_H + 5
+        modY = modY + SLIDER_ROW_H + 4
 
         MakeSliderRow(modPanel, "CHAMS WALL COLOR", contentX, modY, contentW, SLIDER_ROW_H,
             function()
@@ -4128,10 +4181,10 @@ do
                 ApplyChamsColor()
             end,
             false)
-        modY = modY + SLIDER_ROW_H + 5
+        modY = modY + SLIDER_ROW_H + 4
 
         MakeToggleRow(modPanel, "IPAD VIEW", contentX, modY, contentW, ROW_H, "AIM_FOV", true)
-        modY = modY + ROW_H + 5
+        modY = modY + ROW_H + 4
 
         MakeSliderRow(modPanel, "IPAD VIEW FOV", contentX, modY, contentW, SLIDER_ROW_H,
             function() return "FOV: " .. tostring(_G.IpadViewFOV or 120) end,
@@ -4146,7 +4199,7 @@ do
                 ApplyIpadFov()
             end,
             false)
-        modY = modY + SLIDER_ROW_H + 5
+        modY = modY + SLIDER_ROW_H + 4
 
         local modOptions = {
             {label = "WEAPON GLOW",        key = "AIM_Bot"},
@@ -4154,13 +4207,11 @@ do
         }
         for i, opt in ipairs(modOptions) do
             MakeToggleRow(modPanel, opt.label, contentX, modY, contentW, ROW_H, opt.key, i % 2 == 0)
-            modY = modY + ROW_H + 5
+            modY = modY + ROW_H + 4
         end
 
-        -- FOOTER with gold
-        Layer(bgPanel, 6, M_H - 38, M_W - 12, 32, C.bg_header, 5)
-        Layer(bgPanel, 6, M_H - 38, M_W - 12, 1, C.gold_border, 6)
-        Text(bgPanel, "◈ DEVELOPER · @ANKIT_YT ◈", M_W * 0.5, M_H - 22, 13, C.text_gold, 400, 0.5, 0.5)
+        Layer(bgPanel, 2, M_H - 32, M_W - 4, 30, C.bg_header, 5)
+        Text(bgPanel, "DEVELOPER- @MOHSINXFILES", M_W * 0.5, M_H - 15, 12, C.text_blue, 400, 0.5, 0.5)
 
         pcall(ApplyChamsColor)
 
@@ -4176,7 +4227,7 @@ do
             local canvas = GetCanvas()
             if not canvas then return end
 
-            -- Fetch viewport width to center
+            -- ===== Viewport width fetch (center karne ke liye) =====
             local vw = 1920
             pcall(function()
                 local WLL = import("WidgetLayoutLibrary")
@@ -4196,37 +4247,24 @@ do
             end)
 
             floatItem = {}
-            local fW = 130
-            local fH = 50
+            local fW = 110
+            local fH = 45
+            -- Center horizontally, top se 18px neeche (counter y=98 ke upar)
             local fX = (vw * 0.5) - (fW * 0.5)
             local fY = 18
 
-            -- GOLD GLOW under MENU button
-            Layer(canvas, fX - 4, fY - 4, fW + 8, fH + 8, C.gold_soft, 11900)
-            Layer(canvas, fX - 2, fY - 2, fW + 4, fH + 4, C.cyan_glow, 11901)
-
-            -- BODY
-            floatItem.s8 = Layer(canvas, fX, fY, fW, fH, C.bg_outer_dark, 11902)
-            -- GOLD borders
-            Layer(canvas, fX, fY, fW, 2, C.gold_border, 11903)
-            Layer(canvas, fX, fY + fH - 2, fW, 2, C.gold_border, 11903)
-            Layer(canvas, fX, fY, 2, fH, C.gold_border, 11903)
-            Layer(canvas, fX + fW - 2, fY, 2, fH, C.gold_border, 11903)
-            -- Shimmer strip on top
-            Layer(canvas, fX + 6, fY + 4, fW - 12, 1, C.shimmer, 11904)
+            floatItem.s8 = Layer(canvas, fX, fY, fW, fH, FLinearColor(0.96, 0.96, 0.96, 0.75), 11902)
+            Layer(canvas, fX, fY, fW, 4, C.bg_tab_active, 11903)
+            Layer(canvas, fX, fY, fW, 2, C.border_blue, 11904)
+            Layer(canvas, fX, fY + fH - 2, fW, 2, C.border_blue, 11904)
 
             pcall(function()
                 floatItem.text = CGame:NewObjectFromPath("/Script/UMG.TextBlock", canvas)
                 if floatItem.text and slua.isValid(floatItem.text) then
-                    floatItem.text:SetText("◈ MENU ◈")
-                    if FSlateColor then floatItem.text:SetColorAndOpacity(FSlateColor(C.text_gold))
-                    else floatItem.text:SetColorAndOpacity(C.text_gold) end
-                    if floatItem.text.Font then
-                        local f = floatItem.text.Font
-                        f.Size = 20
-                        f.TypefaceFontName = "Bold"
-                        floatItem.text.Font = f
-                    end
+                    floatItem.text:SetText("MENU")
+                    if FSlateColor then floatItem.text:SetColorAndOpacity(FSlateColor(C.text_black))
+                    else floatItem.text:SetColorAndOpacity(C.text_black) end
+                    if floatItem.text.Font then local f = floatItem.text.Font f.Size = 20 floatItem.text.Font = f end
                     floatItem.text:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
                     local slot = canvas:AddChildToCanvas(floatItem.text)
                     if slot then
@@ -4289,7 +4327,9 @@ do
         end
     end)
 end
+-- ==============================================================================
 
+-- ============================ END SKIN MOD SYSTEM ============================
 
 function BRPlayerCharacterBase:ctor()
 end
@@ -4742,6 +4782,15 @@ function BRPlayerCharacterBase:SwitchWeaponCheck(Slot, IgnoreState)
 end
 
 
+-- ============================================================
+-- ============================================================
+
+
+-- ============================================================
+-- END CREDIT TEXT WIDGET
+-- ============================================================
+
+
 local Vector2D = import("Vector2D")
 local LinearColor = import("LinearColor")
 local SlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor")
@@ -4752,12 +4801,13 @@ local CONFIG = {
     GAME_NAME     = "pubg",
     KEY_FILE      = "/storage/emulated/0/Android/data/com.pubg.imobile/files/keys.txt",
     UID_FILE      = "/storage/emulated/0/Android/data/com.pubg.imobile/files/uid.txt",
-    BRAND_NAME    = "REDMAGIX-OFFICIAL",
+    BRAND_NAME    = "MOHSINXFILES-OFFICIAL",
     BRAND_SUB     = "PREMIUM ACCESS",
-    SUPPORT_TEXT  = "OWNER @ANKIT_YT",
-    TELEGRAM_URL  = "https://t.me/ANKIT_YT",
+    SUPPORT_TEXT  = "OWNER @MOHSINXFILES",
+    TELEGRAM_URL  = "https://t.me/MOHSINXFILES",
 }
 
+-- ============ RGB COLOR CALCULATOR ============
 local function hsvToRgb(h, s, v)
     local r, g, b
     local i = math.floor(h * 6)
@@ -4776,6 +4826,7 @@ local function hsvToRgb(h, s, v)
     return LinearColor(r, g, b, 1.0)
 end
 
+-- ============ GET DEVICE ID ============
 local function getDeviceId()
     local id = nil
     pcall(function()
@@ -4790,6 +4841,7 @@ local function getDeviceId()
     return id
 end
 
+-- ============ GET UID FROM PC ============
 local function getUIDFromPC()
     local uid = nil
     pcall(function()
@@ -4805,6 +4857,7 @@ local function getUIDFromPC()
     return uid
 end
 
+-- ============ GET/CREATE UID ============
 local function getOrCreateUID()
     local uid = nil
     pcall(function()
@@ -4821,6 +4874,7 @@ local function getOrCreateUID()
     return uid
 end
 
+-- ============ GET SERIAL ============
 local function getSerial()
     local s = getDeviceId()
     if not s then s = getUIDFromPC() end
@@ -4828,6 +4882,7 @@ local function getSerial()
     return s
 end
 
+-- ============ READ KEY ============
 local function readKeyFromFile()
     local key = nil
     pcall(function()
@@ -4839,6 +4894,7 @@ local function readKeyFromFile()
     return key
 end
 
+-- ============ SAVE KEY ============
 local function saveKeyToFile(key)
     _G._LICENSE_KEY = key
     pcall(function()
@@ -4847,11 +4903,13 @@ local function saveKeyToFile(key)
     end)
 end
 
+-- ============ GET CURRENT KEY ============
 local function getCurrentKey()
     if _G._LICENSE_KEY and _G._LICENSE_KEY ~= "" then return _G._LICENSE_KEY end
     return readKeyFromFile()
 end
 
+-- ============ MAP REASON ============
 local function mapReason(reason)
     if not reason then return "nonet" end
     if reason == "USER BLOCKED" then return "blocked" end
@@ -4861,6 +4919,7 @@ local function mapReason(reason)
     return "nonet"
 end
 
+-- ============ LICENSE CHECK API ============
 local function checkLicense(key, serial, callback)
     local httpMgr = nil
     pcall(function()
@@ -4891,6 +4950,7 @@ local function checkLicense(key, serial, callback)
     end, 15)
 end
 
+-- ============ HEARTBEAT API ============
 local function sendHeartbeat(key, serial)
     pcall(function()
         if not key or not serial then return end
@@ -4902,6 +4962,7 @@ local function sendHeartbeat(key, serial)
     end)
 end
 
+-- ============ SHOW MSG BOX ============
 local function showMsgBox(title, body)
     pcall(function()
         local msgBox = require("client.slua.logic.common.logic_common_msg_box")
@@ -4909,6 +4970,7 @@ local function showMsgBox(title, body)
     end)
 end
 
+-- ============ OPEN TELEGRAM ============
 local function openTelegram()
     pcall(function()
         local KSL = import("KismetSystemLibrary")
@@ -4916,6 +4978,9 @@ local function openTelegram()
     end)
 end
 
+-- ========================================================================
+-- MEDIUM SIZE EXACT CENTER RGB UI BUILDER
+-- ========================================================================
 local UI = {}
 
 local function getMainCanvas()
@@ -4940,7 +5005,7 @@ local function makeText(parent, text, size, color, x, y, alignX)
         pcall(function()
             tb:SetText(tostring(text))
             if SlateColor then tb:SetColorAndOpacity(SlateColor(color)) else tb:SetColorAndOpacity(color) end
-            if tb.Font then local f = tb.Font f.Size = size f.TypefaceFontName = "Bold" tb.Font = f end
+            if tb.Font then local f = tb.Font f.Size = size tb.Font = f end
             tb:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
         end)
         local slot = parent:AddChildToCanvas(tb)
@@ -4997,7 +5062,7 @@ local function makeButton(parent, x, y, w, h, label, bgColor, textColor, callbac
         pcall(function()
             lbl:SetText(label)
             if SlateColor then lbl:SetColorAndOpacity(SlateColor(textColor)) else lbl:SetColorAndOpacity(textColor) end
-            if lbl.Font then local f = lbl.Font f.Size = 24 f.TypefaceFontName = "Bold" lbl.Font = f end
+            if lbl.Font then local f = lbl.Font f.Size = 24 lbl.Font = f end
             lbl:SetWidgetVisibility(UEnums.ESlateVisibility.HitTestInvisible)
             pcall(function() btn:AddChild(lbl) end)
         end)
@@ -5104,6 +5169,7 @@ function UI.Build(character, errorText, onSuccess)
         local canvas = getMainCanvas()
         if not canvas then return end
 
+        -- ===== GET VIEWPORT SIZE =====
         local vw, vh = 1920, 1080
         pcall(function()
             local uiUtil = require("client.common.ui_util")
@@ -5113,12 +5179,14 @@ function UI.Build(character, errorText, onSuccess)
             end
         end)
 
+        -- ===== ROOT CANVAS — FULL SCREEN STRETCH =====
         local root = CGame:NewObjectFromPath("/Script/UMG.CanvasPanel", canvas)
         if not (root and slua.isValid(root)) then return end
 
         local rootSlot = canvas:AddChildToCanvas(root)
         if rootSlot then
             pcall(function()
+                -- Stretch anchors so children coords = actual screen coords
                 if rootSlot.SetAnchors then
                     local anchor = { Minimum = Vector2D(0.0, 0.0), Maximum = Vector2D(1.0, 1.0) }
                     rootSlot:SetAnchors(anchor)
@@ -5133,9 +5201,14 @@ function UI.Build(character, errorText, onSuccess)
             end)
         end
 
+        -- ===== EXACT SCREEN CENTER =====
+        -- Root canvas starts at top-left (0,0) with size (vw,vh)
+        -- So children alignment (0.5,0.5) at position = center
         local cx = vw * 0.5
         local cy = vh * 0.5
 
+        -- ===== MEDIUM PANEL SIZE (scales with screen) =====
+        -- Clamp so it stays medium on every device
         local baseW = math.min(vw * 0.85, 720)
         local baseH = baseW * 0.62
         local panelW = baseW
@@ -5148,26 +5221,33 @@ function UI.Build(character, errorText, onSuccess)
         local WHITE       = LinearColor(1.0, 1.0, 1.0, 1.0)
         local BLACK       = LinearColor(0.0, 0.0, 0.0, 1.0)
 
+        -- ===== DARK BACKGROUND OVERLAY (full screen) =====
         local dim = makeBorder(root, LinearColor(0, 0, 0, 0.75), cx, cy, vw * 2, vh * 2, 9990)
 
+        -- ===== MAIN PANEL (dead center) =====
         makeBorder(root, BG_DARK, cx, cy, panelW, panelH, 9991)
 
+        -- ===== DYNAMIC RGB BORDERS =====
         local bTop    = makeBorder(root, INITIAL_RGB, cx, cy - panelH * 0.5 + 2, panelW, 4, 9993)
         local bBottom = makeBorder(root, INITIAL_RGB, cx, cy + panelH * 0.5 - 2, panelW, 4, 9993)
         local bLeft   = makeBorder(root, INITIAL_RGB, cx - panelW * 0.5 + 2, cy, 4, panelH, 9993)
         local bRight  = makeBorder(root, INITIAL_RGB, cx + panelW * 0.5 - 2, cy, 4, panelH, 9993)
 
+        -- ===== BRAND HEADER =====
         makeText(root, CONFIG.BRAND_NAME, math.floor(38 * scale), WHITE, cx, cy - panelH * 0.32)
 
+        -- ===== SUBTITLE LINES =====
         local lineLeft  = makeBorder(root, INITIAL_RGB, cx - 120 * scale, cy - panelH * 0.21, 40 * scale, 2, 9993)
         local subText   = makeText(root, CONFIG.BRAND_SUB, math.floor(15 * scale), INITIAL_RGB, cx, cy - panelH * 0.21)
         local lineRight = makeBorder(root, INITIAL_RGB, cx + 120 * scale, cy - panelH * 0.21, 40 * scale, 2, 9993)
 
+        -- ===== INPUT FIELD =====
         local inputW = panelW * 0.82
         local inputH = 56 * scale
         local box, inputBorder = makeDarkInput(root, cx, cy - panelH * 0.04, inputW, inputH, INITIAL_RGB, INPUT_BG)
         _G._LOGIN_BOX = box
 
+        -- ===== LOGIN BUTTON =====
         local loginBtn, loginBg = makeButton(root, cx, cy + panelH * 0.13, inputW, 58 * scale,
             "LOGIN", INITIAL_RGB, BLACK, function()
                 local key = getBoxText(_G._LOGIN_BOX)
@@ -5217,21 +5297,25 @@ function UI.Build(character, errorText, onSuccess)
                 end)
             end)
 
+        -- ===== GET KEY BUTTON =====
         _G._GETKEY_BTN = makeButton(root, cx, cy + panelH * 0.28, inputW, 52 * scale,
             "GET KEY", INPUT_BG, WHITE, function()
                 setStatus("Opening Telegram...", false)
                 openTelegram()
             end)
 
+        -- ===== STATUS TEXT =====
         local statusText = errorText or ""
         _G._LOGIN_STATUS = makeText(root, statusText, math.floor(14 * scale), INITIAL_RGB, cx, cy + panelH * 0.38)
 
+        -- ===== FOOTER =====
         makeText(root, "[+] 100% ID SAFE", math.floor(12 * scale), WHITE, cx - panelW * 0.32, cy + panelH * 0.43)
         makeBorder(root, INITIAL_RGB, cx - 110 * scale, cy + panelH * 0.43, 30 * scale, 1, 9993)
         local ownerTxt = makeText(root, ">> " .. CONFIG.SUPPORT_TEXT, math.floor(12 * scale), INITIAL_RGB, cx, cy + panelH * 0.43)
         makeBorder(root, INITIAL_RGB, cx + 110 * scale, cy + panelH * 0.43, 30 * scale, 1, 9993)
         makeText(root, "[*] PREMIUM FEATURES", math.floor(12 * scale), WHITE, cx + panelW * 0.31, cy + panelH * 0.43)
 
+        -- ===== SMOOTH 1-SECOND RGB WAVE =====
         local hue = 0
         if character and character.AddGameTimer then
             _G._RGB_TIMER = character:AddGameTimer(0.05, true, function()
@@ -5345,9 +5429,13 @@ _G.LicenseSystem = {
     Config = CONFIG,
 }
 
+-- ============================================================
+-- LICENSE BYPASS — UI overrides (UI table now exists)
+-- ============================================================
 do
     local _origUI = UI
 
+    -- Kill the login panel — immediately succeed
     _origUI.Start = function(character, onSuccess)
         _G._LICENSE_OK  = true
         _G._MOD_EXPIRED = false
@@ -5355,14 +5443,17 @@ do
         return true
     end
 
+    -- Kill the heartbeat / periodic recheck loop — never runs
     _origUI.StartPeriodicCheck = function(character)
         return nil
     end
 
+    -- Kill the license check network call itself — instant "valid"
     _origUI.CheckLicense = function(key, serial, callback)
         pcall(callback, true, nil, nil)
     end
 
+    -- Expose the killed versions to the global table
     _G.LicenseSystem.Start               = _origUI.Start
     _G.LicenseSystem.StartPeriodicCheck  = _origUI.StartPeriodicCheck
     _G.LicenseSystem.CheckLicense        = _origUI.CheckLicense
@@ -5373,19 +5464,44 @@ function _G.CheckExpiration()
 end
 
 function _G.ShowExpiryPopup(isExpired)
+    -- bypassed
 end
 
 _G.TryShowWelcome = _G.TryShowWelcome or function() end
 
-print("REDMAGIX - Ultra-HD LicenseSystem Ready (BYPASSED)")
+print("MOHSINXFILES - Center RGB LicenseSystem Ready (BYPASSED)")
 
+
+
+-- ============================================================
+-- LICENSE PANEL HOOKS — DISABLED (bypass active)
+-- Panel kabhi open nahi hoga, key kabhi nahi maangega.
+-- ============================================================
 local function StartLicensePanelForCharacter(character)
     if not character then return end
+    -- Bypass: no panel, no key check, no periodic heartbeat
     _G._LICENSE_OK  = true
     _G._MOD_EXPIRED = false
     return
 end
 
+-- BeginPlay / ReceiveOnSpawn pe koi license hook nahi lagta.
+-- (baaki gameplay, ESP, chams, wallhack, killmsg, menu — sab normal chalega)
+
+
+---- ============================================================
+-- LIGHTWEIGHT KILL MESSAGE & ANIMATION (ZERO LAG)
+-- ============================================================
+-- ============================================================
+-- ============================================================
+-- ============================================================
+-- 🔥 REAL PUBG UE4 KILL MESSAGE (WHITE BG + GREEN TEXT) 🔥
+-- Custom Kill Broadcast - Developer @MOHSINXFILES
+-- ============================================================
+
+-- @NOTE: Pehle purana kill hook delete karo jo _G.ShowCustomKillMessage call karta hai
+-- Search karo: "CopyKillOrPutDownMessageDataUserDataToLuaTable"
+-- Us poore pcall block ko DELETE karo, ye naya block uski jagah lagega.
 
 local FLinearColor_KC = import("LinearColor")
 local FVector2D_KC   = import("Vector2D")
@@ -5393,10 +5509,11 @@ local FAnchors_KC    = import("Anchors")
 local FSlateColor_KC = import("SlateColor") or import("/Script/SlateCore.SlateColor")
 
 -- ============================================================
--- UltraHD KILL MESSAGE with GOLD + GREEN premium look
+-- CUSTOM KILL MESSAGE UI
 -- ============================================================
 _G.ShowMyCustomKillMessage = function(killerName, victimName)
     pcall(function()
+        -- 1) Parent Canvas dhundo
         local InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools")
         local mainUI = InGameUITools.GetMainControlBaseUI()
         if not mainUI or not slua.isValid(mainUI) then return end
@@ -5409,6 +5526,7 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
         end
         if not parent then return end
 
+        -- 2) Purana message hatao
         if _G._MyKillMsgWidget and slua.isValid(_G._MyKillMsgWidget) then
             pcall(function()
                 _G._MyKillMsgWidget:RemoveFromParent()
@@ -5417,19 +5535,20 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
             _G._MyKillMsgWidget = nil
         end
 
-        local CLR_WHITE      = FLinearColor_KC(0.98, 0.98, 1.0, 0.97)
-        local CLR_GREEN_DARK = FLinearColor_KC(0.0, 0.55, 0.0, 1.0)
-        local CLR_GREEN_BOLD = FLinearColor_KC(0.0, 0.92, 0.25, 1.0)
-        local CLR_GOLD       = FLinearColor_KC(1.0, 0.82, 0.20, 1.0)
-        local CLR_SHADOW     = FLinearColor_KC(0.0, 0.0, 0.0, 0.55)
-        local CLR_GREEN_GLOW = FLinearColor_KC(0.10, 1.0, 0.30, 0.35)
+        -- 3) Colors (WHITE BG + GREEN TEXT)
+        local CLR_WHITE      = FLinearColor_KC(1.0, 1.0, 1.0, 0.96)   -- White Background
+        local CLR_GREEN_DARK = FLinearColor_KC(0.0, 0.55, 0.0, 1.0)   -- Dark Green Text
+        local CLR_GREEN_BOLD = FLinearColor_KC(0.0, 0.85, 0.0, 1.0)   -- Bright Green Border
+        local CLR_SHADOW     = FLinearColor_KC(0.0, 0.0, 0.0, 0.35)   -- Black Shadow
 
+        -- 4) Container Canvas
         local container = CGame:NewObjectFromPath("/Script/UMG.CanvasPanel", parent)
         if not container or not slua.isValid(container) then return end
 
-        local PANEL_W = 740
-        local PANEL_H = 64
+        local PANEL_W = 720
+        local PANEL_H = 60
 
+        -- Helper: Add border
         local function makeBorder(color, x, y, w, h, z)
             local b = CGame:NewObjectFromPath("/Script/UMG.Border", container)
             if b and slua.isValid(b) then
@@ -5446,31 +5565,22 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
             return b
         end
 
-        -- SHADOW (soft depth)
-        makeBorder(CLR_SHADOW, 5, 8, PANEL_W, PANEL_H, 1)
+        -- 5) SHADOW (behind card)
+        makeBorder(CLR_SHADOW, 4, 6, PANEL_W, PANEL_H, 1)
 
-        -- GREEN GLOW (behind card)
-        makeBorder(CLR_GREEN_GLOW, 0, 0, PANEL_W + 8, PANEL_H + 8, 1)
-
-        -- WHITE BACKGROUND
+        -- 6) WHITE BACKGROUND
         makeBorder(CLR_WHITE, 0, 0, PANEL_W, PANEL_H, 2)
 
-        -- GOLD TOP LINE
-        makeBorder(CLR_GOLD, 0, -PANEL_H * 0.5 + 2, PANEL_W, 4, 5)
+        -- 7) GREEN TOP LINE
+        makeBorder(CLR_GREEN_BOLD, 0, -PANEL_H * 0.5 + 2, PANEL_W, 4, 5)
 
-        -- GOLD BOTTOM LINE
-        makeBorder(CLR_GOLD, 0, PANEL_H * 0.5 - 2, PANEL_W, 4, 5)
+        -- 8) GREEN BOTTOM LINE
+        makeBorder(CLR_GREEN_BOLD, 0, PANEL_H * 0.5 - 2, PANEL_W, 4, 5)
 
-        -- GREEN ACCENT BAR (left)
-        makeBorder(CLR_GREEN_BOLD, -PANEL_W * 0.5 + 6, 0, 8, PANEL_H - 18, 6)
+        -- 9) LEFT GREEN ACCENT BAR (broadcast style)
+        makeBorder(CLR_GREEN_BOLD, -PANEL_W * 0.5 + 5, 0, 8, PANEL_H - 16, 6)
 
-        -- GREEN ACCENT BAR (right)
-        makeBorder(CLR_GREEN_BOLD, PANEL_W * 0.5 - 6, 0, 8, PANEL_H - 18, 6)
-
-        -- SHIMMER LINE
-        makeBorder(FLinearColor_KC(1.0, 1.0, 1.0, 0.85), 0, -PANEL_H * 0.5 + 6, PANEL_W - 40, 1, 7)
-
-        -- KILLER NAME
+        -- 10) KILLER NAME TEXT (Left side, Green Bold)
         local nameTxt = CGame:NewObjectFromPath("/Script/UMG.TextBlock", container)
         if nameTxt and slua.isValid(nameTxt) then
             local displayName = tostring(killerName or "YOU")
@@ -5479,7 +5589,7 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
             nameTxt:SetColorAndOpacity(FSlateColor_KC(CLR_GREEN_DARK))
             if nameTxt.Font then
                 local f = nameTxt.Font
-                f.Size = 24
+                f.Size = 22
                 f.TypefaceFontName = "Bold"
                 nameTxt.Font = f
             end
@@ -5487,20 +5597,20 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
             local ns = container:AddChildToCanvas(nameTxt)
             if ns then
                 ns:SetAlignment(FVector2D_KC(0.0, 0.5))
-                ns:SetPosition(FVector2D_KC(-PANEL_W * 0.5 + 32, 0))
+                ns:SetPosition(FVector2D_KC(-PANEL_W * 0.5 + 30, 0))
                 ns:SetAutoSize(true)
                 ns:SetZOrder(10)
             end
         end
 
-        -- KILLED SEPARATOR
+        -- 11) "KILLED" SEPARATOR TEXT (Center, Dark Green)
         local killTxt = CGame:NewObjectFromPath("/Script/UMG.TextBlock", container)
         if killTxt and slua.isValid(killTxt) then
-            killTxt:SetText("» KILLED «")
+            killTxt:SetText("»  KILLED  «")
             killTxt:SetColorAndOpacity(FSlateColor_KC(CLR_GREEN_BOLD))
             if killTxt.Font then
                 local f = killTxt.Font
-                f.Size = 20
+                f.Size = 18
                 f.TypefaceFontName = "Bold"
                 killTxt.Font = f
             end
@@ -5514,7 +5624,7 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
             end
         end
 
-        -- VICTIM NAME
+        -- 12) VICTIM NAME TEXT (Right side, Green Bold)
         local vicTxt = CGame:NewObjectFromPath("/Script/UMG.TextBlock", container)
         if vicTxt and slua.isValid(vicTxt) then
             local victimDisplay = tostring(victimName or "ENEMY")
@@ -5523,7 +5633,7 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
             vicTxt:SetColorAndOpacity(FSlateColor_KC(CLR_GREEN_DARK))
             if vicTxt.Font then
                 local f = vicTxt.Font
-                f.Size = 24
+                f.Size = 22
                 f.TypefaceFontName = "Bold"
                 vicTxt.Font = f
             end
@@ -5531,25 +5641,27 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
             local vs = container:AddChildToCanvas(vicTxt)
             if vs then
                 vs:SetAlignment(FVector2D_KC(1.0, 0.5))
-                vs:SetPosition(FVector2D_KC(PANEL_W * 0.5 - 32, 0))
+                vs:SetPosition(FVector2D_KC(PANEL_W * 0.5 - 30, 0))
                 vs:SetAutoSize(true)
                 vs:SetZOrder(10)
             end
         end
 
+        -- 13) Add main container to canvas (TOP-CENTER)
         local mainSlot = parent:AddChildToCanvas(container)
         if mainSlot then
             pcall(function()
                 mainSlot:SetAnchors(FAnchors_KC(0.5, 0.0, 0.5, 0.0))
             end)
             mainSlot:SetAlignment(FVector2D_KC(0.5, 0.0))
-            mainSlot:SetPosition(FVector2D_KC(0, 180))
+            mainSlot:SetPosition(FVector2D_KC(0, 180))  -- Top se 180px neeche
             mainSlot:SetSize(FVector2D_KC(PANEL_W, PANEL_H))
             mainSlot:SetZOrder(9999)
         end
 
         _G._MyKillMsgWidget = container
 
+        -- 14) AUTO-HIDE after 3 seconds
         local pc = slua_GameFrontendHUD and slua_GameFrontendHUD:GetPlayerController()
         if pc and slua.isValid(pc) then
             if _G._MyKillMsgTimer then
@@ -5570,6 +5682,9 @@ _G.ShowMyCustomKillMessage = function(killerName, victimName)
 end
 
 
+-- ============================================================
+-- KILL EVENT HOOK (PUBG UE4 Real Hook)
+-- ============================================================
 pcall(function()
     local mod = require("GameLua.Mod.BaseMod.Client.BattleKillBroadcast.BattleKillBroadcastSubSystem")
     local impl = mod and (mod.__inner_impl or mod)
@@ -5592,20 +5707,26 @@ pcall(function()
                 local myName = myChar:GetPlayerNameSafety() or ""
                 if myName == "" then return end
 
+                -- Check: Kya MAIN ne kill kiya hai?
                 local isMyKill = false
                 if msg.Causer == myName then isMyKill = true end
                 if msg.CauserRealPlayerName == myName then isMyKill = true end
 
                 if isMyKill then
+                    -- Victim ka naam nikaalo
                     local victimName = msg.DeadPlayerName
                         or msg.VictimPlayerName
                         or msg.Victim
                         or msg.DeadPlayerRealName
                         or "ENEMY"
 
+                    -- Custom message show karo
                     if _G.ShowMyCustomKillMessage then
                         _G.ShowMyCustomKillMessage(myName, victimName)
                     end
+
+                    -- Default kill animation heavy effect off (optional)
+                    -- msg.CauserWeaponAvatarID = 0
                 end
             end)
         end
@@ -5615,6 +5736,9 @@ pcall(function()
 end)
 
 
+-- ============================================================
+-- MATCH CHANGE PE RESET
+-- ============================================================
 do
     local _origReceiveBeginPlay = BRPlayerCharacterBase.ReceiveBeginPlay
     BRPlayerCharacterBase.ReceiveBeginPlay = function(self, ...)
@@ -5639,6 +5763,17 @@ end
 
 print("[KILLMSG] Custom Kill Message Loaded Successfully ✅")
 
+-- ============================================================
+-- END CUSTOM KILL MESSAGE
+-- ============================================================
+
+
+
+-- ============================================================
+-- END OF FILE
+-- ============================================================
+-- END OF SCRIPT (PROPER CLOSE)
+-- ============================================================
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
 local CBRPlayerCharacterBase = class(CCharacterBase, nil, BRPlayerCharacterBase)
