@@ -1923,7 +1923,7 @@ RadarSystem.MaxEnemies   = 20
 RadarSystem._LastScan    = 0
 RadarSystem._LastList    = 0
 RadarSystem.ScanInterval = 0.02
-RadarSystem.ListInterval = 0.75
+RadarSystem.ListInterval = 0.20
 RadarSystem.ListRows     = {}
 RadarSystem._MyYawDeg    = 0
 RadarSystem._ColorCache  = {}
@@ -2065,7 +2065,7 @@ local function _CreateEnemyMarker(parent)
     pcall(function()
         dot:SetText("●")
         dot:SetColorAndOpacity(_FSlateColor(_FLC(1, 1, 1, 1)))
-        if dot.Font then local f = dot.Font; f.Size = 16; dot.Font = f end
+        if dot.Font then local f = dot.Font; f.Size = 20; dot.Font = f end
         dot:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible)
     end)
     local dotSlot = parent:AddChildToCanvas(dot)
