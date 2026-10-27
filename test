@@ -623,7 +623,7 @@ PlayerMapMarker.BoneNameFallbacks = {
     ["upperarm_r"] = {"upperarm_r", "UpperArm_R", "arm_r", "arm_r_01"},
     ["lowerarm_r"] = {"lowerarm_r", "LowerArm_R", "forearm_r"},
     ["hand_r"] = {"hand_r", "Hand_R", "hand_r_socket"},
-    ["clavicle_l"] = {"clavicle_l", "Clavicle_L", "clavicle_L"},
+    ["clavicle_l"] = {"clavicle_l", "Clavicle_L", "clavicle_l"},
     ["upperarm_l"] = {"upperarm_l", "UpperArm_L", "arm_l", "arm_l_01"},
     ["lowerarm_l"] = {"lowerarm_l", "LowerArm_L", "forearm_l"},
     ["hand_l"] = {"hand_l", "Hand_L", "hand_l_socket"},
@@ -4227,11 +4227,31 @@ do
             local canvas = GetCanvas()
             if not canvas then return end
 
+            -- ===== Viewport width fetch (center karne ke liye) =====
+            local vw = 1920
+            pcall(function()
+                local WLL = import("WidgetLayoutLibrary")
+                local pc = slua_GameFrontendHUD and slua_GameFrontendHUD:GetPlayerController()
+                if WLL and WLL.GetViewportSize and pc then
+                    local vs = WLL.GetViewportSize(pc)
+                    if vs and vs.X and vs.X > 200 then vw = vs.X end
+                end
+            end)
+            pcall(function()
+                local pc = slua_GameFrontendHUD and slua_GameFrontendHUD:GetPlayerController()
+                if pc and pc.GetViewportSize then
+                    local vs = FVector2D(0, 0)
+                    pc:GetViewportSize(vs)
+                    if vs and vs.X and vs.X > 200 then vw = vs.X end
+                end
+            end)
+
             floatItem = {}
-            local fX = 20
-            local fY = 15
             local fW = 110
             local fH = 45
+            -- Center horizontally, top se 18px neeche (counter y=98 ke upar)
+            local fX = (vw * 0.5) - (fW * 0.5)
+            local fY = 18
 
             floatItem.s8 = Layer(canvas, fX, fY, fW, fH, FLinearColor(0.96, 0.96, 0.96, 0.75), 11902)
             Layer(canvas, fX, fY, fW, 4, C.bg_tab_active, 11903)
