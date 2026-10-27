@@ -956,7 +956,7 @@ function PlayerMapMarker.CreateESPWidget()
     -- Premium styling: apply yellow & red theme to the ESP widget
     local FSlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor")
     local premiumYellow = FLinearColor_ESP9 and FLinearColor_ESP9(1.0, 0.85, 0.0, 1.0) or {R=1,G=0.85,B=0,A=1}
-    local premiumRedGlow = FLinearColor_ESP9 and FLinearColor_ESP9(1.0, 1.0, 1.0, 0.6) or {R=1,G=1,B=1,A=0.6}
+    local premiumRedGlow = FLinearColor_ESP9 and FLinearColor_ESP9(0.08, 0.08, 0.08, 0.88) or {R=0.08,G=0.08,B=0.08,A=0.88}
 
     -- Try to style the widget background and border with premium red glow
     pcall(function()
@@ -1030,29 +1030,41 @@ function PlayerMapMarker.ApplyTeamColor(Widget, TeamID)
     end)
 end
 
-function PlayerMapMarker.UpdateESPText(Widget, Text)
+function PlayerMapMarker.UpdateESPText(Widget, Text, TeamID)
     if not Widget then return end
-    if Widget._LastESPText == Text then return end
+    -- Refresh when either the displayed text or team changes.
+    if Widget._LastESPText == Text and Widget._LastESPTeamID == TeamID then return end
     Widget._LastESPText = Text
+    Widget._LastESPTeamID = TeamID
 
-    -- Premium yellow text color for ESP names
     local FSlateColor = import("SlateColor") or import("/Script/SlateCore.SlateColor")
-    local premiumYellow = FLinearColor_ESP9 and FLinearColor_ESP9(1.0, 0.0, 0.0, 1.0) or {R=255,G=0,B=0,A=255}
-
+    local teamColor = PlayerMapMarker.GetTeamColor(TeamID)
+    local whiteText = FLinearColor_ESP9 and FLinearColor_ESP9(1.0, 1.0, 1.0, 1.0) or {R=255,G=255,B=255,A=255}
 
     local function applyText(w, txt)
         if not w or not slua.isValid(w) then return end
         if txt == "" then
             pcall(function() w:SetWidgetVisibility(UEnums.ESlateVisibility.Collapsed) end)
             return
-        else
-            pcall(function() w:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
         end
+        pcall(function() w:SetWidgetVisibility(UEnums.ESlateVisibility.SelfHitTestInvisible) end)
         pcall(function() w:SetText(txt) end)
-        -- Apply premium yellow text color
+        -- White, bold text remains readable over each team's colored label.
         pcall(function()
-            if FSlateColor then w:SetColorAndOpacity(FSlateColor(premiumYellow))
-            else w:SetColorAndOpacity(premiumYellow) end
+            if w.SetColorAndOpacity then
+                if FSlateColor then w:SetColorAndOpacity(FSlateColor(whiteText))
+                else w:SetColorAndOpacity(whiteText) end
+            end
+            if w.Font then
+                local f = w.Font
+                f.Size = math.max(14, f.Size or 14)
+                f.TypefaceFontName = "Bold"
+                w.Font = f
+            end
+            if w.SetShadowColorAndOpacity then
+                w:SetShadowColorAndOpacity(FLinearColor_ESP9 and FLinearColor_ESP9(0,0,0,1) or {R=0,G=0,B=0,A=255})
+            end
+            if w.SetShadowOffset then w:SetShadowOffset(FVector2D_ESP9 and FVector2D_ESP9(1,1) or {X=1,Y=1}) end
         end)
     end
 
@@ -1063,6 +1075,9 @@ function PlayerMapMarker.UpdateESPText(Widget, Text)
             if W and slua.isValid(W) then
                 applyText(W.TextBlock_TeamName, Text)
                 applyText(W.TextBlock_PlayerName, Text)
+                -- Tint the existing player-name box by team without replacing its layout.
+                if teamColor and W.SetBrushColor then W:SetBrushColor(teamColor) end
+                if teamColor and W.SetColorAndOpacity then W:SetColorAndOpacity(teamColor) end
             end
         end)
     end
@@ -1911,7 +1926,7 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
                 local Text = ""
                 if _G.Mod_ESP_ShowName then Text = Name end
                 if _G.Mod_ESP_ShowDistance and DistStr ~= "" then
-                    if Text ~= "" then Text = string.format("%s [%s]", Text, DistStr) else Text = string.format("[%s]", DistStr) end
+                    if Text ~= "" then Text = string.format("%s [%s]", Text, DistStr) else Text = string.format("DIST  %s", DistStr) end
                 end
 
                 local bOnScreen, CanvasPos = PlayerMapMarker.ProjectWorldToCanvasLocal(PC, Loc)
@@ -1920,7 +1935,7 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
                     local Widget = PlayerMapMarker.CreateESPWidget()
                     if Widget then
                         PlayerMapMarker.ESPWidgets[KeyStr] = { Widget = Widget, Character = Character, Name = Name, LastDistStr = DistStr, TeamID = TeamID }
-                        PlayerMapMarker.UpdateESPText(Widget, Text)
+                        PlayerMapMarker.UpdateESPText(Widget, Text, TeamID)
                         if bIsAlive then
                             PlayerMapMarker.UpdateESPPositionWithPC(Widget, Loc, PC, CanvasPos)
                             PlayerMapMarker.ApplyTeamColor(Widget, TeamID)
@@ -1956,7 +1971,7 @@ function PlayerMapMarker.UpdateESP(AllPlayers, MyLoc)
                     ESPData.TeamID = TeamID
                     PlayerMapMarker.ApplyTeamColor(ESPData.Widget, TeamID)
                     ESPData.Widget._LastESPText = nil
-                    PlayerMapMarker.UpdateESPText(ESPData.Widget, Text)
+                    PlayerMapMarker.UpdateESPText(ESPData.Widget, Text, TeamID)
                     PlayerMapMarker.UpdateESPPositionWithPC(ESPData.Widget, Loc, PC, CanvasPos)
 
                     local HP = Character.Health or 0
@@ -2092,12 +2107,12 @@ function PlayerMapMarker.UpdateESPDistances()
                     local Text = ""
                     if _G.Mod_ESP_ShowName then Text = Name end
                     if _G.Mod_ESP_ShowDistance and DistStr ~= "" then
-                        if Text ~= "" then Text = string.format("%s [%s]", Text, DistStr) else Text = string.format("[%s]", DistStr) end
+                        if Text ~= "" then Text = string.format("%s [%s]", Text, DistStr) else Text = string.format("DIST  %s", DistStr) end
                     end
 
                     ESPData.LastDistStr = DistStr
                     Widget._LastESPText = nil
-                    PlayerMapMarker.UpdateESPText(Widget, Text)
+                    PlayerMapMarker.UpdateESPText(Widget, Text, TeamID)
                 end
             end
         end
