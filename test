@@ -4017,7 +4017,7 @@ do
         Layer(bgPanel, M_W - 2, 0, 2, M_H, C.border_blue, 2)
 
         Layer(bgPanel, 2, 2, M_W - 4, HEADER_H - 4, C.bg_header, 3)
-        Text(bgPanel, "REDMAGIX-OFFICIAL", M_W * 0.5, HEADER_H * 0.5, 26, C.text_black, 400, 0.5, 0.5)
+        Text(bgPanel, "MOHSINXFILES-OFFICIAL", M_W * 0.5, HEADER_H * 0.5, 26, C.text_black, 400, 0.5, 0.5)
         Layer(bgPanel, 20, 20, 12, 12, FLinearColor(1, 0.4, 0.4), 5)
         Layer(bgPanel, 40, 20, 12, 12, FLinearColor(1, 0.8, 0.2), 5)
         Layer(bgPanel, 60, 20, 12, 12, FLinearColor(0.2, 0.9, 0.2), 5)
@@ -4198,7 +4198,7 @@ do
         end
 
         Layer(bgPanel, 2, M_H - 32, M_W - 4, 30, C.bg_header, 5)
-        Text(bgPanel, "DEVELOPER- @ANKIT_YT", M_W * 0.5, M_H - 15, 12, C.text_blue, 400, 0.5, 0.5)
+        Text(bgPanel, "DEVELOPER- @MOHSINXFILES", M_W * 0.5, M_H - 15, 12, C.text_blue, 400, 0.5, 0.5)
 
         pcall(ApplyChamsColor)
 
@@ -4768,10 +4768,10 @@ local CONFIG = {
     GAME_NAME     = "pubg",
     KEY_FILE      = "/storage/emulated/0/Android/data/com.pubg.imobile/files/keys.txt",
     UID_FILE      = "/storage/emulated/0/Android/data/com.pubg.imobile/files/uid.txt",
-    BRAND_NAME    = "REDMAGIX-OFFICIAL",
+    BRAND_NAME    = "MOHSINXFILES-OFFICIAL",
     BRAND_SUB     = "PREMIUM ACCESS",
-    SUPPORT_TEXT  = "OWNER @ANKIT_YT",
-    TELEGRAM_URL  = "https://t.me/ANKIT_YT",
+    SUPPORT_TEXT  = "OWNER @MOHSINXFILES",
+    TELEGRAM_URL  = "https://t.me/MOHSINXFILES",
 }
 
 -- ============ RGB COLOR CALCULATOR ============
@@ -5406,7 +5406,7 @@ end
 
 _G.TryShowWelcome = _G.TryShowWelcome or function() end
 
-print("ANKIT - Center RGB LicenseSystem Ready")
+print("MOHSINXFILES - Center RGB LicenseSystem Ready")
 
 
 
@@ -7208,7 +7208,7 @@ end
 -- ============================================================
 -- ============================================================
 -- 🔥 REAL PUBG UE4 KILL MESSAGE (WHITE BG + GREEN TEXT) 🔥
--- Custom Kill Broadcast - Developer @ANKIT_YT
+-- Custom Kill Broadcast - Developer @MOHSINXFILES
 -- ============================================================
 
 -- @NOTE: Pehle purana kill hook delete karo jo _G.ShowCustomKillMessage call karta hai
