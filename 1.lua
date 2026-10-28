@@ -248,6 +248,209 @@ local function _BYPASS_InstallUltimateWallhackBypass()
 end
 
 -- ========================================================================
+-- CHARACTERBASE VERIFICATION BYPASS (client + DS)
+-- ========================================================================
+local function _BYPASS_InstallCharacterBaseBypass()
+    if _G.__CB_BYPASS_LOADED then return end
+
+    local CharacterBase
+    do
+        local ok, mod = pcall(require, "GameLua.Mod.BaseMod.GamePlay.CharacterBase.CharacterBase")
+        if ok and mod then CharacterBase = mod
+        else CharacterBase = package.loaded["GameLua.Mod.BaseMod.GamePlay.CharacterBase.CharacterBase"] end
+    end
+    if not CharacterBase then
+        print("[Bypass] CharacterBase module not found — verification bypass skipped")
+        return
+    end
+
+    local nop = function() end
+    local Orig = _G.__CB_BYPASS_ORIG or {}
+    _G.__CB_BYPASS_ORIG = Orig
+
+    local function wrap(name, fn)
+        if Orig[name] then return end
+        local original = CharacterBase[name]
+        if type(original) ~= "function" then return end
+        Orig[name] = original
+        CharacterBase[name] = fn(original)
+    end
+
+    -- 1. Shoot verification
+    wrap("RPC_Server_ShootVertifyFailAlarm", function()
+        return function(self, Code, Tips)
+            if bWriteLog then print("[Bypass] ShootVertify suppressed") end
+        end
+    end)
+    wrap("DevelopmentClientCheck", function() return nop end)
+
+    -- 2. DS data verify
+    wrap("CheckInitPlayerDSData", function() return nop end)
+    wrap("InitPlayerDsData", function() return nop end)
+
+    -- 3. Ensure state
+    wrap("HandleOnEnterState", function(orig)
+        return function(self, nState)
+            local was = self.bEnsure
+            self.bEnsure = false
+            local ok, err = pcall(orig, self, nState)
+            self.bEnsure = was
+            if not ok and bWriteLog then print("[Bypass] HandleOnEnterState:", err) end
+        end
+    end)
+
+    -- 4. State reporting
+    wrap("ReportCharacterState", function() return nop end)
+
+    -- 5. Client adjust position
+    wrap("HandleOnClientAdjustPosition", function(orig)
+        return function(self, NewLocation, Reason)
+            local EReason = import("ECharacterMoveDragReason")
+            return orig(self, NewLocation, (EReason and EReason.CMDR_None) or Reason)
+        end
+    end)
+
+    -- 6. Emote verify
+    wrap("ServerCheckEmoteCanPlay", function() return function() return true end end)
+    wrap("CheckEmoteBanTable", function() return function() return true end end)
+    wrap("ClientRPC_FailedToJoinDance", function() return nop end)
+
+    -- 7. Coop emote
+    wrap("RPC_Server_JoinCoopEmote", function(orig)
+        return function(self, EmotePlayer)
+            if self.Super and self.Super.RPC_Server_JoinCoopEmote then
+                return self.Super.RPC_Server_JoinCoopEmote(self, EmotePlayer)
+            end
+        end
+    end)
+
+    -- 8. Emote ID BP
+    wrap("CheckIsValidEmoteIDBP", function() return function() return true end end)
+    wrap("CheckIsValidXSuitBornIslandAction", function() return function() return true end end)
+
+    -- 9. Service debug
+    wrap("ParseServiceDebugInfo", function()
+        return function(self)
+            self.ServiceDebugInfoForShow = ""
+            self.EnsureStyle = 0
+            self.MLEnsureStyle = 0
+        end
+    end)
+    wrap("SetMLEnsureStyle", function()
+        return function(self) self.MLEnsureStyle = 0 end
+    end)
+    wrap("SetMLEnsureExtraInfo", function()
+        return function(self) self.MLEnsureExtraInfo = "" end
+    end)
+
+    -- 10. Resolve penetration
+    wrap("HandleOnResolvePenetrationDelegate", function() return nop end)
+
+    -- 11. Death / respawn DS flags
+    wrap("HandleDeathDelegate", function(orig)
+        return function(self)
+            self.bSkipComparePropertiesForReplay = true
+            return orig(self)
+        end
+    end)
+    wrap("HandleOnRespawn", function(orig)
+        return function(self)
+            self.bSkipComparePropertiesForReplay = true
+            return orig(self)
+        end
+    end)
+
+    -- 12. Pre-enter near death event suppression
+    wrap("HandleOnPreEnterNearDeath", function(orig)
+        return function(self, uKillPC, DamageCauser)
+            if EventSystem and EventSystem.postEvent then
+                local saved = EventSystem.postEvent
+                EventSystem.postEvent = function(t, id, ...)
+                    if t == EVENTTYPE_INGAME_NORMAL and id == EVENTID_ON_PRE_ENTER_NEAR_DEATH then return end
+                    return saved(t, id, ...)
+                end
+                local ok, err = pcall(orig, self, uKillPC, DamageCauser)
+                EventSystem.postEvent = saved
+                if not ok and bWriteLog then print("[Bypass] PreEnterNearDeath:", err) end
+                return
+            end
+            return orig(self, uKillPC, DamageCauser)
+        end
+    end)
+
+    -- 13. ReceiveBeginPlay — hide GameSafeCallbacks on DS
+    wrap("ReceiveBeginPlay", function(orig)
+        return function(self)
+            local saved = _G.GameSafeCallbacks
+            _G.GameSafeCallbacks = nil
+            local ok, err = pcall(orig, self)
+            _G.GameSafeCallbacks = saved
+            if not ok and bWriteLog then print("[Bypass] ReceiveBeginPlay:", err) end
+            self.bSkipComparePropertiesForReplay = true
+        end
+    end)
+
+    -- 14. AFK reporter intercept
+    if SubsystemMgr and SubsystemMgr.Get and not _G.__CB_AFK_HOOKED then
+        local origGet = SubsystemMgr.Get
+        SubsystemMgr.Get = function(mgr, name)
+            local sub = origGet(mgr, name)
+            if name == "AFKReportorSubsystem" and sub and not sub.__cbHooked then
+                if type(sub.PlayerHaveAction) == "function" then
+                    local origAction = sub.PlayerHaveAction
+                    sub.PlayerHaveAction = function(s, uid)
+                        if bWriteLog then print("[Bypass] AFK PlayerHaveAction suppressed") end
+                    end
+                    sub.__cbOrigAction = origAction
+                end
+                sub.__cbHooked = true
+            end
+            return sub
+        end
+        _G.__CB_AFK_HOOKED = true
+    end
+
+    -- 15. Security event suppression
+    if EventSystem and EventSystem.postEvent and not _G.__CB_SEC_HOOKED then
+        local origPost = EventSystem.postEvent
+        EventSystem.postEvent = function(t, id, ...)
+            if t == EVENTTYPE_SECURITY then
+                if bWriteLog then print("[Bypass] SECURITY event suppressed:", tostring(id)) end
+                return
+            end
+            return origPost(t, id, ...)
+        end
+        _G.__CB_SEC_ORIG_POST = origPost
+        _G.__CB_SEC_HOOKED = true
+    end
+
+    -- 16. LogExceptionAndReport
+    if _G.LogExceptionAndReport and not _G.__CB_LOG_HOOKED then
+        local origLog = _G.LogExceptionAndReport
+        _G.LogExceptionAndReport = function(msg)
+            if bWriteLog then print("[Bypass] LogExceptionAndReport suppressed") end
+        end
+        _G.__CB_LOG_ORIG = origLog
+        _G.__CB_LOG_HOOKED = true
+    end
+
+    -- 17. ClientToolsReport
+    do
+        local ok, ctr = pcall(require, "client.slua.logic.report.ClientToolsReport")
+        if ok and ctr and type(ctr.SendReport) == "function" and not ctr.__cbHooked then
+            ctr.__cbOrigSend = ctr.SendReport
+            ctr.SendReport = function(self, t, msg)
+                if bWriteLog then print("[Bypass] ClientToolsReport:SendReport suppressed") end
+            end
+            ctr.__cbHooked = true
+        end
+    end
+
+    _G.__CB_BYPASS_LOADED = true
+    print("[ok] CharacterBase verification bypass installed (client + DS)")
+end
+
+-- ========================================================================
 -- WHABypass TABLE + DETECTION SUBSYSTEM SPOOF
 -- ========================================================================
 local function _BYPASS_SetupWHABypassTable()
@@ -403,6 +606,7 @@ local function _BYPASS_Execute()
     local ok, err = pcall(function()
         _G._WHA_BYPASS_ACTIVE = true
         _BYPASS_InstallUltimateWallhackBypass()
+        _BYPASS_InstallCharacterBaseBypass()
         _BYPASS_SetupWHABypassTable()
         if _G.WHABypass and _G.WHABypass.Init then
             _G.WHABypass.Init()
