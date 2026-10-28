@@ -17164,9 +17164,7 @@ pcall(function()
     12201301, -- Hành động Sát thủ Gothic
     12216101, -- Hành động Võ sĩ Huyết Ưng
     12212201, -- Hành động Sát thủ Cực Ám
-    12219207, -- Hành động Đại tướng Thiên Ngưu
     12209001, -- Hành động Võ sĩ (Samurai)
-    12219561, -- Hành động Áo choàng Đỏ thẫm
     12210001, -- Hành động Cái chạm của Tử thần
     12219022, -- Hành động Thiết vệ Gai góc
     12208801, -- Hành động Dũng sĩ Bán thần
@@ -17185,7 +17183,6 @@ pcall(function()
     12211401, -- Hành động Nữ phù thủy Băng tuyết
     12207001, -- Hành động Du hành Biển sao
     12211801, -- Hành động Chúa tể Trật tự
-    12207901, -- Hành động Hải vương Quyến rũ
     12203401, -- Hành động Kỷ niệm Ảo ảnh
     12204001, -- Hành động Chú hề (Ngày Cá tháng Tư)
     12201801, -- Hành động Người bảo vệ Vùng tuyết
@@ -17195,11 +17192,11 @@ pcall(function()
     12215529, -- Hành động Kỵ sĩ Đua xe
     12219053, -- Hành động Nữ hoàng Trân bảo
     12204601, -- Hành động Thiên hạ Bố võ
-    12215701, -- Hành động Hành tinh Vượn người
     12219003, -- Hành động Bóng tối Thần linh
     12219004, -- Hành động Ngân hồn Rực lửa
     12219009, -- Hành động Mê hoặc Rực lửa
     12219216, -- Hành động Tế tư Héo úa
+    12201201,12201301,12201401,12201801,12201901,12202001,12202601,12202801,12202901,12203101,12203201,12203401,12203601,12203801,12204001,12204201,12204401,12204601,12205001,12205201,12205401,12205601,12205801, -- Hành động Tế tư Héo úa
     }
 
     -- TỐI ƯU CỰC ĐỘ: Cache dữ liệu trên RAM để game không phải tạo bảng mới mỗi lần bấm nút
