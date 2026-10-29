@@ -857,7 +857,7 @@ do
         if not (MM and MM.GetModule and MM.LobbyModuleConfig) then return end
         local cm = MM.GetModule(MM.LobbyModuleConfig.collect_module)
         if not cm then return end
-        local MAXL = 100
+        local MAXL = 97
         if type(cm.GetLevelByScore) == "function" and not cm.__x3lvl_a then
             cm.__x3lvl_a = true
             local o = cm.GetLevelByScore
@@ -883,7 +883,7 @@ do
             end
         end
         X3._SkinLvlOK = true
-        LexusTrace("skin collect level 100 terpasang (visual)")
+        LexusTrace("skin collect level 94 terpasang (visual)")
     end
 
     -- Lobby Visuals Tick (يفحص الـ flag كل 3 ثواني)
