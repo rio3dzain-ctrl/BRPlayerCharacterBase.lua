@@ -819,7 +819,7 @@ do
             DM.corps_money = M; DM.smelt = M; DM.battle_coin = M
             DM.wow_creation_score = M; DM.ugc_advanced_crystal = M
             DM.carteam_coin_count = M; DM.anchor = M; DM.anchor_origin = M
-            if DM.roleData then DM.roleData.bgbg_vip = 1; DM.roleData.level = 100 end
+            if DM.roleData then DM.roleData.bgbg_vip = 1; DM.roleData.level = 97 end
         end)
 
         -- Hook على InitRoleData لو موجود (للـ lobby re-init)
@@ -834,7 +834,7 @@ do
                     DM.corps_money = M; DM.smelt = M; DM.battle_coin = M
                     DM.wow_creation_score = M; DM.ugc_advanced_crystal = M
                     DM.carteam_coin_count = M; DM.anchor = M; DM.anchor_origin = M
-                    if DM.roleData then DM.roleData.bgbg_vip = 1; DM.roleData.level = 100 end
+                    if DM.roleData then DM.roleData.bgbg_vip = 1; DM.roleData.level = 97 end
                     local ES = rawget(_G, "EventSystem")
                     local ET = rawget(_G, "EVENTTYPE_DATA_MGR")
                     if ES and ES.postEvent and ET then
@@ -857,7 +857,7 @@ do
         if not (MM and MM.GetModule and MM.LobbyModuleConfig) then return end
         local cm = MM.GetModule(MM.LobbyModuleConfig.collect_module)
         if not cm then return end
-        local MAXL = 97
+        local MAXL = 94
         if type(cm.GetLevelByScore) == "function" and not cm.__x3lvl_a then
             cm.__x3lvl_a = true
             local o = cm.GetLevelByScore
@@ -883,7 +883,7 @@ do
             end
         end
         X3._SkinLvlOK = true
-        LexusTrace("skin collect level 94 terpasang (visual)")
+        LexusTrace("skin collect level 100 terpasang (visual)")
     end
 
     -- Lobby Visuals Tick (يفحص الـ flag كل 3 ثواني)
@@ -10092,6 +10092,7 @@ local ITEMS = {
     12219004, -- Hành động Ngân hồn Rực lửa
     12219009, -- Hành động Mê hoặc Rực lửa
     12219216, -- Hành động Tế tư Héo úa
+    12201201,12201301,12201401,12201801,12201901,12202001,12202601,12202801,12202901,12203101,12203201,12203401,12203601,12203801,12204001,12204201,12204401,12204601,12205001,12205201,12205401,12205601,12205801,
     
     -- tóc mặt tùm lum
     1404198, 1410085, 1404366, 1403137, 1410480, 1403028, 1400158, 40605011, 1404323, 1406001, 1403002,
