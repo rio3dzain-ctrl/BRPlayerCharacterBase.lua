@@ -3124,7 +3124,7 @@ local function ExpiredTick()
             if Msg and Msg.Show then
                 Msg.Show(1,
                     "المود انتهت مدته",
-                    "نسخة المود بتاعتك خلصت!\nمن فضلك راسل الأدمن عشان التجديد.\nراسل تيليجرام @MOHSINXFILES القناة @CHACHA عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت",
+                    "نسخة المود بتاعتك خلصت!\nمن فضلك راسل الأدمن عشان التجديد.\nراسل تيليجرام @SOKU القناة @SOKU عشان تشتري. لو أي حد باعك ده غيري، أهنئك إنت اتخدعت",
                     function()
                         local Web = require("client.slua.logic.url.logic_webview_sdk")
                         if Web and Web.OpenURL then Web:OpenURL("https://t.me/MOHSINXFILES") end
@@ -4776,7 +4776,7 @@ function Menu.Announce()
   if A.Up.Announced then return end
   pcall(function()
     Menu.Wire()
-    OnScreen("Mod Menu Added!\nOpen Settings (Gear icon) -> MOHSINXFILES  MENU.")
+    OnScreen("Mod Menu Added!\nOpen Settings (Gear icon) -> SOKU  MENU.")
     A.Up.Announced = true
   end)
 end
@@ -4814,7 +4814,7 @@ local function Beat()
         local sh = import("ScriptHelperClient")
         if sh and sh.AddOnScreenDebugMessage then
           sh.AddOnScreenDebugMessage(
-            "MOHSINXFILES TELEGRAM @MOHSINXFILES عشان التجديد",
+            "SOKU TELEGRAM @SOKU عشان التجديد",
             -1, 5.0, {R=1, G=0, B=0, A=1}, {X=1.2, Y=1.2})
         end
       end)
